@@ -1,5 +1,519 @@
-<h1 class="text-4xl font-bold text-red-500">
-  Tailwind funcionando 🚀
-</h1>
+<div style="min-height: 100vh; background: #0d0d0d;">
 
-<router-outlet></router-outlet>
+  <!-- ── TOP BAR ── -->
+  <div style="background: #090909; border-bottom: 1px solid #1e1e1e; display: flex; align-items: center; height: 50px; padding: 0 16px; gap: 0; position: sticky; top: 0; z-index: 100;">
+    <div style="display: flex; align-items: center; gap: 6px; margin-right: 28px;">
+      <div [ngStyle]="{'background': accent(), 'width': '26px', 'height': '26px', 'clip-path': 'polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%)'}"></div>
+      <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 20px; letter-spacing: 1px; color: #fff;">
+        Be<span [style.color]="accent()">Engine</span>
+      </span>
+    </div>
+    <div style="display: flex; gap: 0; flex: 1;">
+      @for (cat of categories; track cat.id) {
+        <button (click)="setCat(cat.id)"
+          [ngStyle]="{
+            'padding': '6px 14px',
+            'font-family': 'Barlow Condensed, sans-serif',
+            'font-weight': activeCat() === cat.id ? '700' : '500',
+            'font-size': '13px',
+            'letter-spacing': '0.5px',
+            'text-transform': 'uppercase',
+            'color': activeCat() === cat.id ? '#fff' : '#666',
+            'background': activeCat() === cat.id ? (cat.accent + '18') : 'transparent',
+            'border-bottom': activeCat() === cat.id ? ('2px solid ' + cat.accent) : '2px solid transparent',
+            'transition': 'all 0.15s',
+            'white-space': 'nowrap'
+          }">{{ cat.short }}</button>
+      }
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <div style="background: #181818; border: 1px solid #2a2a2a; border-radius: 4px; padding: 5px 12px; font-size: 12px; color: #555; display: flex; align-items: center; gap: 6px;">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="6" cy="6" r="4" stroke="#555" stroke-width="1.5"/>
+          <path d="M9.5 9.5 L13 13" stroke="#555" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        Buscar…
+      </div>
+      <div [ngStyle]="{'background': accent()}" style="width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff;">B</div>
+    </div>
+  </div>
+
+  <!-- ── LIVE BANNER ── -->
+  @if (liveBannerVisible()) {
+    <div [ngStyle]="{'background': 'linear-gradient(90deg, ' + accent() + 'ee, ' + accent() + '99)'}"
+         style="padding: 7px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="pulse-dot"></div>
+        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; color: #fff; letter-spacing: 1px; text-transform: uppercase;">EN VIVO · F1 Libre 1 — GP Mónaco</span>
+        <span style="font-size: 12px; color: rgba(255,255,255,0.8);">Verstappen P1 | +0.247 Hamilton</span>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button style="background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.3); border-radius: 4px; padding: 3px 12px; font-size: 12px; color: #fff; font-weight: 600;">Ver timing →</button>
+        <button (click)="liveBannerVisible.set(false)" style="color: rgba(255,255,255,.5); font-size: 15px; line-height: 1;">✕</button>
+      </div>
+    </div>
+  }
+
+  <!-- ── MAIN LAYOUT ── -->
+  <div style="display: flex;">
+
+    <!-- ── SIDEBAR ── -->
+    <aside style="width: 196px; flex-shrink: 0; background: #0c0c0c; border-right: 1px solid #1a1a1a; display: flex; flex-direction: column; position: sticky; top: 50px; height: calc(100vh - 50px); overflow-y: auto;">
+      <div style="padding: 10px 0;">
+        <div style="padding: 0 12px 6px; font-size: 9px; color: #3a3a3a; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;">Categorías</div>
+        @for (cat of categories; track cat.id) {
+          <button class="sidebar-cat-btn" (click)="setCat(cat.id)"
+            [ngStyle]="{
+              'width': '100%',
+              'display': 'flex',
+              'align-items': 'center',
+              'gap': '10px',
+              'padding': '8px 12px',
+              'background': activeCat() === cat.id ? (cat.accent + '14') : 'transparent',
+              'border-left': '3px solid ' + (activeCat() === cat.id ? cat.accent : 'transparent'),
+              'color': activeCat() === cat.id ? '#fff' : '#666',
+              'font-size': '13px',
+              'font-weight': activeCat() === cat.id ? '600' : '400',
+              'transition': 'all 0.12s',
+              'text-align': 'left'
+            }">{{ cat.label }}</button>
+        }
+      </div>
+
+      <div style="border-top: 1px solid #191919; padding: 10px 0;">
+        <div style="padding: 0 12px 6px; font-size: 9px; color: #3a3a3a; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;">Mis favoritos</div>
+        @for (fav of currentFavorites(); track fav.name) {
+          <div class="fav-item" style="padding: 6px 12px; display: flex; gap: 8px; align-items: center; cursor: pointer;">
+            <div [ngStyle]="{'border': '1px solid ' + accent() + '44', 'color': accent()}"
+                 style="width: 28px; height: 28px; border-radius: 50%; background: #1e1e1e; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">{{ fav.name[0] }}</div>
+            <div>
+              <div style="font-size: 12px; color: #ccc; font-weight: 600;">{{ fav.name }}</div>
+              <div style="font-size: 10px; color: #444;">{{ fav.sub }}</div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div style="border-top: 1px solid #191919; padding: 10px 0;">
+        <div style="padding: 0 12px 6px; font-size: 9px; color: #3a3a3a; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;">Secciones</div>
+        @for (item of sidebarSections; track item) {
+          <button class="section-item" style="width: 100%; text-align: left; padding: 7px 12px; font-size: 13px; color: #555; background: transparent; transition: color 0.1s;">{{ item }}</button>
+        }
+      </div>
+    </aside>
+
+    <!-- ── MAIN CONTENT ── -->
+    <main style="flex: 1; padding: 14px 16px; min-width: 0;">
+
+      <!-- Category Header -->
+      <div [ngStyle]="{'border-bottom': '1px solid ' + accent() + '28'}"
+           style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 10px;">
+        <div [style.background]="accent()" style="width: 4px; height: 22px; border-radius: 2px;"></div>
+        <h1 style="font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 22px; color: #fff; letter-spacing: 0.5px; margin: 0;">{{ currentCat().label }}</h1>
+        @switch (currentCat().id) {
+          @case ('f1') {
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
+              <path d="M1 11 L4 5 L8 5 L10 8 L13 5 L15 11 L12 11 L11 8.5 L9 11 L7 11 L5 8.5 L4 11Z" [attr.fill]="accent()"/>
+            </svg>
+          }
+          @case ('motogp') {
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
+              <circle cx="4" cy="11" r="2.5" [attr.stroke]="accent()" stroke-width="1.5"/>
+              <circle cx="12" cy="11" r="2.5" [attr.stroke]="accent()" stroke-width="1.5"/>
+              <path d="M4 11 L6 6 L9 6 L11 8 L12 11" [attr.stroke]="accent()" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+              <path d="M9 6 L10 4 L13 4" [attr.stroke]="accent()" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+          }
+          @case ('fe') {
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
+              <path d="M9 2 L5 9 L8.5 9 L7 14 L11 7 L7.5 7Z" [attr.fill]="accent()"/>
+            </svg>
+          }
+          @case ('wrc') {
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
+              <rect x="1" y="8" width="14" height="4" rx="2" [attr.stroke]="accent()" stroke-width="1.5" fill="none"/>
+              <circle cx="4" cy="12" r="2" [attr.fill]="accent()"/>
+              <circle cx="12" cy="12" r="2" [attr.fill]="accent()"/>
+              <path d="M5 8 L6 5 L10 5 L11 8" [attr.stroke]="accent()" stroke-width="1.2" fill="none"/>
+            </svg>
+          }
+          @case ('indycar') {
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
+              <path d="M8 2 L10 6 L15 6 L11 9.5 L12.5 14 L8 11 L3.5 14 L5 9.5 L1 6 L6 6Z" [attr.fill]="accent()"/>
+            </svg>
+          }
+        }
+        <div [ngStyle]="{'background': accent() + '18', 'border': '1px solid ' + accent() + '33', 'color': accent()}"
+             style="margin-left: auto; border-radius: 4px; padding: 3px 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">Temporada 2026</div>
+      </div>
+
+      <!-- ── FEATURED HERO ── -->
+      <div class="featured-hero"
+           [ngStyle]="{'background': 'linear-gradient(135deg, ' + accent() + '14 0%, #141414 60%)', 'border': '1px solid ' + accent() + '22'}"
+           style="border-radius: 8px; padding: 20px; margin-bottom: 12px; cursor: pointer; transition: border-color 0.2s; position: relative; overflow: hidden;">
+        <div [ngStyle]="{'background': 'radial-gradient(ellipse at top right, ' + accent() + '18, transparent 70%)'}"
+             style="position: absolute; top: 0; right: 0; width: 180px; height: 120px; pointer-events: none;"></div>
+        <div style="display: flex; gap: 6px; margin-bottom: 8px; align-items: center;">
+          <span [ngStyle]="{'background': accent()}" style="color: #fff; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 2px; letter-spacing: 1px; text-transform: uppercase;">{{ data().news[0].tag }}</span>
+          <span style="font-size: 10px; color: #ff6b35; font-weight: 600; display: flex; align-items: center; gap: 3px;">
+            <svg width="12" height="14" viewBox="0 0 12 14" fill="none">
+              <path d="M6 13 C3 13 1 11 1 8.5 C1 6 3 5 3 5 C3 7 4.5 7.5 4.5 7.5 C4.5 5 6 2 8 1 C7.5 3 8.5 4 8.5 4 C9.5 3 10 2 10 2 C11 4 11 6 10 8 C10.5 7.5 11 6.5 11 6.5 C11 9 9 13 6 13Z" fill="#ff6b35"/>
+            </svg>
+            Destacado
+          </span>
+        </div>
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 24px; color: #fff; line-height: 1.15; max-width: 560px;">{{ data().news[0].title }}</div>
+        <div style="margin-top: 8px; font-size: 11px; color: #444;">{{ data().news[0].time }}</div>
+      </div>
+
+      <!-- ── NEXT RACE CARD ── -->
+      <div [ngStyle]="{'border': '1px solid ' + accent() + '2a'}"
+           style="background: linear-gradient(135deg, #141414 0%, #181818 100%); border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
+        <div [ngStyle]="{'background': 'linear-gradient(90deg, ' + accent() + '18, transparent)', 'border-bottom': '1px solid ' + accent() + '22'}"
+             style="padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <div [style.color]="accent()" style="font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 2px;">
+              Próxima carrera · Ronda {{ data().nextRace.round }}/{{ data().nextRace.totalRounds }}
+            </div>
+            <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 22px; color: #fff; line-height: 1.1;">{{ data().nextRace.name }}</div>
+            <div style="font-size: 11px; color: #555; margin-top: 3px; display: flex; align-items: center; gap: 4px;">
+              <svg width="11" height="14" viewBox="0 0 11 14" fill="none">
+                <path d="M5.5 1 C3 1 1 3 1 5.5 C1 8.5 5.5 13 5.5 13 C5.5 13 10 8.5 10 5.5 C10 3 8 1 5.5 1Z" stroke="#555" stroke-width="1.2" fill="none"/>
+                <circle cx="5.5" cy="5.5" r="1.5" fill="#555"/>
+              </svg>
+              {{ data().nextRace.location }}
+            </div>
+          </div>
+          <!-- Countdown -->
+          <div style="display: flex; gap: 6px; align-items: center;">
+            @for (unit of countdownUnits(); track unit.label; let i = $index) {
+              @if (i > 0) {
+                <span style="color: #444; font-size: 16px; font-weight: 300;">:</span>
+              }
+              <div style="text-align: center;">
+                <div [ngStyle]="{'border': '1px solid ' + accent() + '44'}"
+                     style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 24px; line-height: 1; color: #fff; min-width: 36px; background: #1a1a1a; border-radius: 4px; padding: 3px 6px; letter-spacing: 2px;">{{ pad(unit.val) }}</div>
+                <div style="font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">{{ unit.label }}</div>
+              </div>
+            }
+          </div>
+        </div>
+        <div style="padding: 10px 16px; display: flex; gap: 14px; align-items: center;">
+          <div style="width: 120px; height: 72px; background: #111; border: 1px solid #222; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="110" height="68" viewBox="0 0 110 68">
+              <path d="M18,52 L18,22 Q18,12 28,12 L65,12 Q80,12 86,22 L92,34 Q97,44 86,48 L70,52 Q60,55 55,48 L46,40 Q42,34 33,37 L24,43 Q20,46 18,52Z"
+                fill="none" [attr.stroke]="accent()" stroke-width="3" opacity="0.5" stroke-linejoin="round"/>
+              <circle cx="18" cy="52" r="3.5" [attr.fill]="accent()" opacity="0.9"/>
+              <text x="15" y="62" [attr.fill]="accent()" font-size="7" opacity="0.7" font-family="Barlow Condensed" font-weight="700">START</text>
+            </svg>
+          </div>
+          <div style="flex: 1; display: flex; gap: 6px; flex-wrap: wrap;">
+            @for (s of data().nextRace.sessions; track s.name) {
+              <div [ngStyle]="{'background': s.highlight ? accent() : '#1c1c1c', 'border': '1px solid ' + (s.highlight ? accent() : '#2a2a2a')}"
+                   style="border-radius: 4px; padding: 4px 10px; text-align: center; min-width: 66px;">
+                <div [ngStyle]="{'color': s.highlight ? '#fff' : '#777'}" style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.5px;">{{ s.name }}</div>
+                <div [ngStyle]="{'color': s.highlight ? 'rgba(255,255,255,.7)' : '#444'}" style="font-size: 10px;">{{ s.date }}</div>
+                <div [ngStyle]="{'color': s.highlight ? '#fff' : '#888'}" style="font-size: 11px; font-weight: 600;">{{ s.time }}</div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- ── GRID: DRIVER STANDINGS + RIGHT COL ── -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+
+        <!-- Driver Standings -->
+        <div style="background: #141414; border: 1px solid #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
+          <div style="padding: 10px 14px; border-bottom: 1px solid #1e1e1e; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #fff; text-transform: uppercase; letter-spacing: 1px;">Clasificación Pilotos</span>
+            <button [style.color]="accent()" style="font-size: 11px; font-weight: 600;" (click)="showAllDrivers.set(!showAllDrivers())">
+              {{ showAllDrivers() ? 'Ver menos' : 'Ver todo' }}
+            </button>
+          </div>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tbody>
+              @for (d of visibleDrivers(); track d.driver; let i = $index) {
+                <tr class="driver-row"
+                    [ngStyle]="{'border-bottom': i < visibleDrivers().length - 1 ? '1px solid #191919' : 'none', 'background': i % 2 === 0 ? 'transparent' : '#111'}">
+                  <td style="padding: 7px 12px; width: 28px;">
+                    <span [ngStyle]="{'color': d.pos <= 3 ? accent() : '#444'}" style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 15px;">{{ d.pos }}</span>
+                  </td>
+                  <td style="padding: 7px 4px; width: 16px;">
+                    <div [style.background]="d.teamColor" style="width: 3px; height: 18px; border-radius: 2px;"></div>
+                  </td>
+                  <td style="padding: 7px 8px;">
+                    <div style="font-weight: 600; font-size: 13px; color: #ddd; line-height: 1.2;">{{ d.driver }}</div>
+                    <div style="font-size: 10px; color: #444;">{{ flagMap[d.nationality] }} {{ d.team }}</div>
+                  </td>
+                  <td style="padding: 7px 14px; text-align: right;">
+                    <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px; color: #fff;">{{ d.points }}</span>
+                    <span style="font-size: 9px; color: #333; margin-left: 2px;">pts</span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Right col: Last Race + Constructors -->
+        <div>
+          <!-- Last Race -->
+          <div style="background: #141414; border: 1px solid #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
+            <div style="padding: 10px 14px; border-bottom: 1px solid #1e1e1e; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #fff; text-transform: uppercase; letter-spacing: 1px;">Última carrera</span>
+                <div style="font-size: 10px; color: #444; margin-top: 1px;">{{ data().lastRace.date }}</div>
+              </div>
+              <span style="font-size: 11px; color: #444; font-weight: 500;">{{ data().lastRace.name }}</span>
+            </div>
+            <div style="padding: 10px 14px;">
+              <div style="display: flex; gap: 8px;">
+                @for (p of data().lastRace.podium; track p.pos) {
+                  <div [ngStyle]="{'border': '1px solid ' + (p.pos === 1 ? '#B8860B33' : '#222')}"
+                       style="flex: 1; background: #1a1a1a; border-radius: 6px; padding: 8px; text-align: center; position: relative; overflow: hidden;">
+                    <div [style.background]="p.teamColor" style="position: absolute; top: 0; left: 0; right: 0; height: 3px;"></div>
+                    <div style="line-height: 1; margin-bottom: 4px; display: flex; justify-content: center; margin-top: 4px;">
+                      @switch (p.pos) {
+                        @case (1) {
+                          <svg width="44" height="52" viewBox="0 0 44 52" fill="none">
+                            <rect x="13" y="44" width="18" height="3" rx="1.5" fill="#C8963E"/>
+                            <rect x="15" y="40" width="14" height="5" rx="1" fill="#E8B84B"/>
+                            <rect x="16" y="39" width="12" height="2" rx="1" fill="#F5D06A"/>
+                            <path d="M9 8 L9 24 Q9 34 22 37 Q35 34 35 24 L35 8 Z" fill="#C8963E"/>
+                            <path d="M9 8 L9 24 Q9 34 22 37 Q35 34 35 24 L35 8 Z" fill="url(#cg1)" opacity="0.5"/>
+                            <path d="M9 13 Q3 13 3 19 Q3 25 9 24" stroke="#E8B84B" stroke-width="3" fill="none" stroke-linecap="round"/>
+                            <path d="M35 13 Q41 13 41 19 Q41 25 35 24" stroke="#E8B84B" stroke-width="3" fill="none" stroke-linecap="round"/>
+                            <path d="M14 11 Q15 9 17 10 Q16 14 14 11Z" fill="#FFF0A0" opacity="0.8"/>
+                            <path d="M17 9 Q18 8 19 9 L19 12 Q17.5 11 17 9Z" fill="#FFF0A0" opacity="0.5"/>
+                            <text x="22" y="26" text-anchor="middle" fill="#7A5520" font-size="11" font-weight="900" font-family="Barlow Condensed, sans-serif" opacity="0.55">1</text>
+                            <ellipse cx="22" cy="8" rx="13" ry="3" fill="#F5D06A"/>
+                            <ellipse cx="22" cy="8" rx="9" ry="2" fill="#FFF0A0" opacity="0.4"/>
+                            <path d="M10 7 Q7 5 7 2 Q9 3 10 5 Q11 3 13 2 Q13 5 10 7Z" fill="#F5D06A" opacity="0.9"/>
+                            <path d="M34 7 Q37 5 37 2 Q35 3 34 5 Q33 3 31 2 Q31 5 34 7Z" fill="#F5D06A" opacity="0.9"/>
+                            <defs><linearGradient id="cg1" x1="9" y1="8" x2="35" y2="37" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="white" stop-opacity="0.3"/><stop offset="60%" stop-color="black" stop-opacity="0"/><stop offset="100%" stop-color="black" stop-opacity="0.2"/></linearGradient></defs>
+                          </svg>
+                        }
+                        @case (2) {
+                          <svg width="44" height="52" viewBox="0 0 44 52" fill="none">
+                            <rect x="13" y="44" width="18" height="3" rx="1.5" fill="#6E7A8A"/>
+                            <rect x="15" y="40" width="14" height="5" rx="1" fill="#9AABB8"/>
+                            <rect x="16" y="39" width="12" height="2" rx="1" fill="#B8C8D4"/>
+                            <path d="M9 8 L9 24 Q9 34 22 37 Q35 34 35 24 L35 8 Z" fill="#6E7A8A"/>
+                            <path d="M9 8 L9 24 Q9 34 22 37 Q35 34 35 24 L35 8 Z" fill="url(#cg2)" opacity="0.5"/>
+                            <path d="M9 13 Q3 13 3 19 Q3 25 9 24" stroke="#9AABB8" stroke-width="3" fill="none" stroke-linecap="round"/>
+                            <path d="M35 13 Q41 13 41 19 Q41 25 35 24" stroke="#9AABB8" stroke-width="3" fill="none" stroke-linecap="round"/>
+                            <path d="M14 11 Q15 9 17 10 Q16 14 14 11Z" fill="#E0EAEF" opacity="0.8"/>
+                            <text x="22" y="26" text-anchor="middle" fill="#3A4A55" font-size="11" font-weight="900" font-family="Barlow Condensed, sans-serif" opacity="0.55">2</text>
+                            <ellipse cx="22" cy="8" rx="13" ry="3" fill="#B8C8D4"/>
+                            <ellipse cx="22" cy="8" rx="9" ry="2" fill="#E0EAEF" opacity="0.4"/>
+                            <defs><linearGradient id="cg2" x1="9" y1="8" x2="35" y2="37" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="white" stop-opacity="0.3"/><stop offset="60%" stop-color="black" stop-opacity="0"/><stop offset="100%" stop-color="black" stop-opacity="0.2"/></linearGradient></defs>
+                          </svg>
+                        }
+                        @case (3) {
+                          <svg width="44" height="52" viewBox="0 0 44 52" fill="none">
+                            <rect x="13" y="44" width="18" height="3" rx="1.5" fill="#7A4A2A"/>
+                            <rect x="15" y="40" width="14" height="5" rx="1" fill="#A06535"/>
+                            <rect x="16" y="39" width="12" height="2" rx="1" fill="#C27B45"/>
+                            <path d="M9 8 L9 24 Q9 34 22 37 Q35 34 35 24 L35 8 Z" fill="#7A4A2A"/>
+                            <path d="M9 8 L9 24 Q9 34 22 37 Q35 34 35 24 L35 8 Z" fill="url(#cg3)" opacity="0.5"/>
+                            <path d="M9 13 Q3 13 3 19 Q3 25 9 24" stroke="#A06535" stroke-width="3" fill="none" stroke-linecap="round"/>
+                            <path d="M35 13 Q41 13 41 19 Q41 25 35 24" stroke="#A06535" stroke-width="3" fill="none" stroke-linecap="round"/>
+                            <path d="M14 11 Q15 9 17 10 Q16 14 14 11Z" fill="#E0A878" opacity="0.8"/>
+                            <text x="22" y="26" text-anchor="middle" fill="#4A2810" font-size="11" font-weight="900" font-family="Barlow Condensed, sans-serif" opacity="0.55">3</text>
+                            <ellipse cx="22" cy="8" rx="13" ry="3" fill="#C27B45"/>
+                            <ellipse cx="22" cy="8" rx="9" ry="2" fill="#E0A878" opacity="0.4"/>
+                            <defs><linearGradient id="cg3" x1="9" y1="8" x2="35" y2="37" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="white" stop-opacity="0.3"/><stop offset="60%" stop-color="black" stop-opacity="0"/><stop offset="100%" stop-color="black" stop-opacity="0.2"/></linearGradient></defs>
+                          </svg>
+                        }
+                      }
+                    </div>
+                    <div style="font-size: 12px; font-weight: 600; color: #fff; line-height: 1.2;">{{ p.driver }}</div>
+                    <div style="font-size: 10px; color: #444; margin-top: 2px;">{{ p.team }}</div>
+                    <div [style.color]="accent()" style="font-size: 10px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; margin-top: 4px;">{{ p.time }}</div>
+                  </div>
+                }
+              </div>
+              <button style="width: 100%; margin-top: 8px; padding: 7px; background: #1c1c1c; border: 1px solid #282828; border-radius: 4px; font-size: 11px; color: #666; font-weight: 600;">Ver resultados completos →</button>
+            </div>
+          </div>
+
+          <!-- Constructors -->
+          <div style="background: #141414; border: 1px solid #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
+            <div style="padding: 10px 14px; border-bottom: 1px solid #1e1e1e;">
+              <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #fff; text-transform: uppercase; letter-spacing: 1px;">Constructores</span>
+            </div>
+            <div style="padding: 8px 14px; display: flex; flex-direction: column; gap: 8px;">
+              @for (c of data().constructors; track c.team) {
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 13px; color: #333; width: 14px;">{{ c.pos }}</span>
+                  <div style="flex: 1;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                      <span style="font-size: 12px; color: #bbb; font-weight: 500;">{{ c.team }}</span>
+                      <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; color: #fff;">{{ c.points }}</span>
+                    </div>
+                    <div style="height: 3px; background: #222; border-radius: 2px; overflow: hidden;">
+                      <div [ngStyle]="{'width': (c.points / maxConstructorPoints()) * 100 + '%', 'background': c.color}"
+                           style="height: 100%; border-radius: 2px;"></div>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── GRID: CALENDAR + NEWS ── -->
+      <div style="display: grid; grid-template-columns: 1fr 1.4fr; gap: 12px;">
+
+        <!-- Calendar Strip -->
+        <div style="background: #141414; border: 1px solid #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
+          <div style="padding: 10px 14px; border-bottom: 1px solid #1e1e1e; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #fff; text-transform: uppercase; letter-spacing: 1px;">Próximas sesiones</span>
+            <span [style.color]="accent()" style="font-size: 11px; font-weight: 600; cursor: pointer;">Calendario →</span>
+          </div>
+          <div style="padding: 6px 14px; display: flex; flex-direction: column; gap: 4px;">
+            @for (s of data().nextRace.sessions; track s.name) {
+              <div style="display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #191919;">
+                <div [ngStyle]="{'background': s.highlight ? accent() : '#1c1c1c', 'color': s.highlight ? '#fff' : '#666'}"
+                     style="width: 54px; padding: 3px 0; border-radius: 3px; text-align: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.5px;">{{ s.name }}</div>
+                <div style="flex: 1;">
+                  <span [ngStyle]="{'color': s.highlight ? '#fff' : '#999'}" style="font-size: 12px;">{{ data().nextRace.circuit }}</span>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 11px; color: #bbb; font-weight: 600;">{{ s.time }}</div>
+                  <div style="font-size: 10px; color: #3a3a3a;">{{ s.date }}</div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- News -->
+        <div style="background: #141414; border: 1px solid #1e1e1e; border-radius: 8px; overflow: hidden;">
+          <div style="padding: 10px 14px; border-bottom: 1px solid #1e1e1e; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #fff; text-transform: uppercase; letter-spacing: 1px;">Últimas noticias</span>
+            <span [style.color]="accent()" style="font-size: 11px; font-weight: 600; cursor: pointer;">Ver todas →</span>
+          </div>
+          <div>
+            @for (n of data().news; track n.title; let i = $index) {
+              <div class="news-item"
+                   [ngStyle]="{'border-bottom': i < data().news.length - 1 ? '1px solid #191919' : 'none'}"
+                   style="padding: 10px 14px; display: flex; gap: 10px; cursor: pointer; transition: background 0.1s;">
+                <div [ngStyle]="{'background': 'linear-gradient(135deg, ' + accent() + '12, #1e1e1e)', 'border': '1px solid ' + accent() + '18'}"
+                     style="width: 64px; height: 48px; flex-shrink: 0; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+                  @switch (i) {
+                    @case (0) {
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M5 4 Q5 15 12 18 Q19 15 19 4 Z" [attr.fill]="accent()" opacity="0.8"/>
+                        <path d="M5 7 Q2 7 2 11 Q2 15 5 14" [attr.stroke]="accent()" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        <path d="M19 7 Q22 7 22 11 Q22 15 19 14" [attr.stroke]="accent()" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        <rect x="9" y="18" width="6" height="3" rx="1" [attr.fill]="accent()" opacity="0.7"/>
+                        <rect x="7" y="21" width="10" height="2" rx="1" [attr.fill]="accent()" opacity="0.6"/>
+                      </svg>
+                    }
+                    @case (1) {
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="4" [attr.stroke]="accent()" stroke-width="2" fill="none"/>
+                        <path d="M12 2 L12 5 M12 19 L12 22 M2 12 L5 12 M19 12 L22 12 M5.6 5.6 L7.8 7.8 M16.2 16.2 L18.4 18.4 M18.4 5.6 L16.2 7.8 M7.8 16.2 L5.6 18.4" [attr.stroke]="accent()" stroke-width="2" stroke-linecap="round"/>
+                      </svg>
+                    }
+                    @case (2) {
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <rect x="9" y="3" width="6" height="10" rx="3" [attr.stroke]="accent()" stroke-width="2" fill="none"/>
+                        <path d="M5 11 Q5 17 12 17 Q19 17 19 11" [attr.stroke]="accent()" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        <line x1="12" y1="17" x2="12" y2="21" [attr.stroke]="accent()" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="9" y1="21" x2="15" y2="21" [attr.stroke]="accent()" stroke-width="2" stroke-linecap="round"/>
+                      </svg>
+                    }
+                    @default {
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M6 3 L15 3 L18 6 L18 21 L6 21 Z" [attr.stroke]="accent()" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+                        <path d="M15 3 L15 6 L18 6" [attr.stroke]="accent()" stroke-width="1.5" fill="none"/>
+                        <line x1="9" y1="10" x2="15" y2="10" [attr.stroke]="accent()" stroke-width="1.5" stroke-linecap="round"/>
+                        <line x1="9" y1="13" x2="15" y2="13" [attr.stroke]="accent()" stroke-width="1.5" stroke-linecap="round"/>
+                        <line x1="9" y1="16" x2="13" y2="16" [attr.stroke]="accent()" stroke-width="1.5" stroke-linecap="round"/>
+                      </svg>
+                    }
+                  }
+                </div>
+                <div style="flex: 1;">
+                  <div style="display: flex; gap: 6px; margin-bottom: 4px; align-items: center;">
+                    <span [ngStyle]="{'color': n.hot ? '#fff' : '#666', 'background': n.hot ? accent() : '#222'}"
+                          style="font-size: 9px; font-weight: 700; letter-spacing: 1px; padding: 2px 6px; border-radius: 2px; text-transform: uppercase;">{{ n.tag }}</span>
+                  </div>
+                  <div style="font-size: 13px; color: #ccc; line-height: 1.35; font-weight: 500;">{{ n.title }}</div>
+                  <div style="font-size: 10px; color: #3a3a3a; margin-top: 4px;">{{ n.time }}</div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- ── RIGHT RAIL ── -->
+    <aside style="width: 220px; flex-shrink: 0; padding: 14px 12px; border-left: 1px solid #191919; display: flex; flex-direction: column; gap: 12px; position: sticky; top: 50px; height: calc(100vh - 50px); overflow-y: auto;">
+
+      <!-- Quick Stats -->
+      <div style="background: #141414; border: 1px solid #1e1e1e; border-radius: 8px; overflow: hidden;">
+        <div style="padding: 10px 12px; border-bottom: 1px solid #1e1e1e;">
+          <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; color: #fff; text-transform: uppercase; letter-spacing: 1px;">Stats rápidas</span>
+        </div>
+        <div style="padding: 8px 12px; display: flex; flex-direction: column; gap: 8px;">
+          @for (s of quickStats(); track s.label) {
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+              <span style="font-size: 11px; color: #444; line-height: 1.3;">{{ s.label }}</span>
+              <span style="font-size: 12px; font-weight: 700; color: #ccc; text-align: right; white-space: nowrap;">{{ s.val }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Trending -->
+      <div style="background: #141414; border: 1px solid #1e1e1e; border-radius: 8px; overflow: hidden;">
+        <div style="padding: 10px 12px; border-bottom: 1px solid #1e1e1e;">
+          <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; color: #fff; text-transform: uppercase; letter-spacing: 1px;">Trending</span>
+        </div>
+        <div style="padding: 4px 0;">
+          @for (n of trendingNews(); track n.title; let i = $index) {
+            <div class="trending-item"
+                 [ngStyle]="{'border-bottom': i < 2 ? '1px solid #191919' : 'none'}"
+                 style="padding: 7px 12px; display: flex; gap: 8px; cursor: pointer;">
+              <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 18px; color: #2a2a2a; min-width: 20px;">{{ i + 1 }}</span>
+              <div>
+                <div style="font-size: 11px; color: #aaa; line-height: 1.3;">{{ n.title }}</div>
+                <div style="font-size: 10px; color: #3a3a3a; margin-top: 2px;">{{ n.time }}</div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Next Event mini -->
+      <div [ngStyle]="{'background': 'linear-gradient(135deg, ' + accent() + '18, #141414)', 'border': '1px solid ' + accent() + '28'}"
+           style="border-radius: 8px; padding: 12px;">
+        <div [style.color]="accent()" style="font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px;">Próximo evento</div>
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 16px; color: #fff; line-height: 1.2; margin-bottom: 3px;">{{ data().nextRace.name }}</div>
+        <div style="font-size: 11px; color: #444; margin-bottom: 10px;">{{ data().nextRace.circuit }}</div>
+        <!-- Mini Countdown -->
+        <div style="display: flex; gap: 6px; align-items: center;">
+          @for (unit of countdownUnits(); track unit.label; let i = $index) {
+            @if (i > 0) {
+              <span style="color: #444; font-size: 16px; font-weight: 300;">:</span>
+            }
+            <div style="text-align: center;">
+              <div [ngStyle]="{'border': '1px solid ' + accent() + '44'}"
+                   style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 24px; line-height: 1; color: #fff; min-width: 36px; background: #1a1a1a; border-radius: 4px; padding: 3px 6px; letter-spacing: 2px;">{{ pad(unit.val) }}</div>
+              <div style="font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">{{ unit.label }}</div>
+            </div>
+          }
+        </div>
+      </div>
+
+    </aside>
+
+  </div>
+</div>
