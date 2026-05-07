@@ -1,216 +1,229 @@
 <div style="min-height: 100vh; background: #0d0d0d;">
 
-  <app-topbar
-    [categories]="categories"
-    [activeCat]="activeCat()"
-    [accent]="accent()"
-    (catChange)="setCat($event)">
-  </app-topbar>
-
-  <!-- ── LIVE BANNER ── -->
-  @if (liveBannerVisible()) {
-    <div
-      [ngStyle]="{'background': 'linear-gradient(90deg, ' + accent() + 'ee, ' + accent() + '99)'}"
-      style="padding: 7px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <div class="pulse-dot"></div>
-        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; color: #fff; letter-spacing: 1px; text-transform: uppercase;">EN VIVO · F1 Libre 1 — GP Mónaco</span>
-        <span style="font-size: 12px; color: rgba(255,255,255,0.8);">Verstappen P1 | +0.247 Hamilton</span>
-      </div>
-      <div style="display: flex; gap: 8px; align-items: center;">
-        <button style="background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.3); border-radius: 4px; padding: 3px 12px; font-size: 12px; color: #fff; font-weight: 600;">Ver timing →</button>
-        <button (click)="liveBannerVisible.set(false)" style="color: rgba(255,255,255,.5); font-size: 15px; line-height: 1;">✕</button>
-      </div>
+  @if (loading()) {
+    <div style="display: flex; align-items: center; justify-content: center; height: 100vh; color: #555; font-size: 14px; font-family: 'Barlow', sans-serif;">
+      Cargando datos…
     </div>
-  }
+  } @else if (error()) {
+    <div style="display: flex; align-items: center; justify-content: center; height: 100vh; padding: 20px; text-align: center;">
+      <span style="color: #e55; font-size: 14px; font-family: 'Barlow', sans-serif; max-width: 360px; line-height: 1.6;">
+        No se pudieron cargar los datos. Revisa que el backend esté arrancado.
+      </span>
+    </div>
+  } @else {
 
-  <!-- ── MAIN LAYOUT ── -->
-  <div style="display: flex;">
-
-    <app-sidebar
-      [categories]="categories"
+    <app-topbar
+      [categories]="categories()"
       [activeCat]="activeCat()"
       [accent]="accent()"
-      [favorites]="currentFavorites()"
-      [sections]="sidebarSections"
       (catChange)="setCat($event)">
-    </app-sidebar>
+    </app-topbar>
 
-    <!-- ── MAIN CONTENT ── -->
-    <main style="flex: 1; padding: 14px 16px; min-width: 0;">
-
-      <!-- Category Header -->
+    <!-- ── LIVE BANNER ── -->
+    @if (liveBannerVisible()) {
       <div
-        [ngStyle]="{'border-bottom': '1px solid ' + accent() + '28'}"
-        style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 10px;">
-        <div [style.background]="accent()" style="width: 4px; height: 22px; border-radius: 2px;"></div>
-        <h1 style="font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 22px; color: #fff; letter-spacing: 0.5px; margin: 0;">{{ currentCat().label }}</h1>
-        @switch (currentCat().id) {
-          @case ('f1') {
-            <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M1 11 L4 5 L8 5 L10 8 L13 5 L15 11 L12 11 L11 8.5 L9 11 L7 11 L5 8.5 L4 11Z" [attr.fill]="accent()"/></svg>
-          }
-          @case ('motogp') {
-            <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><circle cx="4" cy="11" r="2.5" [attr.stroke]="accent()" stroke-width="1.5"/><circle cx="12" cy="11" r="2.5" [attr.stroke]="accent()" stroke-width="1.5"/><path d="M4 11 L6 6 L9 6 L11 8 L12 11" [attr.stroke]="accent()" stroke-width="1.5" stroke-linejoin="round" fill="none"/><path d="M9 6 L10 4 L13 4" [attr.stroke]="accent()" stroke-width="1.2" stroke-linecap="round"/></svg>
-          }
-          @case ('fe') {
-            <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M9 2 L5 9 L8.5 9 L7 14 L11 7 L7.5 7Z" [attr.fill]="accent()"/></svg>
-          }
-          @case ('wrc') {
-            <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><rect x="1" y="8" width="14" height="4" rx="2" [attr.stroke]="accent()" stroke-width="1.5" fill="none"/><circle cx="4" cy="12" r="2" [attr.fill]="accent()"/><circle cx="12" cy="12" r="2" [attr.fill]="accent()"/><path d="M5 8 L6 5 L10 5 L11 8" [attr.stroke]="accent()" stroke-width="1.2" fill="none"/></svg>
-          }
-          @case ('indycar') {
-            <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M8 2 L10 6 L15 6 L11 9.5 L12.5 14 L8 11 L3.5 14 L5 9.5 L1 6 L6 6Z" [attr.fill]="accent()"/></svg>
-          }
-        }
-        <div
-          [ngStyle]="{'background': accent() + '18', 'border': '1px solid ' + accent() + '33', 'color': accent()}"
-          style="margin-left: auto; border-radius: 4px; padding: 3px 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">Temporada 2026</div>
-      </div>
-
-      <!-- ── FEATURED HERO ── -->
-      <div
-        [ngStyle]="{'background': 'linear-gradient(135deg, ' + accent() + '14 0%, #141414 60%)', 'border': '1px solid ' + accent() + '22'}"
-        style="border-radius: 8px; padding: 20px; margin-bottom: 12px; cursor: pointer; transition: border-color 0.2s; position: relative; overflow: hidden;">
-        <div
-          [ngStyle]="{'background': 'radial-gradient(ellipse at top right, ' + accent() + '18, transparent 70%)'}"
-          style="position: absolute; top: 0; right: 0; width: 180px; height: 120px; pointer-events: none;"></div>
-        <div style="display: flex; gap: 6px; margin-bottom: 8px; align-items: center;">
-          <span [ngStyle]="{'background': accent()}" style="color: #fff; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 2px; letter-spacing: 1px; text-transform: uppercase;">{{ data().news[0].tag }}</span>
-          <span style="font-size: 10px; color: #ff6b35; font-weight: 600; display: flex; align-items: center; gap: 3px;">
-            <svg width="12" height="14" viewBox="0 0 12 14" fill="none"><path d="M6 13 C3 13 1 11 1 8.5 C1 6 3 5 3 5 C3 7 4.5 7.5 4.5 7.5 C4.5 5 6 2 8 1 C7.5 3 8.5 4 8.5 4 C9.5 3 10 2 10 2 C11 4 11 6 10 8 C10.5 7.5 11 6.5 11 6.5 C11 9 9 13 6 13Z" fill="#ff6b35"/></svg>
-            Destacado
-          </span>
+        [ngStyle]="{'background': 'linear-gradient(90deg, ' + accent() + 'ee, ' + accent() + '99)'}"
+        style="padding: 7px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div class="pulse-dot"></div>
+          <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; color: #fff; letter-spacing: 1px; text-transform: uppercase;">EN VIVO · F1 Libre 1 — GP Mónaco</span>
+          <span style="font-size: 12px; color: rgba(255,255,255,0.8);">Verstappen P1 | +0.247 Hamilton</span>
         </div>
-        <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 24px; color: #fff; line-height: 1.15; max-width: 560px;">{{ data().news[0].title }}</div>
-        <div style="margin-top: 8px; font-size: 11px; color: #444;">{{ data().news[0].time }}</div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button style="background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.3); border-radius: 4px; padding: 3px 12px; font-size: 12px; color: #fff; font-weight: 600;">Ver timing →</button>
+          <button (click)="liveBannerVisible.set(false)" style="color: rgba(255,255,255,.5); font-size: 15px; line-height: 1;">✕</button>
+        </div>
       </div>
+    }
 
-      <!-- ── NEXT RACE CARD ── -->
-      <app-race-card
-        [nextRace]="data().nextRace"
+    <!-- ── MAIN LAYOUT ── -->
+    <div style="display: flex;">
+
+      <app-sidebar
+        [categories]="categories()"
+        [activeCat]="activeCat()"
         [accent]="accent()"
-        [countdown]="countdown()">
-      </app-race-card>
+        [favorites]="currentFavorites()"
+        [sections]="sidebarSections"
+        (catChange)="setCat($event)">
+      </app-sidebar>
 
-      <!-- ── GRID: DRIVER STANDINGS + RIGHT COL ── -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+      <!-- ── MAIN CONTENT ── -->
+      <main style="flex: 1; padding: 14px 16px; min-width: 0;">
 
-        <app-standings-table
-          [standings]="data().standings"
-          [accent]="accent()">
-        </app-standings-table>
+        <!-- Category Header -->
+        <div
+          [ngStyle]="{'border-bottom': '1px solid ' + accent() + '28'}"
+          style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 10px;">
+          <div [style.background]="accent()" style="width: 4px; height: 22px; border-radius: 2px;"></div>
+          <h1 style="font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 22px; color: #fff; letter-spacing: 0.5px; margin: 0;">{{ currentCat().label }}</h1>
+          @switch (currentCat().id) {
+            @case ('f1') {
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M1 11 L4 5 L8 5 L10 8 L13 5 L15 11 L12 11 L11 8.5 L9 11 L7 11 L5 8.5 L4 11Z" [attr.fill]="accent()"/></svg>
+            }
+            @case ('motogp') {
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><circle cx="4" cy="11" r="2.5" [attr.stroke]="accent()" stroke-width="1.5"/><circle cx="12" cy="11" r="2.5" [attr.stroke]="accent()" stroke-width="1.5"/><path d="M4 11 L6 6 L9 6 L11 8 L12 11" [attr.stroke]="accent()" stroke-width="1.5" stroke-linejoin="round" fill="none"/><path d="M9 6 L10 4 L13 4" [attr.stroke]="accent()" stroke-width="1.2" stroke-linecap="round"/></svg>
+            }
+            @case ('fe') {
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M9 2 L5 9 L8.5 9 L7 14 L11 7 L7.5 7Z" [attr.fill]="accent()"/></svg>
+            }
+            @case ('wrc') {
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><rect x="1" y="8" width="14" height="4" rx="2" [attr.stroke]="accent()" stroke-width="1.5" fill="none"/><circle cx="4" cy="12" r="2" [attr.fill]="accent()"/><circle cx="12" cy="12" r="2" [attr.fill]="accent()"/><path d="M5 8 L6 5 L10 5 L11 8" [attr.stroke]="accent()" stroke-width="1.2" fill="none"/></svg>
+            }
+            @case ('indycar') {
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M8 2 L10 6 L15 6 L11 9.5 L12.5 14 L8 11 L3.5 14 L5 9.5 L1 6 L6 6Z" [attr.fill]="accent()"/></svg>
+            }
+          }
+          <div
+            [ngStyle]="{'background': accent() + '18', 'border': '1px solid ' + accent() + '33', 'color': accent()}"
+            style="margin-left: auto; border-radius: 4px; padding: 3px 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">Temporada 2026</div>
+        </div>
 
-        <!-- Right col: Last Race + Constructors -->
-        <div>
-          <!-- Last Race -->
-          <div style="background: #141414; border: 1px solid #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
-            <div style="padding: 10px 14px; border-bottom: 1px solid #1e1e1e; display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #fff; text-transform: uppercase; letter-spacing: 1px;">Última carrera</span>
-                <div style="font-size: 10px; color: #444; margin-top: 1px;">{{ data().lastRace.date }}</div>
+        <!-- ── FEATURED HERO ── -->
+        <div
+          [ngStyle]="{'background': 'linear-gradient(135deg, ' + accent() + '14 0%, #141414 60%)', 'border': '1px solid ' + accent() + '22'}"
+          style="border-radius: 8px; padding: 20px; margin-bottom: 12px; cursor: pointer; transition: border-color 0.2s; position: relative; overflow: hidden;">
+          <div
+            [ngStyle]="{'background': 'radial-gradient(ellipse at top right, ' + accent() + '18, transparent 70%)'}"
+            style="position: absolute; top: 0; right: 0; width: 180px; height: 120px; pointer-events: none;"></div>
+          <div style="display: flex; gap: 6px; margin-bottom: 8px; align-items: center;">
+            <span [ngStyle]="{'background': accent()}" style="color: #fff; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 2px; letter-spacing: 1px; text-transform: uppercase;">{{ data().news[0].tag }}</span>
+            <span style="font-size: 10px; color: #ff6b35; font-weight: 600; display: flex; align-items: center; gap: 3px;">
+              <svg width="12" height="14" viewBox="0 0 12 14" fill="none"><path d="M6 13 C3 13 1 11 1 8.5 C1 6 3 5 3 5 C3 7 4.5 7.5 4.5 7.5 C4.5 5 6 2 8 1 C7.5 3 8.5 4 8.5 4 C9.5 3 10 2 10 2 C11 4 11 6 10 8 C10.5 7.5 11 6.5 11 6.5 C11 9 9 13 6 13Z" fill="#ff6b35"/></svg>
+              Destacado
+            </span>
+          </div>
+          <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 24px; color: #fff; line-height: 1.15; max-width: 560px;">{{ data().news[0].title }}</div>
+          <div style="margin-top: 8px; font-size: 11px; color: #444;">{{ data().news[0].time }}</div>
+        </div>
+
+        <!-- ── NEXT RACE CARD ── -->
+        <app-race-card
+          [nextRace]="data().nextRace"
+          [accent]="accent()"
+          [countdown]="countdown()">
+        </app-race-card>
+
+        <!-- ── GRID: DRIVER STANDINGS + RIGHT COL ── -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+
+          <app-standings-table
+            [standings]="data().standings"
+            [accent]="accent()">
+          </app-standings-table>
+
+          <!-- Right col: Last Race + Constructors -->
+          <div>
+            <!-- Last Race -->
+            <div style="background: #141414; border: 1px solid #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
+              <div style="padding: 10px 14px; border-bottom: 1px solid #1e1e1e; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #fff; text-transform: uppercase; letter-spacing: 1px;">Última carrera</span>
+                  <div style="font-size: 10px; color: #444; margin-top: 1px;">{{ data().lastRace.date }}</div>
+                </div>
+                <span style="font-size: 11px; color: #444; font-weight: 500;">{{ data().lastRace.name }}</span>
               </div>
-              <span style="font-size: 11px; color: #444; font-weight: 500;">{{ data().lastRace.name }}</span>
-            </div>
-            <div style="padding: 10px 14px;">
-              <div style="display: flex; gap: 8px;">
-                @for (p of data().lastRace.podium; track p.pos) {
-                  <div
-                    [ngStyle]="{'border': '1px solid ' + (p.pos === 1 ? '#B8860B33' : '#222')}"
-                    style="flex: 1; background: #1a1a1a; border-radius: 6px; padding: 8px; text-align: center; position: relative; overflow: hidden;">
-                    <div [style.background]="p.teamColor" style="position: absolute; top: 0; left: 0; right: 0; height: 3px;"></div>
-                    <div style="line-height: 1; margin-bottom: 4px; display: flex; justify-content: center; margin-top: 4px;">
-                      @switch (p.pos) {
-                        @case (1) {
-                          <svg width="44" height="52" viewBox="0 0 44 52" fill="none"><rect x="13" y="44" width="18" height="3" rx="1.5" fill="#C8963E"/><rect x="15" y="40" width="14" height="5" rx="1" fill="#E8B84B"/><rect x="16" y="39" width="12" height="2" rx="1" fill="#F5D06A"/><path d="M9 8 L9 24 Q9 34 22 37 Q35 34 35 24 L35 8 Z" fill="#C8963E"/><path d="M9 8 L9 24 Q9 34 22 37 Q35 34 35 24 L35 8 Z" fill="url(#cg1)" opacity="0.5"/><path d="M9 13 Q3 13 3 19 Q3 25 9 24" stroke="#E8B84B" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M35 13 Q41 13 41 19 Q41 25 35 24" stroke="#E8B84B" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M14 11 Q15 9 17 10 Q16 14 14 11Z" fill="#FFF0A0" opacity="0.8"/><path d="M17 9 Q18 8 19 9 L19 12 Q17.5 11 17 9Z" fill="#FFF0A0" opacity="0.5"/><text x="22" y="26" text-anchor="middle" fill="#7A5520" font-size="11" font-weight="900" font-family="Barlow Condensed, sans-serif" opacity="0.55">1</text><ellipse cx="22" cy="8" rx="13" ry="3" fill="#F5D06A"/><ellipse cx="22" cy="8" rx="9" ry="2" fill="#FFF0A0" opacity="0.4"/><path d="M10 7 Q7 5 7 2 Q9 3 10 5 Q11 3 13 2 Q13 5 10 7Z" fill="#F5D06A" opacity="0.9"/><path d="M34 7 Q37 5 37 2 Q35 3 34 5 Q33 3 31 2 Q31 5 34 7Z" fill="#F5D06A" opacity="0.9"/><defs><linearGradient id="cg1" x1="9" y1="8" x2="35" y2="37" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="white" stop-opacity="0.3"/><stop offset="60%" stop-color="black" stop-opacity="0"/><stop offset="100%" stop-color="black" stop-opacity="0.2"/></linearGradient></defs></svg>
+              <div style="padding: 10px 14px;">
+                <div style="display: flex; gap: 8px;">
+                  @for (p of data().lastRace.podium; track p.pos) {
+                    <div
+                      [ngStyle]="{'border': '1px solid ' + (p.pos === 1 ? '#B8860B33' : '#222')}"
+                      style="flex: 1; background: #1a1a1a; border-radius: 6px; padding: 8px; text-align: center; position: relative; overflow: hidden;">
+                      <div [style.background]="p.teamColor" style="position: absolute; top: 0; left: 0; right: 0; height: 3px;"></div>
+                      <div style="line-height: 1; margin-bottom: 4px; display: flex; justify-content: center; margin-top: 4px;">
+                        @switch (p.pos) {
+                          @case (1) {
+                            <svg width="44" height="52" viewBox="0 0 44 52" fill="none"><rect x="13" y="44" width="18" height="3" rx="1.5" fill="#C8963E"/><rect x="15" y="40" width="14" height="5" rx="1" fill="#E8B84B"/><rect x="16" y="39" width="12" height="2" rx="1" fill="#F5D06A"/><path d="M9 8 L9 24 Q9 34 22 37 Q35 34 35 24 L35 8 Z" fill="#C8963E"/><path d="M9 8 L9 24 Q9 34 22 37 Q35 34 35 24 L35 8 Z" fill="url(#cg1)" opacity="0.5"/><path d="M9 13 Q3 13 3 19 Q3 25 9 24" stroke="#E8B84B" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M35 13 Q41 13 41 19 Q41 25 35 24" stroke="#E8B84B" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M14 11 Q15 9 17 10 Q16 14 14 11Z" fill="#FFF0A0" opacity="0.8"/><path d="M17 9 Q18 8 19 9 L19 12 Q17.5 11 17 9Z" fill="#FFF0A0" opacity="0.5"/><text x="22" y="26" text-anchor="middle" fill="#7A5520" font-size="11" font-weight="900" font-family="Barlow Condensed, sans-serif" opacity="0.55">1</text><ellipse cx="22" cy="8" rx="13" ry="3" fill="#F5D06A"/><ellipse cx="22" cy="8" rx="9" ry="2" fill="#FFF0A0" opacity="0.4"/><path d="M10 7 Q7 5 7 2 Q9 3 10 5 Q11 3 13 2 Q13 5 10 7Z" fill="#F5D06A" opacity="0.9"/><path d="M34 7 Q37 5 37 2 Q35 3 34 5 Q33 3 31 2 Q31 5 34 7Z" fill="#F5D06A" opacity="0.9"/><defs><linearGradient id="cg1" x1="9" y1="8" x2="35" y2="37" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="white" stop-opacity="0.3"/><stop offset="60%" stop-color="black" stop-opacity="0"/><stop offset="100%" stop-color="black" stop-opacity="0.2"/></linearGradient></defs></svg>
+                          }
+                          @case (2) {
+                            <svg width="44" height="52" viewBox="0 0 44 52" fill="none"><rect x="13" y="44" width="18" height="3" rx="1.5" fill="#6E7A8A"/><rect x="15" y="40" width="14" height="5" rx="1" fill="#9AABB8"/><rect x="16" y="39" width="12" height="2" rx="1" fill="#B8C8D4"/><path d="M9 8 L9 24 Q9 34 22 37 Q35 34 35 24 L35 8 Z" fill="#6E7A8A"/><path d="M9 8 L9 24 Q9 34 22 37 Q35 34 35 24 L35 8 Z" fill="url(#cg2)" opacity="0.5"/><path d="M9 13 Q3 13 3 19 Q3 25 9 24" stroke="#9AABB8" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M35 13 Q41 13 41 19 Q41 25 35 24" stroke="#9AABB8" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M14 11 Q15 9 17 10 Q16 14 14 11Z" fill="#E0EAEF" opacity="0.8"/><text x="22" y="26" text-anchor="middle" fill="#3A4A55" font-size="11" font-weight="900" font-family="Barlow Condensed, sans-serif" opacity="0.55">2</text><ellipse cx="22" cy="8" rx="13" ry="3" fill="#B8C8D4"/><ellipse cx="22" cy="8" rx="9" ry="2" fill="#E0EAEF" opacity="0.4"/><defs><linearGradient id="cg2" x1="9" y1="8" x2="35" y2="37" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="white" stop-opacity="0.3"/><stop offset="60%" stop-color="black" stop-opacity="0"/><stop offset="100%" stop-color="black" stop-opacity="0.2"/></linearGradient></defs></svg>
+                          }
+                          @case (3) {
+                            <svg width="44" height="52" viewBox="0 0 44 52" fill="none"><rect x="13" y="44" width="18" height="3" rx="1.5" fill="#7A4A2A"/><rect x="15" y="40" width="14" height="5" rx="1" fill="#A06535"/><rect x="16" y="39" width="12" height="2" rx="1" fill="#C27B45"/><path d="M9 8 L9 24 Q9 34 22 37 Q35 34 35 24 L35 8 Z" fill="#7A4A2A"/><path d="M9 8 L9 24 Q9 34 22 37 Q35 34 35 24 L35 8 Z" fill="url(#cg3)" opacity="0.5"/><path d="M9 13 Q3 13 3 19 Q3 25 9 24" stroke="#A06535" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M35 13 Q41 13 41 19 Q41 25 35 24" stroke="#A06535" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M14 11 Q15 9 17 10 Q16 14 14 11Z" fill="#E0A878" opacity="0.8"/><text x="22" y="26" text-anchor="middle" fill="#4A2810" font-size="11" font-weight="900" font-family="Barlow Condensed, sans-serif" opacity="0.55">3</text><ellipse cx="22" cy="8" rx="13" ry="3" fill="#C27B45"/><ellipse cx="22" cy="8" rx="9" ry="2" fill="#E0A878" opacity="0.4"/><defs><linearGradient id="cg3" x1="9" y1="8" x2="35" y2="37" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="white" stop-opacity="0.3"/><stop offset="60%" stop-color="black" stop-opacity="0"/><stop offset="100%" stop-color="black" stop-opacity="0.2"/></linearGradient></defs></svg>
+                          }
                         }
-                        @case (2) {
-                          <svg width="44" height="52" viewBox="0 0 44 52" fill="none"><rect x="13" y="44" width="18" height="3" rx="1.5" fill="#6E7A8A"/><rect x="15" y="40" width="14" height="5" rx="1" fill="#9AABB8"/><rect x="16" y="39" width="12" height="2" rx="1" fill="#B8C8D4"/><path d="M9 8 L9 24 Q9 34 22 37 Q35 34 35 24 L35 8 Z" fill="#6E7A8A"/><path d="M9 8 L9 24 Q9 34 22 37 Q35 34 35 24 L35 8 Z" fill="url(#cg2)" opacity="0.5"/><path d="M9 13 Q3 13 3 19 Q3 25 9 24" stroke="#9AABB8" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M35 13 Q41 13 41 19 Q41 25 35 24" stroke="#9AABB8" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M14 11 Q15 9 17 10 Q16 14 14 11Z" fill="#E0EAEF" opacity="0.8"/><text x="22" y="26" text-anchor="middle" fill="#3A4A55" font-size="11" font-weight="900" font-family="Barlow Condensed, sans-serif" opacity="0.55">2</text><ellipse cx="22" cy="8" rx="13" ry="3" fill="#B8C8D4"/><ellipse cx="22" cy="8" rx="9" ry="2" fill="#E0EAEF" opacity="0.4"/><defs><linearGradient id="cg2" x1="9" y1="8" x2="35" y2="37" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="white" stop-opacity="0.3"/><stop offset="60%" stop-color="black" stop-opacity="0"/><stop offset="100%" stop-color="black" stop-opacity="0.2"/></linearGradient></defs></svg>
-                        }
-                        @case (3) {
-                          <svg width="44" height="52" viewBox="0 0 44 52" fill="none"><rect x="13" y="44" width="18" height="3" rx="1.5" fill="#7A4A2A"/><rect x="15" y="40" width="14" height="5" rx="1" fill="#A06535"/><rect x="16" y="39" width="12" height="2" rx="1" fill="#C27B45"/><path d="M9 8 L9 24 Q9 34 22 37 Q35 34 35 24 L35 8 Z" fill="#7A4A2A"/><path d="M9 8 L9 24 Q9 34 22 37 Q35 34 35 24 L35 8 Z" fill="url(#cg3)" opacity="0.5"/><path d="M9 13 Q3 13 3 19 Q3 25 9 24" stroke="#A06535" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M35 13 Q41 13 41 19 Q41 25 35 24" stroke="#A06535" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M14 11 Q15 9 17 10 Q16 14 14 11Z" fill="#E0A878" opacity="0.8"/><text x="22" y="26" text-anchor="middle" fill="#4A2810" font-size="11" font-weight="900" font-family="Barlow Condensed, sans-serif" opacity="0.55">3</text><ellipse cx="22" cy="8" rx="13" ry="3" fill="#C27B45"/><ellipse cx="22" cy="8" rx="9" ry="2" fill="#E0A878" opacity="0.4"/><defs><linearGradient id="cg3" x1="9" y1="8" x2="35" y2="37" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="white" stop-opacity="0.3"/><stop offset="60%" stop-color="black" stop-opacity="0"/><stop offset="100%" stop-color="black" stop-opacity="0.2"/></linearGradient></defs></svg>
-                        }
-                      }
+                      </div>
+                      <div style="font-size: 12px; font-weight: 600; color: #fff; line-height: 1.2;">{{ p.driver }}</div>
+                      <div style="font-size: 10px; color: #444; margin-top: 2px;">{{ p.team }}</div>
+                      <div [style.color]="accent()" style="font-size: 10px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; margin-top: 4px;">{{ p.time }}</div>
                     </div>
-                    <div style="font-size: 12px; font-weight: 600; color: #fff; line-height: 1.2;">{{ p.driver }}</div>
-                    <div style="font-size: 10px; color: #444; margin-top: 2px;">{{ p.team }}</div>
-                    <div [style.color]="accent()" style="font-size: 10px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; margin-top: 4px;">{{ p.time }}</div>
+                  }
+                </div>
+                <button style="width: 100%; margin-top: 8px; padding: 7px; background: #1c1c1c; border: 1px solid #282828; border-radius: 4px; font-size: 11px; color: #666; font-weight: 600;">Ver resultados completos →</button>
+              </div>
+            </div>
+
+            <!-- Constructors -->
+            <div style="background: #141414; border: 1px solid #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
+              <div style="padding: 10px 14px; border-bottom: 1px solid #1e1e1e;">
+                <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #fff; text-transform: uppercase; letter-spacing: 1px;">Constructores</span>
+              </div>
+              <div style="padding: 8px 14px; display: flex; flex-direction: column; gap: 8px;">
+                @for (c of data().constructors; track c.team) {
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 13px; color: #333; width: 14px;">{{ c.pos }}</span>
+                    <div style="flex: 1;">
+                      <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                        <span style="font-size: 12px; color: #bbb; font-weight: 500;">{{ c.team }}</span>
+                        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; color: #fff;">{{ c.points }}</span>
+                      </div>
+                      <div style="height: 3px; background: #222; border-radius: 2px; overflow: hidden;">
+                        <div
+                          [ngStyle]="{'width': (c.points / maxConstructorPoints()) * 100 + '%', 'background': c.color}"
+                          style="height: 100%; border-radius: 2px;"></div>
+                      </div>
+                    </div>
                   </div>
                 }
               </div>
-              <button style="width: 100%; margin-top: 8px; padding: 7px; background: #1c1c1c; border: 1px solid #282828; border-radius: 4px; font-size: 11px; color: #666; font-weight: 600;">Ver resultados completos →</button>
             </div>
           </div>
+        </div>
 
-          <!-- Constructors -->
+        <!-- ── GRID: CALENDAR + NEWS ── -->
+        <div style="display: grid; grid-template-columns: 1fr 1.4fr; gap: 12px;">
+
+          <!-- Calendar Strip -->
           <div style="background: #141414; border: 1px solid #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
-            <div style="padding: 10px 14px; border-bottom: 1px solid #1e1e1e;">
-              <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #fff; text-transform: uppercase; letter-spacing: 1px;">Constructores</span>
+            <div style="padding: 10px 14px; border-bottom: 1px solid #1e1e1e; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #fff; text-transform: uppercase; letter-spacing: 1px;">Próximas sesiones</span>
+              <span [style.color]="accent()" style="font-size: 11px; font-weight: 600; cursor: pointer;">Calendario →</span>
             </div>
-            <div style="padding: 8px 14px; display: flex; flex-direction: column; gap: 8px;">
-              @for (c of data().constructors; track c.team) {
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 13px; color: #333; width: 14px;">{{ c.pos }}</span>
+            <div style="padding: 6px 14px; display: flex; flex-direction: column; gap: 4px;">
+              @for (s of data().nextRace.sessions; track s.name) {
+                <div style="display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #191919;">
+                  <div
+                    [ngStyle]="{'background': s.highlight ? accent() : '#1c1c1c', 'color': s.highlight ? '#fff' : '#666'}"
+                    style="width: 54px; padding: 3px 0; border-radius: 3px; text-align: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.5px;">{{ s.name }}</div>
                   <div style="flex: 1;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-                      <span style="font-size: 12px; color: #bbb; font-weight: 500;">{{ c.team }}</span>
-                      <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; color: #fff;">{{ c.points }}</span>
-                    </div>
-                    <div style="height: 3px; background: #222; border-radius: 2px; overflow: hidden;">
-                      <div
-                        [ngStyle]="{'width': (c.points / maxConstructorPoints()) * 100 + '%', 'background': c.color}"
-                        style="height: 100%; border-radius: 2px;"></div>
-                    </div>
+                    <span [ngStyle]="{'color': s.highlight ? '#fff' : '#999'}" style="font-size: 12px;">{{ data().nextRace.circuit }}</span>
+                  </div>
+                  <div style="text-align: right;">
+                    <div style="font-size: 11px; color: #bbb; font-weight: 600;">{{ s.time }}</div>
+                    <div style="font-size: 10px; color: #3a3a3a;">{{ s.date }}</div>
                   </div>
                 </div>
               }
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- ── GRID: CALENDAR + NEWS ── -->
-      <div style="display: grid; grid-template-columns: 1fr 1.4fr; gap: 12px;">
-
-        <!-- Calendar Strip -->
-        <div style="background: #141414; border: 1px solid #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
-          <div style="padding: 10px 14px; border-bottom: 1px solid #1e1e1e; display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #fff; text-transform: uppercase; letter-spacing: 1px;">Próximas sesiones</span>
-            <span [style.color]="accent()" style="font-size: 11px; font-weight: 600; cursor: pointer;">Calendario →</span>
-          </div>
-          <div style="padding: 6px 14px; display: flex; flex-direction: column; gap: 4px;">
-            @for (s of data().nextRace.sessions; track s.name) {
-              <div style="display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #191919;">
-                <div
-                  [ngStyle]="{'background': s.highlight ? accent() : '#1c1c1c', 'color': s.highlight ? '#fff' : '#666'}"
-                  style="width: 54px; padding: 3px 0; border-radius: 3px; text-align: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.5px;">{{ s.name }}</div>
-                <div style="flex: 1;">
-                  <span [ngStyle]="{'color': s.highlight ? '#fff' : '#999'}" style="font-size: 12px;">{{ data().nextRace.circuit }}</span>
-                </div>
-                <div style="text-align: right;">
-                  <div style="font-size: 11px; color: #bbb; font-weight: 600;">{{ s.time }}</div>
-                  <div style="font-size: 10px; color: #3a3a3a;">{{ s.date }}</div>
-                </div>
-              </div>
-            }
-          </div>
+          <app-news-list
+            [news]="data().news"
+            [accent]="accent()">
+          </app-news-list>
         </div>
 
-        <app-news-list
-          [news]="data().news"
-          [accent]="accent()">
-        </app-news-list>
-      </div>
+      </main>
 
-    </main>
+      <app-right-rail
+        [nextRace]="data().nextRace"
+        [standings]="data().standings"
+        [news]="data().news"
+        [activeCat]="activeCat()"
+        [accent]="accent()"
+        [countdown]="countdown()">
+      </app-right-rail>
 
-    <app-right-rail
-      [nextRace]="data().nextRace"
-      [standings]="data().standings"
-      [news]="data().news"
-      [activeCat]="activeCat()"
-      [accent]="accent()"
-      [countdown]="countdown()">
-    </app-right-rail>
-
-  </div>
+    </div>
+  }
 </div>

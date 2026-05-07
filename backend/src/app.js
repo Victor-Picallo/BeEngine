@@ -20,6 +20,17 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ── Routes ────────────────────────────────────────────────
+app.get('/', (_req, res) => {
+  res.json({
+    success: true,
+    data: {
+      name: 'BeEngine API',
+      health: '/api/health',
+      routes: ['/api/categories', '/api/home', '/api/news', '/api/calendar'],
+    },
+  });
+});
+
 app.use('/api', apiRoutes);
 
 // ── 404 ───────────────────────────────────────────────────

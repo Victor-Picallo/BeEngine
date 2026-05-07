@@ -1,9 +1,22 @@
-import { ChangeDetectionStrategy, Component, computed, OnDestroy, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgStyle } from '@angular/common';
 import {
-  CATEGORIES, CategoryData, CountdownTime, F1_DATA, Favorite,
-  FLAG_MAP, MOTOGP_DATA,
+  Category,
+  CategoryData,
+  CountdownTime,
+  Favorite,
+  FLAG_MAP,
 } from '../../data/sports.data';
+import { HomeService } from './services/home.service';
 import { TopbarComponent } from '../../shared/components/topbar/topbar.component';
 import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
 import { RaceCardComponent } from '../../shared/components/race-card/race-card.component';
@@ -25,36 +38,81 @@ import { RightRailComponent } from '../../shared/components/right-rail/right-rai
     RightRailComponent,
   ],
 })
-export class HomeComponent implements OnDestroy {
-  readonly categories = CATEGORIES;
-  readonly flagMap    = FLAG_MAP;
+export class HomeComponent implements OnInit {
+  private readonly homeService = inject(HomeService);
+  private readonly destroyRef  = inject(DestroyRef);
+
+  readonly flagMap         = FLAG_MAP;
   readonly sidebarSections = ['Noticias', 'Calendario', 'Resultados', 'Estadísticas', 'Vídeos'];
 
-  activeCat          = signal('f1');
-  liveBannerVisible  = signal(true);
-  countdown          = signal<CountdownTime>({ d: 0, h: 0, m: 0, s: 0 });
+  categories        = signal<Category[]>([]);
+  homeData          = signal<CategoryData | null>(null);
+  activeCat         = signal('f1');
+  liveBannerVisible = signal(true);
+  loading           = signal(true);
+  error             = signal<string | null>(null);
+  countdown         = signal<CountdownTime>({ d: 0, h: 0, m: 0, s: 0 });
 
-  currentCat = computed(() => this.categories.find(c => c.id === this.activeCat()) ?? this.categories[0]);
-  accent     = computed(() => this.currentCat().accent);
-  data       = computed((): CategoryData => this.activeCat() === 'motogp' ? MOTOGP_DATA : F1_DATA);
-
-  currentFavorites = computed((): Favorite[] =>
-    this.activeCat() === 'motogp'
-      ? [{ name: 'Bagnaia', sub: 'Ducati Lenovo' }, { name: 'M. Márquez', sub: 'Gresini Racing' }]
-      : [{ name: 'Verstappen', sub: 'Red Bull Racing' }, { name: 'F. Alonso', sub: 'Aston Martin' }]
+  currentCat = computed(
+    () => this.categories().find(c => c.id === this.activeCat()) ?? this.categories()[0],
   );
+  accent = computed(() => this.currentCat()?.accent ?? '#FFD100');
 
-  maxConstructorPoints = computed(() =>
-    Math.max(...this.data().constructors.map(c => c.points))
-  );
+  data = computed(() => this.homeData()!);
+
+  currentFavorites = computed((): Favorite[] => {
+    const standings = this.homeData()?.standings ?? [];
+    return standings.slice(0, 2).map(d => ({ name: d.driver, sub: d.team }));
+  });
+
+  maxConstructorPoints = computed(() => {
+    const constructors = this.homeData()?.constructors ?? [];
+    return constructors.length ? Math.max(...constructors.map(c => c.points)) : 1;
+  });
 
   private countdownInterval?: ReturnType<typeof setInterval>;
 
-  constructor() { this.startCountdown(); }
+  ngOnInit(): void {
+    this.homeService
+      .getCategories()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: cats => {
+          this.categories.set(cats);
+          this.loadHome(this.activeCat());
+        },
+        error: () => {
+          this.error.set('No se pudieron cargar los datos. Revisa que el backend esté arrancado.');
+          this.loading.set(false);
+        },
+      });
+  }
 
-  private startCountdown(): void {
+  private loadHome(category: string): void {
+    this.loading.set(true);
+    this.error.set(null);
+    this.homeService
+      .getHome(category)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: data => {
+          this.homeData.set(data);
+          this.loading.set(false);
+          this.restartCountdown();
+        },
+        error: () => {
+          this.error.set('No se pudieron cargar los datos. Revisa que el backend esté arrancado.');
+          this.loading.set(false);
+        },
+      });
+  }
+
+  private restartCountdown(): void {
+    clearInterval(this.countdownInterval);
     const update = () => {
-      const diff = new Date(this.data().nextRace.date).getTime() - Date.now();
+      const d = this.homeData();
+      if (!d) return;
+      const diff = new Date(d.nextRace.date).getTime() - Date.now();
       if (diff <= 0) { this.countdown.set({ d: 0, h: 0, m: 0, s: 0 }); return; }
       this.countdown.set({
         d: Math.floor(diff / 86400000),
@@ -69,8 +127,7 @@ export class HomeComponent implements OnDestroy {
 
   setCat(id: string): void {
     this.activeCat.set(id);
-    clearInterval(this.countdownInterval);
-    this.startCountdown();
+    this.loadHome(id);
   }
 
   ngOnDestroy(): void {
