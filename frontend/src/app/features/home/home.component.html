@@ -1,12 +1,12 @@
-<div style="min-height: 100vh; background: #0d0d0d;">
+<div style="min-height: 100vh; background: #fafafa;">
 
   @if (loading()) {
-    <div style="display: flex; align-items: center; justify-content: center; height: 100vh; color: #555; font-size: 14px; font-family: 'Barlow', sans-serif;">
+    <div style="display: flex; align-items: center; justify-content: center; height: 100vh; color: #888; font-size: 14px; font-family: 'Barlow', sans-serif;">
       Cargando datos…
     </div>
   } @else if (error()) {
     <div style="display: flex; align-items: center; justify-content: center; height: 100vh; padding: 20px; text-align: center;">
-      <span style="color: #e55; font-size: 14px; font-family: 'Barlow', sans-serif; max-width: 360px; line-height: 1.6;">
+      <span style="color: #c0392b; font-size: 14px; font-family: 'Barlow', sans-serif; max-width: 360px; line-height: 1.6;">
         No se pudieron cargar los datos. Revisa que el backend esté arrancado.
       </span>
     </div>
@@ -26,12 +26,12 @@
         style="padding: 7px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
         <div style="display: flex; align-items: center; gap: 8px;">
           <div class="pulse-dot"></div>
-          <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; color: #fff; letter-spacing: 1px; text-transform: uppercase;">EN VIVO · F1 Libre 1 — GP Mónaco</span>
-          <span style="font-size: 12px; color: rgba(255,255,255,0.8);">Verstappen P1 | +0.247 Hamilton</span>
+          <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; color: #1a1a1a; letter-spacing: 1px; text-transform: uppercase;">EN VIVO · F1 Libre 1 — GP Mónaco</span>
+          <span style="font-size: 12px; color: rgba(0,0,0,0.65);">Verstappen P1 | +0.247 Hamilton</span>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
-          <button style="background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.3); border-radius: 4px; padding: 3px 12px; font-size: 12px; color: #fff; font-weight: 600;">Ver timing →</button>
-          <button (click)="liveBannerVisible.set(false)" style="color: rgba(255,255,255,.5); font-size: 15px; line-height: 1;">✕</button>
+          <button style="background: rgba(0,0,0,.12); border: 1px solid rgba(0,0,0,.2); border-radius: 4px; padding: 3px 12px; font-size: 12px; color: #1a1a1a; font-weight: 600;">Ver timing →</button>
+          <button (click)="liveBannerVisible.set(false)" style="color: rgba(0,0,0,.5); font-size: 15px; line-height: 1;">✕</button>
         </div>
       </div>
     }
@@ -53,10 +53,10 @@
 
         <!-- Category Header -->
         <div
-          [ngStyle]="{'border-bottom': '1px solid ' + accent() + '28'}"
+          [ngStyle]="{'border-bottom': '1px solid ' + accent() + '55'}"
           style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 10px;">
           <div [style.background]="accent()" style="width: 4px; height: 22px; border-radius: 2px;"></div>
-          <h1 style="font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 22px; color: #fff; letter-spacing: 0.5px; margin: 0;">{{ currentCat().label }}</h1>
+          <h1 style="font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 22px; color: #1a1a1a; letter-spacing: 0.5px; margin: 0;">{{ currentCat().label }}</h1>
           @switch (currentCat().id) {
             @case ('f1') {
               <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M1 11 L4 5 L8 5 L10 8 L13 5 L15 11 L12 11 L11 8.5 L9 11 L7 11 L5 8.5 L4 11Z" [attr.fill]="accent()"/></svg>
@@ -75,26 +75,26 @@
             }
           }
           <div
-            [ngStyle]="{'background': accent() + '18', 'border': '1px solid ' + accent() + '33', 'color': accent()}"
+            [ngStyle]="{'background': accent() + '22', 'border': '1px solid ' + accent() + '55', 'color': '#FFD100'}"
             style="margin-left: auto; border-radius: 4px; padding: 3px 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">Temporada 2026</div>
         </div>
 
         <!-- ── FEATURED HERO ── -->
         <div
-          [ngStyle]="{'background': 'linear-gradient(135deg, ' + accent() + '14 0%, #141414 60%)', 'border': '1px solid ' + accent() + '22'}"
-          style="border-radius: 8px; padding: 20px; margin-bottom: 12px; cursor: pointer; transition: border-color 0.2s; position: relative; overflow: hidden;">
+          [ngStyle]="{'background': 'linear-gradient(135deg, ' + accent() + '22 0%, #ffffff 60%)', 'border': '1px solid ' + accent() + '44'}"
+          style="border-radius: 8px; padding: 20px; margin-bottom: 12px; cursor: pointer; transition: border-color 0.2s; position: relative; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.04);">
           <div
-            [ngStyle]="{'background': 'radial-gradient(ellipse at top right, ' + accent() + '18, transparent 70%)'}"
+            [ngStyle]="{'background': 'radial-gradient(ellipse at top right, ' + accent() + '22, transparent 70%)'}"
             style="position: absolute; top: 0; right: 0; width: 180px; height: 120px; pointer-events: none;"></div>
           <div style="display: flex; gap: 6px; margin-bottom: 8px; align-items: center;">
-            <span [ngStyle]="{'background': accent()}" style="color: #fff; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 2px; letter-spacing: 1px; text-transform: uppercase;">{{ data().news[0].tag }}</span>
+            <span [ngStyle]="{'background': accent()}" style="color: #1a1a1a; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 2px; letter-spacing: 1px; text-transform: uppercase;">{{ data().news[0].tag }}</span>
             <span style="font-size: 10px; color: #ff6b35; font-weight: 600; display: flex; align-items: center; gap: 3px;">
               <svg width="12" height="14" viewBox="0 0 12 14" fill="none"><path d="M6 13 C3 13 1 11 1 8.5 C1 6 3 5 3 5 C3 7 4.5 7.5 4.5 7.5 C4.5 5 6 2 8 1 C7.5 3 8.5 4 8.5 4 C9.5 3 10 2 10 2 C11 4 11 6 10 8 C10.5 7.5 11 6.5 11 6.5 C11 9 9 13 6 13Z" fill="#ff6b35"/></svg>
               Destacado
             </span>
           </div>
-          <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 24px; color: #fff; line-height: 1.15; max-width: 560px;">{{ data().news[0].title }}</div>
-          <div style="margin-top: 8px; font-size: 11px; color: #444;">{{ data().news[0].time }}</div>
+          <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 24px; color: #1a1a1a; line-height: 1.15; max-width: 560px;">{{ data().news[0].title }}</div>
+          <div style="margin-top: 8px; font-size: 11px; color: #888;">{{ data().news[0].time }}</div>
         </div>
 
         <!-- ── NEXT RACE CARD ── -->
@@ -115,20 +115,20 @@
           <!-- Right col: Last Race + Constructors -->
           <div>
             <!-- Last Race -->
-            <div style="background: #141414; border: 1px solid #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
-              <div style="padding: 10px 14px; border-bottom: 1px solid #1e1e1e; display: flex; justify-content: space-between; align-items: center;">
+            <div style="background: #ffffff; border: 1px solid #e5e5e7; border-radius: 8px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.03);">
+              <div style="padding: 10px 14px; border-bottom: 1px solid #e5e5e7; display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                  <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #fff; text-transform: uppercase; letter-spacing: 1px;">Última carrera</span>
-                  <div style="font-size: 10px; color: #444; margin-top: 1px;">{{ data().lastRace.date }}</div>
+                  <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #1a1a1a; text-transform: uppercase; letter-spacing: 1px;">Última carrera</span>
+                  <div style="font-size: 10px; color: #888; margin-top: 1px;">{{ data().lastRace.date }}</div>
                 </div>
-                <span style="font-size: 11px; color: #444; font-weight: 500;">{{ data().lastRace.name }}</span>
+                <span style="font-size: 11px; color: #888; font-weight: 500;">{{ data().lastRace.name }}</span>
               </div>
               <div style="padding: 10px 14px;">
                 <div style="display: flex; gap: 8px;">
                   @for (p of data().lastRace.podium; track p.pos) {
                     <div
-                      [ngStyle]="{'border': '1px solid ' + (p.pos === 1 ? '#B8860B33' : '#222')}"
-                      style="flex: 1; background: #1a1a1a; border-radius: 6px; padding: 8px; text-align: center; position: relative; overflow: hidden;">
+                      [ngStyle]="{'border': '1px solid ' + (p.pos === 1 ? '#FFD10088' : '#e5e5e7')}"
+                      style="flex: 1; background: #f7f7f9; border-radius: 6px; padding: 8px; text-align: center; position: relative; overflow: hidden;">
                       <div [style.background]="p.teamColor" style="position: absolute; top: 0; left: 0; right: 0; height: 3px;"></div>
                       <div style="line-height: 1; margin-bottom: 4px; display: flex; justify-content: center; margin-top: 4px;">
                         @switch (p.pos) {
@@ -143,31 +143,31 @@
                           }
                         }
                       </div>
-                      <div style="font-size: 12px; font-weight: 600; color: #fff; line-height: 1.2;">{{ p.driver }}</div>
-                      <div style="font-size: 10px; color: #444; margin-top: 2px;">{{ p.team }}</div>
-                      <div [style.color]="accent()" style="font-size: 10px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; margin-top: 4px;">{{ p.time }}</div>
+                      <div style="font-size: 12px; font-weight: 600; color: #1a1a1a; line-height: 1.2;">{{ p.driver }}</div>
+                      <div style="font-size: 10px; color: #888; margin-top: 2px;">{{ p.team }}</div>
+                      <div style="color: #FFD100; font-size: 10px; font-family: 'Barlow Condensed', sans-serif; font-weight: 600; margin-top: 4px;">{{ p.time }}</div>
                     </div>
                   }
                 </div>
-                <button style="width: 100%; margin-top: 8px; padding: 7px; background: #1c1c1c; border: 1px solid #282828; border-radius: 4px; font-size: 11px; color: #666; font-weight: 600;">Ver resultados completos →</button>
+                <button style="width: 100%; margin-top: 8px; padding: 7px; background: #f5f5f7; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 11px; color: #666; font-weight: 600;">Ver resultados completos →</button>
               </div>
             </div>
 
             <!-- Constructors -->
-            <div style="background: #141414; border: 1px solid #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
-              <div style="padding: 10px 14px; border-bottom: 1px solid #1e1e1e;">
-                <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #fff; text-transform: uppercase; letter-spacing: 1px;">Constructores</span>
+            <div style="background: #ffffff; border: 1px solid #e5e5e7; border-radius: 8px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.03);">
+              <div style="padding: 10px 14px; border-bottom: 1px solid #e5e5e7;">
+                <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #1a1a1a; text-transform: uppercase; letter-spacing: 1px;">Constructores</span>
               </div>
               <div style="padding: 8px 14px; display: flex; flex-direction: column; gap: 8px;">
                 @for (c of data().constructors; track c.team) {
                   <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 13px; color: #333; width: 14px;">{{ c.pos }}</span>
+                    <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 13px; color: #bbb; width: 14px;">{{ c.pos }}</span>
                     <div style="flex: 1;">
                       <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-                        <span style="font-size: 12px; color: #bbb; font-weight: 500;">{{ c.team }}</span>
-                        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; color: #fff;">{{ c.points }}</span>
+                        <span style="font-size: 12px; color: #444; font-weight: 500;">{{ c.team }}</span>
+                        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; color: #1a1a1a;">{{ c.points }}</span>
                       </div>
-                      <div style="height: 3px; background: #222; border-radius: 2px; overflow: hidden;">
+                      <div style="height: 3px; background: #ececec; border-radius: 2px; overflow: hidden;">
                         <div
                           [ngStyle]="{'width': (c.points / maxConstructorPoints()) * 100 + '%', 'background': c.color}"
                           style="height: 100%; border-radius: 2px;"></div>
@@ -184,23 +184,23 @@
         <div style="display: grid; grid-template-columns: 1fr 1.4fr; gap: 12px;">
 
           <!-- Calendar Strip -->
-          <div style="background: #141414; border: 1px solid #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
-            <div style="padding: 10px 14px; border-bottom: 1px solid #1e1e1e; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #fff; text-transform: uppercase; letter-spacing: 1px;">Próximas sesiones</span>
-              <span [style.color]="accent()" style="font-size: 11px; font-weight: 600; cursor: pointer;">Calendario →</span>
+          <div style="background: #ffffff; border: 1px solid #e5e5e7; border-radius: 8px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.03);">
+            <div style="padding: 10px 14px; border-bottom: 1px solid #e5e5e7; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #1a1a1a; text-transform: uppercase; letter-spacing: 1px;">Próximas sesiones</span>
+              <span style="color: #FFD100; font-size: 11px; font-weight: 600; cursor: pointer;">Calendario →</span>
             </div>
             <div style="padding: 6px 14px; display: flex; flex-direction: column; gap: 4px;">
               @for (s of data().nextRace.sessions; track s.name) {
-                <div style="display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #191919;">
+                <div style="display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #f0f0f2;">
                   <div
-                    [ngStyle]="{'background': s.highlight ? accent() : '#1c1c1c', 'color': s.highlight ? '#fff' : '#666'}"
+                    [ngStyle]="{'background': s.highlight ? accent() : '#f0f0f2', 'color': s.highlight ? '#1a1a1a' : '#888'}"
                     style="width: 54px; padding: 3px 0; border-radius: 3px; text-align: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.5px;">{{ s.name }}</div>
                   <div style="flex: 1;">
-                    <span [ngStyle]="{'color': s.highlight ? '#fff' : '#999'}" style="font-size: 12px;">{{ data().nextRace.circuit }}</span>
+                    <span [ngStyle]="{'color': s.highlight ? '#1a1a1a' : '#666'}" style="font-size: 12px;">{{ data().nextRace.circuit }}</span>
                   </div>
                   <div style="text-align: right;">
-                    <div style="font-size: 11px; color: #bbb; font-weight: 600;">{{ s.time }}</div>
-                    <div style="font-size: 10px; color: #3a3a3a;">{{ s.date }}</div>
+                    <div style="font-size: 11px; color: #444; font-weight: 600;">{{ s.time }}</div>
+                    <div style="font-size: 10px; color: #aaa;">{{ s.date }}</div>
                   </div>
                 </div>
               }

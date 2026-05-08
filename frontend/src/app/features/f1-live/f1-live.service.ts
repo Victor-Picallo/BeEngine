@@ -7,8 +7,14 @@ import {
   JolpikaDriverStanding,
   JolpikaLastRace,
   OpenF1Driver,
+  OpenF1Interval,
+  OpenF1Lap,
+  OpenF1Location,
   OpenF1Position,
+  OpenF1RaceControl,
   OpenF1Session,
+  OpenF1Stint,
+  OpenF1TeamRadio,
   OpenF1Weather,
 } from './f1-live.types';
 
@@ -20,6 +26,10 @@ interface SourceWrapped<T> {
 @Injectable({ providedIn: 'root' })
 export class F1LiveService {
   private readonly api = inject(ApiService);
+
+  getSessions(): Observable<OpenF1Session[]> {
+    return this.api.get<OpenF1Session[]>('/f1/openf1/sessions');
+  }
 
   getDrivers(): Observable<OpenF1Driver[]> {
     return this.api.get<OpenF1Driver[]>('/f1/openf1/drivers');
@@ -33,8 +43,28 @@ export class F1LiveService {
     return this.api.get<OpenF1Weather>('/f1/openf1/weather');
   }
 
-  getSessions(): Observable<OpenF1Session[]> {
-    return this.api.get<OpenF1Session[]>('/f1/openf1/sessions');
+  getLaps(): Observable<OpenF1Lap[]> {
+    return this.api.get<OpenF1Lap[]>('/f1/openf1/laps');
+  }
+
+  getIntervals(): Observable<OpenF1Interval[]> {
+    return this.api.get<OpenF1Interval[]>('/f1/openf1/intervals');
+  }
+
+  getStints(): Observable<OpenF1Stint[]> {
+    return this.api.get<OpenF1Stint[]>('/f1/openf1/stints');
+  }
+
+  getRaceControl(): Observable<OpenF1RaceControl[]> {
+    return this.api.get<OpenF1RaceControl[]>('/f1/openf1/race-control');
+  }
+
+  getTeamRadio(): Observable<OpenF1TeamRadio[]> {
+    return this.api.get<OpenF1TeamRadio[]>('/f1/openf1/team-radio');
+  }
+
+  getLocation(driverNumber = 1): Observable<OpenF1Location[]> {
+    return this.api.get<OpenF1Location[]>(`/f1/openf1/location?driver=${driverNumber}`);
   }
 
   getDriverStandings(): Observable<JolpikaDriverStanding[]> {

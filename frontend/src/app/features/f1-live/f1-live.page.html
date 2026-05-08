@@ -1,31 +1,31 @@
-<div class="min-h-screen bg-[#060608] text-[#e8e8e8] font-['Barlow',sans-serif] text-sm overflow-x-hidden">
+<div class="fl-root">
 
-  <!-- ══ TOP BAR ══════════════════════════════════════════════════════════ -->
-  <header class="bg-[#040406] border-b border-[#1a1a1a] flex items-center h-12 px-4 sticky top-0 z-50">
-    <div class="flex items-center gap-1.5 mr-7">
+  <!-- ══ TOP BAR · 48px ════════════════════════════════════════════════════ -->
+  <header class="fl-topbar">
+    <div class="fl-topbar-left">
       <div class="fl-topbar-diamond"></div>
-      <a routerLink="/" class="font-bc font-black text-xl tracking-wide text-white no-underline fl-topbar-title">Be<span>Engine</span></a>
+      <a routerLink="/" class="fl-topbar-title" style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;letter-spacing:1px;color:#1a1a1a">Be<span>Engine</span></a>
     </div>
-    <nav class="flex">
+    <nav class="fl-topbar-nav">
       <button class="fl-cat-btn active">F1</button>
       <button class="fl-cat-btn">MotoGP</button>
       <button class="fl-cat-btn">FE</button>
       <button class="fl-cat-btn">WRC</button>
       <button class="fl-cat-btn">IndyCar</button>
     </nav>
-    <div class="ml-auto flex gap-2.5 items-center">
-      <div class="flex items-center gap-1.5 bg-[rgba(255,209,0,.08)] border border-[rgba(255,209,0,.27)] rounded px-2.5 py-1">
+    <div class="fl-topbar-right">
+      <div class="fl-topbar-live-badge">
         <div class="fl-live-dot"></div>
-        <span class="font-bc font-bold text-[12px] text-[#FFD100] tracking-[1.5px]">LIVE</span>
+        <span class="fl-topbar-live-text">LIVE</span>
       </div>
-      <a routerLink="/" class="text-xs text-[#555] font-medium no-underline">Noticias</a>
-      <div class="w-7 h-7 bg-[#FFD100] rounded-full flex items-center justify-center text-xs font-bold text-black">B</div>
+      <a routerLink="/" class="fl-topbar-link">Noticias</a>
+      <div class="fl-topbar-avatar">B</div>
     </div>
   </header>
 
-  <!-- ══ SESSION SELECTOR ══════════════════════════════════════════════════ -->
-  <div class="bg-[#08080b] border-b border-[#151518] px-5 flex items-center">
-    <span class="font-bc text-[10px] text-[#333] tracking-[2px] uppercase mr-4 whitespace-nowrap">SESIÓN</span>
+  <!-- ══ SESSION BAR · 42px ════════════════════════════════════════════════ -->
+  <div class="fl-session-bar">
+    <span class="fl-session-label-text">SESIÓN</span>
     @for (s of SESSIONS; track s) {
       <button class="fl-session-btn" [class.active]="activeSession() === s" (click)="setSession(s)">
         {{ s }}
@@ -34,260 +34,211 @@
         }
       </button>
     }
-    <div class="ml-auto flex gap-2 items-center">
-      <span class="font-bc text-[11px] text-[#444]">Vuelta</span>
-      <!-- No endpoint provides current lap — placeholder -->
-      <span class="font-bc font-extrabold text-lg text-[#FFD100]">—</span>
-      <span class="font-bc text-[11px] text-[#333]">/</span>
-      <span class="font-bc text-sm text-[#666]">—</span>
-      <div class="w-px h-5 bg-[#222] mx-2"></div>
-      <!-- No endpoint provides elapsed race time — placeholder -->
-      <span class="fl-mono text-xs text-[#FFD100] font-semibold">--:--:--</span>
-      <span class="font-bc text-[10px] text-[#444]">ELAPSED</span>
+    <div class="fl-session-right">
+      <span class="fl-session-vta-label">VTA</span>
+      <span class="fl-session-vta-num">{{ currentLap() ?? '—' }}</span>
+      <span class="fl-session-vta-slash">/</span>
+      <span class="fl-session-vta-total">{{ totalLapsDisplay() }}</span>
+      <div class="fl-session-divider"></div>
+      <span class="fl-session-elapsed-time">{{ elapsedDisplay() }}</span>
+      <span class="fl-session-elapsed-label">ELAPSED</span>
     </div>
   </div>
 
-  <!-- ══ LIVE HEADER ══════════════════════════════════════════════════════ -->
-  <div class="bg-gradient-to-br from-[#0d0a00] via-[#080608] to-[#060608] border-b border-[rgba(255,209,0,.13)] px-5 py-4 relative overflow-hidden">
+  <!-- ══ LIVE HEADER · ~130px ══════════════════════════════════════════════ -->
+  <div class="fl-live-header">
     <div class="fl-header-accent-line"></div>
     <div class="fl-header-scan"></div>
     <div class="fl-header-glow"></div>
 
-    <div class="flex items-center gap-6 relative">
-      <!-- F1 LIVE title -->
-      <div>
-        <div class="flex items-center gap-2.5 mb-1">
+    <div class="fl-header-row">
+
+      <!-- Title block -->
+      <div style="flex-shrink:0">
+        <div class="fl-header-label">
           <div class="fl-header-pulse"></div>
-          <span class="font-bc font-black text-[11px] text-[#FFD100] tracking-[3px] uppercase">EN DIRECTO</span>
+          <span class="fl-header-en-directo">EN DIRECTO</span>
         </div>
-        <div class="font-bc font-black text-[42px] text-white leading-none tracking-[-1px] fl-header-title">F1 <span>LIVE</span></div>
+        <div class="fl-header-title-big">F1 <span>LIVE</span></div>
       </div>
 
-      <div class="w-px h-14 bg-[#222]"></div>
+      <div class="fl-header-sep"></div>
 
-      <!-- Circuit info from API -->
-      <div>
-        <div class="text-[10px] text-[#444] font-semibold tracking-[1.5px] uppercase mb-1">GRAN PREMIO</div>
-        <div class="font-bc font-extrabold text-[22px] text-white leading-tight">{{ liveHeaderData().raceName }}</div>
-        <div class="text-[11px] text-[#666] mt-0.5 flex items-center gap-1">
-          <svg width="10" height="12" viewBox="0 0 10 12" fill="#555">
-            <path d="M5 0C2.5 0 0 2.2 0 5C0 8 5 12 5 12S10 8 10 5C10 2.2 7.5 0 5 0ZM5 7A2 2 0 1 1 5 3A2 2 0 0 1 5 7Z"/>
-          </svg>
-          {{ liveHeaderData().circuitName }}
+      <!-- GP info -->
+      <div class="fl-header-gp">
+        <div class="fl-header-gp-label">GRAN PREMIO</div>
+        <div class="fl-header-race-name">{{ liveHeaderData().raceName }}</div>
+        <div class="fl-header-circuit-info">
+          <svg width="10" height="12" viewBox="0 0 10 12" fill="#555"><path d="M5 0C2.5 0 0 2.2 0 5C0 8 5 12 5 12S10 8 10 5C10 2.2 7.5 0 5 0ZM5 7A2 2 0 1 1 5 3A2 2 0 0 1 5 7Z"/></svg>
+          <span style="overflow:hidden;text-overflow:ellipsis">{{ liveHeaderData().circuitName }}</span>
           @if (liveHeaderData().round) {
-            — Ronda {{ liveHeaderData().round }}/{{ liveHeaderData().totalRounds }}
+            <span style="color:#bbb;flex-shrink:0">· Rda {{ liveHeaderData().round }}/{{ liveHeaderData().totalRounds }}</span>
           }
         </div>
       </div>
 
-      <div class="w-px h-14 bg-[#222]"></div>
+      <div class="fl-header-sep"></div>
 
-      <!-- Weather -->
-      <div class="flex gap-5">
-        @if (currentWeather(); as w) {
-          <div class="flex flex-col gap-[3px]">
-            <div class="flex items-center gap-1">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <circle cx="8" cy="8" r="4" fill="#E8002D" opacity=".9"/>
-                <path d="M8 1V3M8 13V15M1 8H3M13 8H15M3.05 3.05L4.46 4.46M11.54 11.54L12.95 12.95M3.05 12.95L4.46 11.54M11.54 4.46L12.95 3.05" stroke="#E8002D" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
-              <span class="text-[9px] text-[#444] tracking-[1px] uppercase font-semibold">PISTA</span>
+      <!-- Weather: with SVG icons -->
+      @if (currentWeather(); as w) {
+        <div class="fl-header-weather">
+          <div class="fl-weather-stat">
+            <div class="fl-weather-stat-row">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="4" fill="#E8002D" opacity="0.9"/><path d="M8 1V3M8 13V15M1 8H3M13 8H15M3.05 3.05L4.46 4.46M11.54 11.54L12.95 12.95M3.05 12.95L4.46 11.54M11.54 4.46L12.95 3.05" stroke="#E8002D" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <span class="fl-weather-stat-label">PISTA</span>
             </div>
-            <span class="fl-mono font-semibold text-base leading-none" style="color:#E8002D">{{ w.trackTemperature }}°C</span>
+            <span class="fl-weather-stat-value" style="color:#E8002D">{{ w.trackTemperature }}°C</span>
           </div>
-          <div class="flex flex-col gap-[3px]">
-            <div class="flex items-center gap-1">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M8 2C8 2 5 5 5 8.5C5 10.4 6.3 12 8 12C9.7 12 11 10.4 11 8.5C11 5 8 2 8 2Z" stroke="#22d3ee" stroke-width="1.5"/>
-              </svg>
-              <span class="text-[9px] text-[#444] tracking-[1px] uppercase font-semibold">AIRE</span>
+          <div class="fl-weather-stat">
+            <div class="fl-weather-stat-row">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2C8 2 5 5 5 8.5C5 10.4 6.3 12 8 12C9.7 12 11 10.4 11 8.5C11 5 8 2 8 2Z" stroke="#22d3ee" stroke-width="1.5" fill="none"/></svg>
+              <span class="fl-weather-stat-label">AIRE</span>
             </div>
-            <span class="fl-mono font-semibold text-base leading-none" style="color:#22d3ee">{{ w.airTemperature }}°C</span>
+            <span class="fl-weather-stat-value" style="color:#22d3ee">{{ w.airTemperature }}°C</span>
           </div>
-          <div class="flex flex-col gap-[3px]">
-            <div class="flex items-center gap-1">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M2 8C2 8 4 4 8 4C12 4 14 8 14 8C14 8 12 12 8 12C4 12 2 8 2 8Z" stroke="#888" stroke-width="1.2" fill="none"/>
-                <circle cx="8" cy="8" r="2.5" stroke="#888" stroke-width="1.2" fill="none"/>
-              </svg>
-              <span class="text-[9px] text-[#444] tracking-[1px] uppercase font-semibold">HUMEDAD</span>
+          <div class="fl-weather-stat">
+            <div class="fl-weather-stat-row">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 8C2 8 4 4 8 4C12 4 14 8 14 8C14 8 12 12 8 12C4 12 2 8 2 8Z" stroke="#888" stroke-width="1.2" fill="none"/><circle cx="8" cy="8" r="2.5" stroke="#888" stroke-width="1.2" fill="none"/></svg>
+              <span class="fl-weather-stat-label">HUMEDAD</span>
             </div>
-            <span class="fl-mono font-semibold text-base leading-none" style="color:#888">{{ w.humidity }}%</span>
+            <span class="fl-weather-stat-value" style="color:#888">{{ w.humidity }}%</span>
           </div>
-          <div class="flex flex-col gap-[3px]">
-            <div class="flex items-center gap-1">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M2 8H14M8 2L14 8L8 14" stroke="#888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span class="text-[9px] text-[#444] tracking-[1px] uppercase font-semibold">VIENTO</span>
+          <div class="fl-weather-stat">
+            <div class="fl-weather-stat-row">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 8H14M8 2L14 8L8 14" stroke="#888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span class="fl-weather-stat-label">VIENTO</span>
             </div>
-            <span class="fl-mono font-semibold text-base leading-none" style="color:#888">{{ w.windSpeed }} km/h</span>
+            <span class="fl-weather-stat-value" style="color:#888">{{ w.windSpeed }} km/h</span>
           </div>
-        } @else {
-          <span class="text-xs text-[#444]">Cargando condiciones…</span>
-        }
-      </div>
+        </div>
+      } @else {
+        <span style="font-size:12px;color:#aaa;flex-shrink:0">Sin condiciones</span>
+      }
 
-      <div class="flex-1"></div>
+      <div class="fl-header-spacer"></div>
 
       <!-- Clock -->
-      <div class="text-right">
-        <div class="fl-mono font-semibold text-2xl text-white tracking-[2px] leading-none">{{ pad(now().getHours()) }}:{{ pad(now().getMinutes()) }}:{{ pad(now().getSeconds()) }}</div>
-        <div class="text-[10px] text-[#444] tracking-[1px] uppercase mt-0.5">UTC+2 · {{ today() }}</div>
+      <div class="fl-header-clock">
+        <div class="fl-header-clock-time">{{ pad(now().getHours()) }}:{{ pad(now().getMinutes()) }}:{{ pad(now().getSeconds()) }}</div>
+        <div class="fl-header-clock-date">UTC+2 · {{ today() }}</div>
       </div>
     </div>
 
-    <!-- Status badges: no real endpoint — centralized in TS as placeholders -->
-    <div class="mt-3 flex gap-2 items-center">
-      <span class="text-[9px] text-[#444] tracking-[1.5px] uppercase font-semibold">ESTADO:</span>
-      @for (b of STATUS_BADGES; track b.label) {
+    <!-- Status strip -->
+    <div class="fl-status-strip">
+      <span class="fl-status-strip-label">ESTADO:</span>
+      @for (b of statusBadges(); track b.label) {
         <span class="fl-badge" [ngClass]="'fl-badge-' + b.variant">{{ b.label }}</span>
       }
     </div>
   </div>
 
   <!-- ══ TICKER ════════════════════════════════════════════════════════════ -->
-  <div class="bg-[#040406] border-b border-[#111] py-[5px] overflow-hidden relative">
+  <div class="fl-ticker">
     <div class="fl-ticker-inner">
       @for (rep of [0, 1]; track rep) {
         @for (d of tickerDrivers(); track d.num) {
-          <span class="inline-flex items-center gap-1.5 px-6 border-r border-[#1a1a1a]">
-            <span class="font-bc font-extrabold text-[10px] w-4" [style.color]="d.pos <= 3 ? '#FFD100' : '#444'">P{{ d.pos }}</span>
-            <span class="w-0.5 h-2.5 rounded-[1px]" [style.background]="d.teamColor"></span>
-            <span class="font-bc font-bold text-[10px] text-[#888] tracking-[0.5px]">{{ d.short }}</span>
-            <span class="fl-mono text-[9px]" [style.color]="d.pos === 1 ? '#FFD100' : '#555'">{{ d.gap }}</span>
+          <span class="fl-ticker-item">
+            <span class="fl-ticker-pos" [style.color]="d.pos <= 3 ? '#FFD100' : '#444'">P{{ d.pos }}</span>
+            <span class="fl-ticker-team-bar" [style.background]="d.teamColor"></span>
+            <span class="fl-ticker-driver">{{ d.short }}</span>
+            <span class="fl-ticker-gap" [style.color]="d.pos === 1 ? '#FFD100' : '#555'">{{ d.gap }}</span>
           </span>
         }
       }
     </div>
   </div>
 
-  <!-- ══ ERROR STATE ════════════════════════════════════════════════════════ -->
+  <!-- ══ ERROR ═════════════════════════════════════════════════════════════ -->
   @if (error()) {
-    <div class="m-3 bg-[rgba(232,0,45,.1)] border border-[rgba(232,0,45,.3)] rounded-lg px-[18px] py-3.5 text-[#ff6b6b] text-[13px] font-medium">⚠ {{ error() }}</div>
+    <div style="margin:4px 12px;padding:8px 16px;border-radius:4px;font-size:12px;font-weight:500;flex-shrink:0;background:rgba(232,0,45,.1);border:1px solid rgba(232,0,45,.3);color:#ff6b6b">
+      ⚠ {{ error() }}
+    </div>
   }
 
-  <!-- ══ MAIN GRID ══════════════════════════════════════════════════════════ -->
-  <div class="grid gap-3 p-3 items-start" style="grid-template-columns: 240px 1fr 296px">
+  <!-- ══ MAIN GRID · fills remaining viewport height ═══════════════════════ -->
+  <div class="fl-main-grid">
 
-    <!-- ── LEFT COLUMN ─────────────────────────────────────────────────── -->
-    <div class="flex flex-col gap-3">
+    <!-- ── LEFT: conditions + standings ─────────────────────────────────── -->
+    <div class="fl-left-col">
+
       @if (loading()) {
-        <div class="fl-skeleton" style="height:240px"></div>
-        <div class="fl-skeleton" style="height:200px"></div>
+        <div class="fl-skeleton" style="flex-shrink:0;border-radius:8px;height:188px"></div>
+        <div class="fl-skeleton" style="border-radius:8px;flex:1;min-height:140px"></div>
       } @else {
 
-        <!-- TRACK CONDITIONS -->
-        <div class="bg-[#0a0a0d] border border-[#151518] rounded-lg overflow-hidden">
-          <div class="px-3.5 py-2.5 border-b border-[#151518] bg-[#0d0d10] flex items-center gap-2">
-            <div class="w-[3px] h-4 rounded-[1px] shrink-0" style="background:#22d3ee"></div>
-            <span class="font-bc font-extrabold text-[13px] text-white uppercase tracking-[1.5px]">CONDICIONES</span>
-            <span class="ml-auto text-[9px] font-bc font-bold tracking-[1px]" style="color:#4ade80">SECO</span>
+        <!-- CONDITIONS card: no SVG overhead, just key-value rows -->
+        <div class="fl-card" style="flex-shrink:0">
+          <div class="fl-card-header">
+            <div class="fl-card-header-bar" style="background:#22d3ee"></div>
+            <span class="fl-card-header-title">CONDICIONES</span>
+            <span class="fl-card-header-status"
+                  [style.color]="(currentWeather()?.rainfall ?? 0) > 0 ? '#60a5fa' : '#4ade80'">
+              {{ (currentWeather()?.rainfall ?? 0) > 0 ? 'MOJADO' : 'SECO' }}
+            </span>
           </div>
           @if (currentWeather(); as w) {
-            <div class="px-3.5 py-2.5 flex flex-col gap-2.5">
-              <div class="flex items-center gap-2.5">
-                <div class="w-7 flex justify-center shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <circle cx="8" cy="8" r="4" fill="#E8002D" opacity=".8"/>
-                    <path d="M8 1V3M8 13V15M1 8H3M13 8H15M3.05 3.05L4.46 4.46M11.54 11.54L12.95 12.95M3.05 12.95L4.46 11.54M11.54 4.46L12.95 3.05" stroke="#E8002D" stroke-width="1.5" stroke-linecap="round"/>
-                  </svg>
-                </div>
-                <span class="text-[11px] text-[#555] flex-1">Temp. Pista</span>
-                <span class="fl-mono text-[13px] font-semibold" style="color:#E8002D">{{ w.trackTemperature }}°C</span>
+            <div class="fl-cond-body">
+              <div class="fl-cond-row">
+                <span class="fl-cond-row-label">Temp. Pista</span>
+                <span class="fl-cond-row-value" style="color:#E8002D">{{ w.trackTemperature }}°C</span>
               </div>
-              <div class="flex items-center gap-2.5">
-                <div class="w-7 flex justify-center shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M8 2C8 2 5 5 5 8.5C5 10.4 6.3 12 8 12C9.7 12 11 10.4 11 8.5C11 5 8 2 8 2Z" stroke="#22d3ee" stroke-width="1.5"/>
-                  </svg>
-                </div>
-                <span class="text-[11px] text-[#555] flex-1">Temp. Aire</span>
-                <span class="fl-mono text-[13px] font-semibold" style="color:#22d3ee">{{ w.airTemperature }}°C</span>
+              <div class="fl-cond-row">
+                <span class="fl-cond-row-label">Temp. Aire</span>
+                <span class="fl-cond-row-value" style="color:#22d3ee">{{ w.airTemperature }}°C</span>
               </div>
-              <div class="flex items-center gap-2.5">
-                <div class="w-7 flex justify-center shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M2 10C2 10 4 7 8 7C12 7 14 10 14 10" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round"/>
-                    <path d="M4 13C4 13 5.5 11 8 11C10.5 11 12 13 12 13" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round" opacity=".6"/>
-                  </svg>
-                </div>
-                <span class="text-[11px] text-[#555] flex-1">Humedad</span>
-                <span class="fl-mono text-[13px] font-semibold" style="color:#60a5fa">{{ w.humidity }}%</span>
+              <div class="fl-cond-row">
+                <span class="fl-cond-row-label">Humedad</span>
+                <span class="fl-cond-row-value" style="color:#60a5fa">{{ w.humidity }}%</span>
               </div>
-              <div class="flex items-center gap-2.5">
-                <div class="w-7 flex justify-center shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <circle cx="8" cy="8" r="5" stroke="#888" stroke-width="1.2"/>
-                    <path d="M8 4V8L11 10" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
-                  </svg>
-                </div>
-                <span class="text-[11px] text-[#555] flex-1">Viento</span>
-                <span class="fl-mono text-[13px] font-semibold" style="color:#888">{{ w.windSpeed }} km/h {{ windDirStr(w.windDirection) }}</span>
+              <div class="fl-cond-row">
+                <span class="fl-cond-row-label">Viento</span>
+                <span class="fl-cond-row-value" style="color:#888">{{ w.windSpeed }} km/h {{ windDirStr(w.windDirection) }}</span>
               </div>
-              <div class="flex items-center gap-2.5">
-                <div class="w-7 flex justify-center shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M3 12L5 6L8 3L11 6L13 12" stroke="#888" stroke-width="1.2" stroke-linejoin="round"/>
-                    <line x1="2" y1="12" x2="14" y2="12" stroke="#888" stroke-width="1.2"/>
-                  </svg>
-                </div>
-                <span class="text-[11px] text-[#555] flex-1">Presión</span>
-                <span class="fl-mono text-[13px] font-semibold" style="color:#888">{{ w.pressure }} hPa</span>
+              <div class="fl-cond-row">
+                <span class="fl-cond-row-label">Presión</span>
+                <span class="fl-cond-row-value" style="color:#888">{{ w.pressure }} hPa</span>
               </div>
-              <div class="flex items-center gap-2.5">
-                <div class="w-7 flex justify-center shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M3 12C3 8 5 5 8 4C11 5 13 8 13 12" stroke="#60a5fa" stroke-width="1.2" fill="none"/>
-                    <path d="M6 9L8 14L10 9" stroke="#60a5fa" stroke-width="1.2" stroke-linejoin="round"/>
-                  </svg>
-                </div>
-                <span class="text-[11px] text-[#555] flex-1">Lluvia</span>
-                <span class="fl-mono text-[13px] font-semibold" [style.color]="w.rainfall > 0 ? '#60a5fa' : '#4ade80'">
-                  {{ w.rainfall > 0 ? (w.rainfall + 'mm') : 'Sin lluvia' }}
+              <div class="fl-cond-row">
+                <span class="fl-cond-row-label">Lluvia</span>
+                <span class="fl-cond-row-value"
+                      [style.color]="w.rainfall > 0 ? '#60a5fa' : '#4ade80'">
+                  {{ w.rainfall > 0 ? (w.rainfall + ' mm') : 'Sin lluvia' }}
                 </span>
               </div>
             </div>
           } @else {
-            <div class="px-4 py-4 text-xs text-[#444]">Sin datos de condiciones</div>
+            <div class="fl-cond-empty">
+              <span style="font-size:11px;color:#aaa">Sin datos de condiciones</span>
+            </div>
           }
         </div>
 
-        <!-- CHAMPIONSHIP MINI -->
-        <div class="bg-[#0a0a0d] border border-[#151518] rounded-lg overflow-hidden">
-          <div class="border-b border-[#151518] bg-[#0d0d10] flex">
-            <button class="fl-champ-tab" [class.active]="standingsTab() === 'drivers'" (click)="setStandingsTab('drivers')">PILOTOS</button>
-            <button class="fl-champ-tab" [class.active]="standingsTab() === 'constructors'" (click)="setStandingsTab('constructors')">CONSTRUCTORES</button>
+        <!-- STANDINGS card: takes remaining height, scrollable -->
+        <div class="fl-card" style="flex:1;min-height:150px;overflow:hidden;display:flex;flex-direction:column">
+          <div class="fl-standings-tabs">
+            <button class="fl-champ-tab" [class.active]="standingsTab() === 'drivers'"
+                    (click)="setStandingsTab('drivers')">PILOTOS</button>
+            <button class="fl-champ-tab" [class.active]="standingsTab() === 'constructors'"
+                    (click)="setStandingsTab('constructors')">CONSTRUCTORES</button>
           </div>
-          <div class="px-3 py-2 flex flex-col gap-1.5">
-            @if (standingsTab() === 'drivers') {
-              @for (d of driverStandingsDisplay(); track d.pos) {
-                <div class="flex items-center gap-2">
-                  <span class="font-bc font-extrabold text-[13px] w-4 text-center" [style.color]="d.pos === 1 ? '#FFD100' : '#444'">{{ d.pos }}</span>
-                  <div class="w-[3px] h-4 rounded-[1px] shrink-0" [style.background]="d.teamColor"></div>
-                  <span class="text-xs text-[#bbb] font-medium flex-1">{{ d.short }}</span>
-                  <div class="flex-[2] relative h-[3px] bg-[#111] rounded-[1px] overflow-hidden">
-                    <div class="h-full rounded-[1px] transition-[width] duration-[400ms]"
-                         [style.width.%]="(d.points / maxStandingPoints()) * 100"
-                         [style.background]="d.teamColor"></div>
-                  </div>
-                  <span class="fl-mono text-xs font-semibold text-white w-[34px] text-right">{{ d.points }}</span>
+          <div class="fl-standings-body">
+            @for (s of activeStandings(); track s.pos) {
+              <div class="fl-standings-row">
+                <span class="fl-standings-pos"
+                      [style.color]="s.pos === 1 ? '#FFD100' : '#444'">{{ s.pos }}</span>
+                <div class="fl-standings-team-color" [style.background]="s.color"></div>
+                <span class="fl-standings-name">{{ s.label }}</span>
+                <div class="fl-standings-progress">
+                  <div class="fl-standings-progress-fill"
+                       [style.width.%]="s.widthPct"
+                       [style.background]="s.color"></div>
                 </div>
-              }
-            } @else {
-              @for (c of constructorStandingsDisplay(); track c.pos) {
-                <div class="flex items-center gap-2">
-                  <span class="font-bc font-extrabold text-[13px] w-4 text-center" [style.color]="c.pos === 1 ? '#FFD100' : '#444'">{{ c.pos }}</span>
-                  <div class="w-[3px] h-4 rounded-[1px] shrink-0" [style.background]="c.color"></div>
-                  <span class="text-xs text-[#bbb] font-medium flex-1">{{ c.name }}</span>
-                  <div class="flex-[2] relative h-[3px] bg-[#111] rounded-[1px] overflow-hidden">
-                    <div class="h-full rounded-[1px] transition-[width] duration-[400ms]"
-                         [style.width.%]="(c.points / maxStandingPoints()) * 100"
-                         [style.background]="c.color"></div>
-                  </div>
-                  <span class="fl-mono text-xs font-semibold text-white w-[34px] text-right">{{ c.points }}</span>
-                </div>
-              }
+                <span class="fl-standings-points">{{ s.points }}</span>
+              </div>
+            }
+            @if (!activeStandings().length) {
+              <div class="fl-standings-empty">Sin datos</div>
             }
           </div>
         </div>
@@ -295,29 +246,29 @@
       }
     </div>
 
-    <!-- ── CENTER: TIMING BOARD ────────────────────────────────────────── -->
-    <div>
+    <!-- ── CENTER: timing tower occupies full remaining height ───────────── -->
+    <div class="fl-center-col">
+
       @if (loading()) {
-        <div class="fl-skeleton" style="height:600px"></div>
+        <div class="fl-skeleton" style="border-radius:8px;flex:1"></div>
       } @else {
-        <div class="bg-[#0a0a0d] border border-[#151518] rounded-lg overflow-hidden">
-          <!-- Timing header -->
-          <div class="px-3.5 py-2.5 border-b border-[#151518] bg-[#0d0d10] flex items-center gap-2">
-            <div class="w-[3px] h-4 rounded-[1px] shrink-0" style="background:#FFD100"></div>
-            <span class="font-bc font-extrabold text-[13px] text-white uppercase tracking-[1.5px]">TIMING TOWER</span>
-            <div class="flex items-center gap-1 ml-1">
+        <!-- Card is also a flex-column that fills the column height -->
+        <div class="fl-card" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+          <div class="fl-card-header" style="flex-shrink:0">
+            <div class="fl-tt-bar"></div>
+            <span class="fl-tt-title">TABLA DE TIEMPOS</span>
+            <div class="fl-tt-live">
               <div class="fl-panel-live-dot"></div>
-              <span class="text-[9px] text-[#4ade80] font-bold tracking-[1px] uppercase">LIVE</span>
+              <span class="fl-tt-live-text">LIVE</span>
             </div>
-            <div class="ml-auto flex gap-4 text-[9px] text-[#333] tracking-[1px] uppercase">
-              <span style="color:#c084fc">▪ Fastest</span>
-              <span style="color:#FFD100">▪ Personal Best</span>
-              <span style="color:#4ade80">▪ Sector Best</span>
+            <div class="fl-tt-legend">
+              <span style="color:#FFD100">▪ PB</span>
+              <span style="color:#aaa">▪ Sin sectores rt</span>
             </div>
           </div>
 
-          <!-- Column headers -->
-          <div class="fl-timing-header-row">
+          <!-- Fixed column headers -->
+          <div class="fl-timing-header-row" style="flex-shrink:0">
             <div class="fl-th">POS</div>
             <div class="fl-th">#</div>
             <div class="fl-th">PILOTO</div>
@@ -329,115 +280,114 @@
             <div class="fl-th fl-th-right">S1</div>
             <div class="fl-th fl-th-right">S2</div>
             <div class="fl-th fl-th-right">S3</div>
-            <div class="fl-th fl-th-right">V.MAX</div>
+            <div class="fl-th fl-th-right">GOMA</div>
           </div>
 
-          <!-- Rows -->
-          @for (d of timingDrivers(); track d.num; let i = $index) {
-            <div class="fl-timing-row"
-                 [class.leader]="d.pos === 1"
-                 [class.in-pit]="d.gap === 'PIT'">
-
-              <div class="fl-cell-pos" [class.top3]="d.pos <= 3">{{ d.pos }}</div>
-
-              <div class="fl-cell-num"
-                   [style.background]="d.teamColor + '22'"
-                   [style.border]="'1px solid ' + d.teamColor + '55'">{{ d.num }}</div>
-
-              <div class="fl-cell-driver">
-                <div class="fl-driver-team-bar" [style.background]="d.teamColor"></div>
-                <div>
-                  <div class="fl-driver-name-main">{{ d.name }}</div>
-                  <div class="fl-driver-team-label">{{ d.team }}</div>
+          <!-- Scrollable rows area -->
+          <div style="flex:1;overflow-y:auto;min-height:0">
+            @for (d of timingRows(); track d.num) {
+              <div class="fl-timing-row" [class.leader]="d.pos === 1">
+                <div class="fl-cell-pos" [class.top3]="d.pos <= 3">{{ d.pos }}</div>
+                <div class="fl-cell-num"
+                     [style.background]="d.teamColor + '22'"
+                     [style.border]="'1px solid ' + d.teamColor + '55'">{{ d.num }}</div>
+                <div class="fl-cell-driver">
+                  <div class="fl-driver-team-bar" [style.background]="d.teamColor"></div>
+                  <div>
+                    <div class="fl-driver-name-main">{{ d.name }}</div>
+                    <div class="fl-driver-team-label">{{ d.team }}</div>
+                  </div>
+                </div>
+                <div class="fl-cell-gap" [class.leader-gap]="d.pos === 1">{{ d.gap }}</div>
+                <div class="fl-cell-gap">{{ d.interval }}</div>
+                <div class="fl-cell-last" [class.fl-p1]="d.pos === 1">{{ d.lastLap }}</div>
+                <div class="fl-cell-best">{{ d.bestLap }}</div>
+                <div class="fl-cell-laps">{{ d.laps || '—' }}</div>
+                <div class="fl-cell-sector fl-mono" [ngClass]="d.s1c"
+                     [style.font-weight]="d.s1c !== 'sec-white' ? 700 : 400">{{ d.s1 }}</div>
+                <div class="fl-cell-sector fl-mono" [ngClass]="d.s2c"
+                     [style.font-weight]="d.s2c !== 'sec-white' ? 700 : 400">{{ d.s2 }}</div>
+                <div class="fl-cell-sector fl-mono" [ngClass]="d.s3c"
+                     [style.font-weight]="d.s3c !== 'sec-white' ? 700 : 400">{{ d.s3 }}</div>
+                <div class="fl-cell-extra">
+                  <div class="fl-tire-stack">
+                    @if (d.tyreAge > 0) {
+                      <span class="fl-tire-age">+{{ d.tyreAge }}</span>
+                    }
+                    <span class="tire" [class]="'tire-' + d.tire">{{ d.tire.toUpperCase() }}</span>
+                  </div>
                 </div>
               </div>
+            }
 
-              <div class="fl-cell-gap" [class.leader-gap]="d.pos === 1 || d.gap === 'PIT'">{{ d.gap }}</div>
-              <div class="fl-cell-gap">{{ d.interval }}</div>
-              <div class="fl-cell-last" [class.fl-p1]="d.pos === 1">{{ d.lastLap }}</div>
-              <div class="fl-cell-best">{{ d.bestLap }}</div>
-              <div class="fl-cell-laps">{{ d.laps || '—' }}</div>
-
-              <div class="fl-cell-sector fl-mono" [ngClass]="d.s1c"
-                   [style.font-weight]="d.s1c !== 'sec-white' ? 700 : 400">{{ d.s1 }}</div>
-              <div class="fl-cell-sector fl-mono" [ngClass]="d.s2c"
-                   [style.font-weight]="d.s2c !== 'sec-white' ? 700 : 400">{{ d.s2 }}</div>
-              <div class="fl-cell-sector fl-mono" [ngClass]="d.s3c"
-                   [style.font-weight]="d.s3c !== 'sec-white' ? 700 : 400">{{ d.s3 }}</div>
-
-              <div class="fl-cell-extra">
-                <span class="tire" [class]="'tire-' + d.tire">{{ d.tire.toUpperCase() }}</span>
-                @if (d.drs) {
-                  <span class="fl-drs-badge">DRS</span>
-                }
-              </div>
-
-            </div>
-          }
-
-          @if (!timingDrivers().length) {
-            <div class="p-6 text-center text-xs text-[#444]">Sin datos de timing</div>
-          }
-        </div>
-      }
-    </div>
-
-    <!-- ── RIGHT COLUMN ────────────────────────────────────────────────── -->
-    <div class="flex flex-col gap-3">
-      @if (loading()) {
-        <div class="fl-skeleton" style="height:280px"></div>
-        <div class="fl-skeleton" style="height:320px"></div>
-      } @else {
-
-        <!-- LIVE MAP -->
-        <div class="bg-[#0a0a0d] border border-[#151518] rounded-lg overflow-hidden">
-          <div class="px-3.5 py-2.5 border-b border-[#151518] bg-[#0d0d10] flex items-center gap-2">
-            <div class="w-[3px] h-4 rounded-[1px] shrink-0" style="background:#FFD100"></div>
-            <div>
-              <span class="font-bc font-extrabold text-[13px] text-white uppercase tracking-[1.5px]">MAPA EN VIVO</span>
-              @if (liveHeaderData().circuitName !== '—') {
-                <div class="text-[9px] text-[#444] tracking-[0.5px] mt-0.5">{{ liveHeaderData().circuitName }}</div>
-              }
-            </div>
-            <span class="ml-auto text-[9px] font-bc font-bold tracking-[1px]" style="color:#4ade80">● TRACKING</span>
-          </div>
-          <canvas #mapCanvas width="280" height="220" class="fl-map-canvas"></canvas>
-          <div class="px-3 py-2 border-t border-[#0f0f12] flex gap-2 flex-wrap">
-            @for (name of dotNames; track name; let i = $index) {
-              <div class="flex items-center gap-1">
-                <div class="w-1.5 h-1.5 rounded-full" [style.background]="dotColors[i]"></div>
-                <span class="font-bc text-[10px] text-[#666] font-semibold">{{ name }}</span>
+            <!-- Empty state: big centered message if no data -->
+            @if (!timingRows().length) {
+              <div class="fl-empty-state">
+                <div class="fl-empty-state-icon">◈</div>
+                <div class="fl-empty-state-title">Sin datos de timing</div>
+                <div class="fl-empty-state-subtitle">Esperando sesión activa</div>
               </div>
             }
           </div>
         </div>
+      }
 
-        <!-- RADIO FEED -->
-        <div class="bg-[#0a0a0d] border border-[#151518] rounded-lg overflow-hidden flex-1">
-          <div class="px-3.5 py-2.5 border-b border-[#151518] bg-[#0d0d10]">
-            <div class="flex items-center gap-2 mb-2">
-              <div class="w-[3px] h-4 rounded-[1px] shrink-0" style="background:#888"></div>
-              <span class="font-bc font-extrabold text-[13px] text-white uppercase tracking-[1.5px]">RACE CONTROL</span>
+    </div>
+
+    <!-- ── RIGHT: map (fixed 300px) + race control (fills rest) ─────────── -->
+    <div class="fl-right-col">
+
+      @if (loading()) {
+        <div class="fl-skeleton" style="flex-shrink:0;border-radius:8px;height:285px"></div>
+        <div class="fl-skeleton" style="border-radius:8px;flex:1;min-height:120px"></div>
+      } @else {
+
+        <!-- LIVE MAP: fixed height -->
+        <div class="fl-card" style="height:285px;display:flex;flex-direction:column;flex-shrink:0">
+          <div class="fl-card-header" style="flex-shrink:0">
+            <div class="fl-card-header-bar" style="background:#FFD100"></div>
+            <span class="fl-card-header-title">MAPA EN VIVO</span>
+            <span class="fl-card-header-status" style="color:#16a34a">● TRACKING</span>
+          </div>
+          <canvas #mapCanvas width="308" height="218" class="fl-map-canvas" style="flex:1;width:100%;height:auto;display:block"></canvas>
+        </div>
+
+        <!-- RACE CONTROL: fills remaining height -->
+        <div class="fl-card" style="flex:1;overflow:hidden;min-height:120px;display:flex;flex-direction:column">
+          <div class="fl-card-header-col" style="flex-shrink:0">
+            <div class="fl-card-header-col-title">
+              <div class="fl-card-header-bar" style="background:#888"></div>
+              <span class="fl-card-header-title">RACE CONTROL</span>
             </div>
-            <div class="flex gap-1">
-              <button class="fl-radio-filter-btn" [class.active]="radioFilter() === 'all'"     (click)="setRadioFilter('all')">Todo</button>
-              <button class="fl-radio-filter-btn" [class.active]="radioFilter() === 'radio'"   (click)="setRadioFilter('radio')">Radio</button>
-              <button class="fl-radio-filter-btn" [class.active]="radioFilter() === 'control'" (click)="setRadioFilter('control')">Control</button>
+            <div class="fl-radio-filters">
+              <button class="fl-radio-filter-btn" [class.active]="radioFilter() === 'all'"
+                      (click)="setRadioFilter('all')">Todo</button>
+              <button class="fl-radio-filter-btn" [class.active]="radioFilter() === 'radio'"
+                      (click)="setRadioFilter('radio')">Radio</button>
+              <button class="fl-radio-filter-btn" [class.active]="radioFilter() === 'control'"
+                      (click)="setRadioFilter('control')">Control</button>
             </div>
           </div>
-          <div class="max-h-80 overflow-y-auto py-1">
-            @for (m of filteredRadio(); track m.time + m.from) {
-              <div class="fl-radio-msg" [class.urgent]="m.urgent" [class.control]="m.type === 'control' && !m.urgent">
-                <div class="flex items-center gap-1.5 mb-[3px]">
-                  <span class="fl-mono text-[9px] text-[#444]">{{ m.time }}</span>
-                  <span class="font-bc text-[9px] font-bold tracking-[1px] uppercase"
-                        [style.color]="m.urgent ? '#FFD100' : m.type === 'control' ? '#888' : '#555'"
-                        [style.background]="m.urgent ? 'rgba(255,209,0,.15)' : 'transparent'"
-                        style="padding:1px 5px;border-radius:2px">{{ m.from }}</span>
+          <div style="flex:1;overflow-y:auto;padding:4px 0">
+            @if (filteredRadio().length) {
+              @for (m of filteredRadio(); track m.time + m.from + m.msg) {
+                <div class="fl-radio-msg"
+                     [class.urgent]="m.urgent"
+                     [class.control]="m.type === 'control' && !m.urgent">
+                  <div class="fl-radio-msg-meta">
+                    <span class="fl-radio-msg-time">{{ m.time }}</span>
+                    <span class="fl-radio-msg-from"
+                          [style.color]="m.urgent ? '#FFD100' : m.type === 'control' ? '#888' : '#555'"
+                          [style.background]="m.urgent ? 'rgba(255,209,0,.15)' : 'transparent'">{{ m.from }}</span>
+                  </div>
+                  <div class="fl-radio-msg-text">{{ m.msg }}</div>
                 </div>
-                <div class="text-xs leading-[1.4]"
-                     [style.color]="m.urgent ? '#fff' : '#777'"
-                     [style.font-weight]="m.urgent ? '500' : '400'">{{ m.msg }}</div>
+              }
+            } @else {
+              <div class="fl-empty-state-small">
+                <div class="fl-empty-state-icon" style="font-size:32px">◈</div>
+                <div style="font-size:11px;color:#888">Sin mensajes</div>
+                <div style="font-size:10px;color:#bbb">Esperando sesión activa</div>
               </div>
             }
           </div>
@@ -448,12 +398,12 @@
 
   </div>
 
-  <!-- ══ FOOTER ════════════════════════════════════════════════════════════ -->
-  <footer class="px-4 py-3 border-t border-[#111] flex justify-between items-center">
-    <div class="text-[10px] text-[#333] font-bc tracking-[1px]">BeEngine · Datos: OpenF1 + Jolpica-F1 API · {{ today() }}</div>
-    <div class="flex gap-3">
-      <a routerLink="/" class="text-[11px] text-[#444] font-medium no-underline hover:text-[#888] transition-colors">← Home</a>
-      <a routerLink="/" class="text-[11px] text-[#444] font-medium no-underline hover:text-[#888] transition-colors">Noticias</a>
+  <!-- ══ FOOTER · 32px ═════════════════════════════════════════════════════ -->
+  <footer class="fl-footer">
+    <span class="fl-footer-text">BeEngine · OpenF1 + Jolpica-F1 · {{ today() }}</span>
+    <div class="fl-footer-links">
+      <a routerLink="/" class="fl-footer-link">← Home</a>
+      <a routerLink="/" class="fl-footer-link">Noticias</a>
     </div>
   </footer>
 

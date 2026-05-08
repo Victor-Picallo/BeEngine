@@ -1,20 +1,20 @@
 <div
-  [ngStyle]="{'border': '1px solid ' + accent() + '2a'}"
-  style="background: linear-gradient(135deg, #141414 0%, #181818 100%); border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
+  [ngStyle]="{'border': '1px solid ' + accent() + '55'}"
+  style="background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%); border-radius: 8px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.05);">
 
   <!-- Header: race info + countdown -->
   <div
-    [ngStyle]="{'background': 'linear-gradient(90deg, ' + accent() + '18, transparent)', 'border-bottom': '1px solid ' + accent() + '22'}"
+    [ngStyle]="{'background': 'linear-gradient(90deg, ' + accent() + '22, transparent)', 'border-bottom': '1px solid ' + accent() + '44'}"
     style="padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
     <div>
-      <div [style.color]="accent()" style="font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 2px;">
+      <div style="color: #FFD100; font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 2px;">
         Próxima carrera · Ronda {{ nextRace().round }}/{{ nextRace().totalRounds }}
       </div>
-      <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 22px; color: #fff; line-height: 1.1;">{{ nextRace().name }}</div>
-      <div style="font-size: 11px; color: #555; margin-top: 3px; display: flex; align-items: center; gap: 4px;">
+      <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 22px; color: #1a1a1a; line-height: 1.1;">{{ nextRace().name }}</div>
+      <div style="font-size: 11px; color: #888; margin-top: 3px; display: flex; align-items: center; gap: 4px;">
         <svg width="11" height="14" viewBox="0 0 11 14" fill="none">
-          <path d="M5.5 1 C3 1 1 3 1 5.5 C1 8.5 5.5 13 5.5 13 C5.5 13 10 8.5 10 5.5 C10 3 8 1 5.5 1Z" stroke="#555" stroke-width="1.2" fill="none"/>
-          <circle cx="5.5" cy="5.5" r="1.5" fill="#555"/>
+          <path d="M5.5 1 C3 1 1 3 1 5.5 C1 8.5 5.5 13 5.5 13 C5.5 13 10 8.5 10 5.5 C10 3 8 1 5.5 1Z" stroke="#888" stroke-width="1.2" fill="none"/>
+          <circle cx="5.5" cy="5.5" r="1.5" fill="#888"/>
         </svg>
         {{ nextRace().location }}
       </div>
@@ -24,13 +24,13 @@
     <div style="display: flex; gap: 6px; align-items: center;">
       @for (unit of countdownUnits(); track unit.label; let i = $index) {
         @if (i > 0) {
-          <span style="color: #444; font-size: 16px; font-weight: 300;">:</span>
+          <span style="color: #aaa; font-size: 16px; font-weight: 300;">:</span>
         }
         <div style="text-align: center;">
           <div
-            [ngStyle]="{'border': '1px solid ' + accent() + '44'}"
-            style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 24px; line-height: 1; color: #fff; min-width: 36px; background: #1a1a1a; border-radius: 4px; padding: 3px 6px; letter-spacing: 2px;">{{ pad(unit.val) }}</div>
-          <div style="font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">{{ unit.label }}</div>
+            [ngStyle]="{'border': '1px solid ' + accent() + '88'}"
+            style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 24px; line-height: 1; color: #1a1a1a; min-width: 36px; background: #f7f7f9; border-radius: 4px; padding: 3px 6px; letter-spacing: 2px;">{{ pad(unit.val) }}</div>
+          <div style="font-size: 9px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">{{ unit.label }}</div>
         </div>
       }
     </div>
@@ -39,12 +39,12 @@
   <!-- Circuit + sessions -->
   <div style="padding: 10px 16px; display: flex; gap: 14px; align-items: center;">
     <!-- Circuit SVG -->
-    <div style="width: 120px; height: 72px; background: #111; border: 1px solid #222; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+    <div style="width: 120px; height: 72px; background: #f5f5f7; border: 1px solid #e5e5e7; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
       <svg width="110" height="68" viewBox="0 0 110 68">
         <path d="M18,52 L18,22 Q18,12 28,12 L65,12 Q80,12 86,22 L92,34 Q97,44 86,48 L70,52 Q60,55 55,48 L46,40 Q42,34 33,37 L24,43 Q20,46 18,52Z"
-          fill="none" [attr.stroke]="accent()" stroke-width="3" opacity="0.5" stroke-linejoin="round"/>
-        <circle cx="18" cy="52" r="3.5" [attr.fill]="accent()" opacity="0.9"/>
-        <text x="15" y="62" [attr.fill]="accent()" font-size="7" opacity="0.7" font-family="Barlow Condensed" font-weight="700">START</text>
+          fill="none" [attr.stroke]="'#FFD100'" stroke-width="3" opacity="0.7" stroke-linejoin="round"/>
+        <circle cx="18" cy="52" r="3.5" [attr.fill]="'#FFD100'" opacity="0.9"/>
+        <text x="15" y="62" [attr.fill]="'#FFD100'" font-size="7" opacity="0.85" font-family="Barlow Condensed" font-weight="700">START</text>
       </svg>
     </div>
 
@@ -52,11 +52,11 @@
     <div style="flex: 1; display: flex; gap: 6px; flex-wrap: wrap;">
       @for (s of nextRace().sessions; track s.name) {
         <div
-          [ngStyle]="{'background': s.highlight ? accent() : '#1c1c1c', 'border': '1px solid ' + (s.highlight ? accent() : '#2a2a2a')}"
+          [ngStyle]="{'background': s.highlight ? accent() : '#f5f5f7', 'border': '1px solid ' + (s.highlight ? accent() : '#e0e0e0')}"
           style="border-radius: 4px; padding: 4px 10px; text-align: center; min-width: 66px;">
-          <div [ngStyle]="{'color': s.highlight ? '#fff' : '#777'}" style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.5px;">{{ s.name }}</div>
-          <div [ngStyle]="{'color': s.highlight ? 'rgba(255,255,255,.7)' : '#444'}" style="font-size: 10px;">{{ s.date }}</div>
-          <div [ngStyle]="{'color': s.highlight ? '#fff' : '#888'}" style="font-size: 11px; font-weight: 600;">{{ s.time }}</div>
+          <div [ngStyle]="{'color': s.highlight ? '#1a1a1a' : '#888'}" style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.5px;">{{ s.name }}</div>
+          <div [ngStyle]="{'color': s.highlight ? 'rgba(0,0,0,.6)' : '#aaa'}" style="font-size: 10px;">{{ s.date }}</div>
+          <div [ngStyle]="{'color': s.highlight ? '#1a1a1a' : '#666'}" style="font-size: 11px; font-weight: 600;">{{ s.time }}</div>
         </div>
       }
     </div>

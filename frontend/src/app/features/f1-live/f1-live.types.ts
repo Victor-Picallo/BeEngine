@@ -42,6 +42,74 @@ export interface OpenF1Session {
   year: number;
 }
 
+export interface OpenF1Lap {
+  dateStart: string;
+  driverNumber: number;
+  durationSector1: number | null;
+  durationSector2: number | null;
+  durationSector3: number | null;
+  i1Speed: number | null;
+  i2Speed: number | null;
+  stSpeed: number | null;
+  lapDuration: number | null;
+  lapNumber: number;
+  sessionKey: number;
+  meetingKey: number;
+}
+
+export interface OpenF1Interval {
+  date: string;
+  driverNumber: number;
+  // OpenF1 returns these as a number (seconds) for cars on the lead lap, or
+  // a string like "1 LAP" / "+1 LAP" for lapped cars.
+  gapToLeader: number | string | null;
+  interval: number | string | null;
+  sessionKey: number;
+  meetingKey: number;
+}
+
+export interface OpenF1Stint {
+  driverNumber: number;
+  compound: string;
+  lapStart: number;
+  lapEnd: number | null;
+  stintNumber: number;
+  tyreAgeAtStart: number;
+  sessionKey: number;
+  meetingKey: number;
+}
+
+export interface OpenF1RaceControl {
+  date: string;
+  category: string;
+  message: string | null;
+  driverNumber: number | null;
+  flag: string | null;
+  lapNumber: number | null;
+  scope: string | null;
+  sector: number | null;
+  sessionKey: number;
+  meetingKey: number;
+}
+
+export interface OpenF1TeamRadio {
+  date: string;
+  driverNumber: number;
+  recordingUrl: string;
+  sessionKey: number;
+  meetingKey: number;
+}
+
+export interface OpenF1Location {
+  x: number;
+  y: number;
+  z: number;
+  date: string;
+  driverNumber: number;
+  sessionKey: number;
+  meetingKey: number;
+}
+
 export interface JolpikaDriverStanding {
   pos: number;
   driver: string;
@@ -59,6 +127,36 @@ export interface JolpikaConstructorStanding {
   nationality: string;
 }
 
+export interface JolpikaCalendarRace {
+  round: number;
+  raceName: string;
+  circuitName: string;
+  locality: string;
+  country: string;
+  date: string;
+  time: string | null;
+}
+
+export interface JolpikaLastRaceResult {
+  position: number;
+  driver: string;
+  team: string;
+  grid: number;
+  laps: number;
+  status: string;
+  points: number;
+  time: string | null;
+}
+
+export interface JolpikaLastRace {
+  source: string;
+  round: number;
+  raceName: string;
+  circuitName: string;
+  date: string;
+  results: JolpikaLastRaceResult[];
+}
+
 export type TireType = 's' | 'm' | 'h' | 'i' | 'w';
 export type SectorColor = 'sec-purple' | 'sec-yellow' | 'sec-green' | 'sec-white';
 
@@ -74,6 +172,7 @@ export interface TimingDriver {
   lastLap: string;
   bestLap: string;
   tire: TireType;
+  tyreAge: number;
   laps: number;
   drs: boolean;
   s1: string;
@@ -106,34 +205,4 @@ export interface ConstructorStandingDisplay {
   name: string;
   points: number;
   color: string;
-}
-
-export interface JolpikaCalendarRace {
-  round: number;
-  raceName: string;
-  circuitName: string;
-  locality: string;
-  country: string;
-  date: string;
-  time: string | null;
-}
-
-export interface JolpikaLastRaceResult {
-  position: number;
-  driver: string;
-  team: string;
-  grid: number;
-  laps: number;
-  status: string;
-  points: number;
-  time: string | null;
-}
-
-export interface JolpikaLastRace {
-  source: string;
-  round: number;
-  raceName: string;
-  circuitName: string;
-  date: string;
-  results: JolpikaLastRaceResult[];
 }

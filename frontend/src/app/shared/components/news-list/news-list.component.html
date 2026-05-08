@@ -1,51 +1,51 @@
-<div style="background: #141414; border: 1px solid #1e1e1e; border-radius: 8px; overflow: hidden;">
-  <div style="padding: 10px 14px; border-bottom: 1px solid #1e1e1e; display: flex; justify-content: space-between; align-items: center;">
-    <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #fff; text-transform: uppercase; letter-spacing: 1px;">Últimas noticias</span>
-    <span [style.color]="accent()" style="font-size: 11px; font-weight: 600; cursor: pointer;">Ver todas →</span>
+<div style="background: #ffffff; border: 1px solid #e5e5e7; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.03);">
+  <div style="padding: 10px 14px; border-bottom: 1px solid #e5e5e7; display: flex; justify-content: space-between; align-items: center;">
+    <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #1a1a1a; text-transform: uppercase; letter-spacing: 1px;">Últimas noticias</span>
+    <span style="color: #FFD100; font-size: 11px; font-weight: 600; cursor: pointer;">Ver todas →</span>
   </div>
 
   <div>
     @for (n of news(); track n.title; let i = $index) {
       <div
         class="news-item"
-        [ngStyle]="{'border-bottom': i < news().length - 1 ? '1px solid #191919' : 'none'}"
+        [ngStyle]="{'border-bottom': i < news().length - 1 ? '1px solid #f0f0f2' : 'none'}"
         style="padding: 10px 14px; display: flex; gap: 10px; cursor: pointer; transition: background 0.1s;">
 
         <!-- Icon thumbnail -->
         <div
-          [ngStyle]="{'background': 'linear-gradient(135deg, ' + accent() + '12, #1e1e1e)', 'border': '1px solid ' + accent() + '18'}"
+          [ngStyle]="{'background': 'linear-gradient(135deg, ' + accent() + '22, #f5f5f7)', 'border': '1px solid ' + accent() + '44'}"
           style="width: 64px; height: 48px; flex-shrink: 0; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
           @switch (i) {
             @case (0) {
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M5 4 Q5 15 12 18 Q19 15 19 4 Z" [attr.fill]="accent()" opacity="0.8"/>
-                <path d="M5 7 Q2 7 2 11 Q2 15 5 14" [attr.stroke]="accent()" stroke-width="2" fill="none" stroke-linecap="round"/>
-                <path d="M19 7 Q22 7 22 11 Q22 15 19 14" [attr.stroke]="accent()" stroke-width="2" fill="none" stroke-linecap="round"/>
-                <rect x="9" y="18" width="6" height="3" rx="1" [attr.fill]="accent()" opacity="0.7"/>
-                <rect x="7" y="21" width="10" height="2" rx="1" [attr.fill]="accent()" opacity="0.6"/>
+                <path d="M5 4 Q5 15 12 18 Q19 15 19 4 Z" [attr.fill]="'#FFD100'" opacity="0.8"/>
+                <path d="M5 7 Q2 7 2 11 Q2 15 5 14" [attr.stroke]="'#FFD100'" stroke-width="2" fill="none" stroke-linecap="round"/>
+                <path d="M19 7 Q22 7 22 11 Q22 15 19 14" [attr.stroke]="'#FFD100'" stroke-width="2" fill="none" stroke-linecap="round"/>
+                <rect x="9" y="18" width="6" height="3" rx="1" [attr.fill]="'#FFD100'" opacity="0.7"/>
+                <rect x="7" y="21" width="10" height="2" rx="1" [attr.fill]="'#FFD100'" opacity="0.6"/>
               </svg>
             }
             @case (1) {
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="4" [attr.stroke]="accent()" stroke-width="2" fill="none"/>
-                <path d="M12 2 L12 5 M12 19 L12 22 M2 12 L5 12 M19 12 L22 12 M5.6 5.6 L7.8 7.8 M16.2 16.2 L18.4 18.4 M18.4 5.6 L16.2 7.8 M7.8 16.2 L5.6 18.4" [attr.stroke]="accent()" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="12" cy="12" r="4" [attr.stroke]="'#FFD100'" stroke-width="2" fill="none"/>
+                <path d="M12 2 L12 5 M12 19 L12 22 M2 12 L5 12 M19 12 L22 12 M5.6 5.6 L7.8 7.8 M16.2 16.2 L18.4 18.4 M18.4 5.6 L16.2 7.8 M7.8 16.2 L5.6 18.4" [attr.stroke]="'#FFD100'" stroke-width="2" stroke-linecap="round"/>
               </svg>
             }
             @case (2) {
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <rect x="9" y="3" width="6" height="10" rx="3" [attr.stroke]="accent()" stroke-width="2" fill="none"/>
-                <path d="M5 11 Q5 17 12 17 Q19 17 19 11" [attr.stroke]="accent()" stroke-width="2" fill="none" stroke-linecap="round"/>
-                <line x1="12" y1="17" x2="12" y2="21" [attr.stroke]="accent()" stroke-width="2" stroke-linecap="round"/>
-                <line x1="9" y1="21" x2="15" y2="21" [attr.stroke]="accent()" stroke-width="2" stroke-linecap="round"/>
+                <rect x="9" y="3" width="6" height="10" rx="3" [attr.stroke]="'#FFD100'" stroke-width="2" fill="none"/>
+                <path d="M5 11 Q5 17 12 17 Q19 17 19 11" [attr.stroke]="'#FFD100'" stroke-width="2" fill="none" stroke-linecap="round"/>
+                <line x1="12" y1="17" x2="12" y2="21" [attr.stroke]="'#FFD100'" stroke-width="2" stroke-linecap="round"/>
+                <line x1="9" y1="21" x2="15" y2="21" [attr.stroke]="'#FFD100'" stroke-width="2" stroke-linecap="round"/>
               </svg>
             }
             @default {
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M6 3 L15 3 L18 6 L18 21 L6 21 Z" [attr.stroke]="accent()" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
-                <path d="M15 3 L15 6 L18 6" [attr.stroke]="accent()" stroke-width="1.5" fill="none"/>
-                <line x1="9" y1="10" x2="15" y2="10" [attr.stroke]="accent()" stroke-width="1.5" stroke-linecap="round"/>
-                <line x1="9" y1="13" x2="15" y2="13" [attr.stroke]="accent()" stroke-width="1.5" stroke-linecap="round"/>
-                <line x1="9" y1="16" x2="13" y2="16" [attr.stroke]="accent()" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M6 3 L15 3 L18 6 L18 21 L6 21 Z" [attr.stroke]="'#FFD100'" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+                <path d="M15 3 L15 6 L18 6" [attr.stroke]="'#FFD100'" stroke-width="1.5" fill="none"/>
+                <line x1="9" y1="10" x2="15" y2="10" [attr.stroke]="'#FFD100'" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="9" y1="13" x2="15" y2="13" [attr.stroke]="'#FFD100'" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="9" y1="16" x2="13" y2="16" [attr.stroke]="'#FFD100'" stroke-width="1.5" stroke-linecap="round"/>
               </svg>
             }
           }
@@ -54,11 +54,11 @@
         <div style="flex: 1;">
           <div style="display: flex; gap: 6px; margin-bottom: 4px; align-items: center;">
             <span
-              [ngStyle]="{'color': n.hot ? '#fff' : '#666', 'background': n.hot ? accent() : '#222'}"
+              [ngStyle]="{'color': n.hot ? '#1a1a1a' : '#888', 'background': n.hot ? accent() : '#ececec'}"
               style="font-size: 9px; font-weight: 700; letter-spacing: 1px; padding: 2px 6px; border-radius: 2px; text-transform: uppercase;">{{ n.tag }}</span>
           </div>
-          <div style="font-size: 13px; color: #ccc; line-height: 1.35; font-weight: 500;">{{ n.title }}</div>
-          <div style="font-size: 10px; color: #3a3a3a; margin-top: 4px;">{{ n.time }}</div>
+          <div style="font-size: 13px; color: #1a1a1a; line-height: 1.35; font-weight: 500;">{{ n.title }}</div>
+          <div style="font-size: 10px; color: #aaa; margin-top: 4px;">{{ n.time }}</div>
         </div>
       </div>
     }
