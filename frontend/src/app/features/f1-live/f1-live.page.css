@@ -1,0 +1,239 @@
+/* ── Scrollbar ─────────────────────────────────────────────────────────── */
+app-f1-live-page ::-webkit-scrollbar { width: 3px; background: #0a0a0a; }
+app-f1-live-page ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+
+/* ── Keyframes ─────────────────────────────────────────────────────────── */
+@keyframes live-pulse {
+  0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255,209,0,.4); }
+  50%      { opacity: .7; box-shadow: 0 0 0 6px rgba(255,209,0,0); }
+}
+@keyframes scan {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(400%); }
+}
+@keyframes ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes skeleton-pulse {
+  0%,100% { opacity: .4; }
+  50%     { opacity: .15; }
+}
+
+/* ── Font / utility classes ────────────────────────────────────────────── */
+.font-bc  { font-family: 'Barlow Condensed', sans-serif; }
+.fl-mono  { font-family: 'JetBrains Mono', monospace; }
+.fl-skeleton {
+  animation: skeleton-pulse 1.6s ease infinite;
+  background: #1e1e1e;
+  border-radius: 8px;
+}
+
+/* ── Sector colors ─────────────────────────────────────────────────────── */
+.sec-purple { color: #c084fc; }
+.sec-yellow { color: #FFD100; }
+.sec-green  { color: #4ade80; }
+.sec-white  { color: #e8e8e8; }
+
+/* ── Tire badges ───────────────────────────────────────────────────────── */
+.tire {
+  width: 18px; height: 18px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 800;
+  font-family: 'Barlow Condensed', sans-serif;
+  flex-shrink: 0;
+}
+.tire-s { background: #E8002D; color: #fff; }
+.tire-m { background: #FFD100; color: #000; }
+.tire-h { background: #e8e8e8; color: #000; }
+.tire-i { background: #39b5e0; color: #fff; }
+.tire-w { background: #3fb950; color: #fff; }
+
+/* ── Status badges ─────────────────────────────────────────────────────── */
+.fl-badge {
+  border-radius: 3px; padding: 2px 8px;
+  font-size: 10px; font-family: 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.5px; font-weight: 700;
+}
+.fl-badge-green  { background: rgba(74,222,128,.13); border: 1px solid rgba(74,222,128,.33); color: #4ade80; }
+.fl-badge-grey   { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); color: #888; }
+.fl-badge-yellow { background: rgba(255,209,0,.08); border: 1px solid rgba(255,209,0,.2); color: #FFD100; }
+
+/* ── Logo diamond (clip-path) ──────────────────────────────────────────── */
+.fl-topbar-diamond {
+  width: 24px; height: 24px;
+  background: #FFD100;
+  clip-path: polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%);
+}
+/* Yellow spans inside titles */
+.fl-topbar-title span { color: #FFD100; }
+.fl-header-title span { color: #FFD100; }
+
+/* ── Animated elements ─────────────────────────────────────────────────── */
+.fl-live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #FFD100;
+  animation: live-pulse 1.5s infinite;
+}
+.fl-header-pulse {
+  width: 8px; height: 8px; border-radius: 50%; background: #FFD100;
+  animation: live-pulse 1.5s infinite;
+}
+.fl-panel-live-dot {
+  width: 5px; height: 5px; border-radius: 50%; background: #4ade80;
+  animation: live-pulse 1s infinite;
+}
+.fl-session-live-dot {
+  position: absolute; top: 6px; right: 6px;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: #FFD100;
+  animation: live-pulse 1.5s infinite;
+}
+/* Ticker animation */
+.fl-ticker-inner {
+  display: flex;
+  animation: ticker 40s linear infinite;
+  white-space: nowrap;
+  gap: 0;
+}
+/* Header decorative elements */
+.fl-header-accent-line {
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, #FFD100, transparent);
+}
+.fl-header-scan {
+  position: absolute; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,209,0,.15), transparent);
+  animation: scan 4s linear infinite;
+  pointer-events: none;
+}
+.fl-header-glow {
+  position: absolute; top: -50%; left: 10%; width: 40%; height: 200%;
+  background: radial-gradient(ellipse, rgba(255,209,0,.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ── Interactive buttons (base + active states) ────────────────────────── */
+.fl-cat-btn {
+  padding: 6px 14px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase;
+  background: transparent; border: none; cursor: pointer;
+  white-space: nowrap; transition: all 0.15s;
+  color: #555; border-bottom: 2px solid transparent; font-weight: 500;
+}
+.fl-cat-btn.active {
+  color: #fff;
+  background: rgba(255,209,0,.09);
+  border-bottom-color: #FFD100;
+  font-weight: 700;
+}
+.fl-session-btn {
+  padding: 10px 18px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px; letter-spacing: 1px; text-transform: uppercase;
+  background: transparent; border: none; cursor: pointer;
+  color: #444; font-weight: 500;
+  position: relative; transition: all 0.15s;
+}
+.fl-session-btn.active {
+  background: #FFD100; color: #000; font-weight: 800;
+}
+.fl-champ-tab {
+  flex: 1; padding: 9px 8px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+  background: transparent; border: none; cursor: pointer;
+  color: #444; font-weight: 500;
+  border-bottom: 2px solid transparent; transition: all 0.15s;
+}
+.fl-champ-tab.active { color: #FFD100; font-weight: 800; border-bottom-color: #FFD100; }
+.fl-radio-filter-btn {
+  padding: 3px 10px; border-radius: 3px;
+  background: transparent; border: 1px solid #1a1a1a;
+  font-size: 10px; font-family: 'Barlow Condensed', sans-serif;
+  color: #444; letter-spacing: 0.5px; cursor: pointer;
+  transition: all 0.12s;
+}
+.fl-radio-filter-btn.active { background: #222; border-color: #333; color: #ccc; }
+
+/* ── Timing board (12-column fixed grid — not expressible in Tailwind) ─── */
+.fl-timing-header-row,
+.fl-timing-row {
+  display: grid;
+  grid-template-columns: 28px 32px 140px 80px 88px 90px 90px 48px 60px 60px 60px 44px;
+  gap: 0;
+  padding: 0 12px;
+}
+.fl-timing-header-row {
+  padding: 5px 12px;
+  border-bottom: 1px solid #111;
+  background: #080809;
+}
+.fl-th {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px; color: #333; letter-spacing: 1px; text-transform: uppercase;
+}
+.fl-th-right { text-align: right; }
+.fl-th-center { text-align: center; }
+.fl-timing-row {
+  padding-top: 6px; padding-bottom: 6px;
+  border-bottom: 1px solid #0f0f12;
+  cursor: pointer; transition: background 0.12s;
+  border-left: 3px solid transparent;
+}
+.fl-timing-row:hover { background: rgba(255,255,255,.03) !important; }
+.fl-timing-row.leader { background: rgba(255,209,0,.03); border-left-color: #FFD100; }
+.fl-timing-row.in-pit { background: rgba(255,209,0,.015); border-left-color: #555; }
+/* Timing cells */
+.fl-cell-pos {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800; font-size: 16px; color: #555; align-self: center;
+}
+.fl-cell-pos.top3 { color: #FFD100; }
+.fl-cell-num {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700; font-size: 14px; color: #fff;
+  width: 24px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 3px; align-self: center;
+}
+.fl-cell-driver { display: flex; align-items: center; gap: 6px; align-self: center; }
+.fl-driver-team-bar { width: 2.5px; height: 26px; border-radius: 1px; flex-shrink: 0; }
+.fl-driver-name-main { font-weight: 600; font-size: 12px; color: #e8e8e8; line-height: 1.2; }
+.fl-driver-team-label { font-size: 10px; color: #444; font-family: 'Barlow Condensed', sans-serif; letter-spacing: 0.5px; }
+.fl-cell-gap, .fl-cell-interval {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: #888; text-align: right; align-self: center;
+}
+.fl-cell-gap.leader-gap { color: #FFD100; font-weight: 600; }
+.fl-cell-last, .fl-cell-best {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; text-align: right; align-self: center;
+}
+.fl-cell-last        { color: #ccc; }
+.fl-cell-last.fl-p1  { color: #c084fc; font-weight: 600; }
+.fl-cell-best        { color: #666; }
+.fl-cell-laps {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: #444; text-align: center; align-self: center;
+}
+.fl-cell-sector { font-size: 10px; text-align: right; align-self: center; }
+.fl-cell-extra  { display: flex; align-items: center; gap: 3px; justify-content: flex-end; align-self: center; }
+.fl-drs-badge {
+  font-size: 8px; font-weight: 700; color: #4ade80;
+  font-family: 'Barlow Condensed', sans-serif; letter-spacing: 0.5px;
+}
+
+/* ── Canvas ────────────────────────────────────────────────────────────── */
+.fl-map-canvas { width: 100%; height: 220px; display: block; }
+
+/* ── Radio messages ────────────────────────────────────────────────────── */
+.fl-radio-msg {
+  padding: 8px 14px;
+  border-bottom: 1px solid #0d0d10;
+  border-left: 3px solid #222;
+  transition: background 0.1s;
+}
+.fl-radio-msg.urgent  { background: rgba(255,209,0,.04); border-left-color: #FFD100; }
+.fl-radio-msg.control { border-left-color: #555; }

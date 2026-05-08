@@ -1,9 +1,10 @@
 import { Component } from '@angular/core';
-import { HomeComponent } from './features/home/home.component';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
-  imports: [HomeComponent],
-  template: '<app-home></app-home>',
+  standalone: true,
+  imports: [RouterOutlet],
+  template: '<router-outlet></router-outlet>',
 })
 export class App {}
