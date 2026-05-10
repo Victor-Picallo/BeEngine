@@ -1,0 +1,17 @@
+<div class="fl-root">
+  <header class="fl-topbar">
+    <div class="fl-topbar-left"><div class="fl-topbar-diamond"></div><a routerLink="/">Be<span>Engine</span></a></div>
+    <nav class="fl-topbar-sessions" aria-label="Sesiones F1">
+      <a routerLink="/f1/live/fp1" class="fl-top-session">FP1</a>
+      <a routerLink="/f1/live/fp2" class="fl-top-session">FP2</a>
+      <a routerLink="/f1/live/fp3" class="fl-top-session">FP3</a>
+      <a routerLink="/f1/live/qualy" class="fl-top-session">QUALY</a>
+      <a routerLink="/f1/live/qualy-sprint" class="fl-top-session">SPRINT</a>
+      <a routerLink="/f1/live/sprint" class="fl-top-session">RACE</a>
+    </nav>
+  </header>
+  <div class="fl-session-bar"><span class="fl-session-label-text">SESIÓN</span><button class="fl-session-btn active">QUALY</button>
+    <div class="fl-session-right"><span class="fl-session-elapsed-time">{{ elapsedDisplay() }}</span><span class="fl-session-elapsed-label">ELAPSED</span></div>
+  </div>
+  <div style="padding:18px;color:#444">Qualifying page — segmented Q1/Q2/Q3 durations (18/15/13 min).</div>
+</div>

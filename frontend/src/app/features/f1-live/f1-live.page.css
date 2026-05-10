@@ -143,6 +143,30 @@ app-f1-live-page ::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius:
   background: #FFD100; color: #000; font-weight: 800;
 }
 .fl-session-btn:hover { color: #1a1a1a; }
+
+/* Topbar session links */
+.fl-topbar-sessions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: 16px;
+}
+.fl-top-session {
+  padding: 6px 10px;
+  border-radius: 4px;
+  color: #777;
+  text-decoration: none;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  font-size: 13px;
+}
+.fl-top-session:hover { color: #1a1a1a; opacity: .95; }
+.fl-top-session.active {
+  background: #FFD100;
+  color: #000;
+  box-shadow: 0 1px 0 rgba(0,0,0,.06);
+}
 .fl-champ-tab {
   flex: 1; padding: 9px 8px;
   font-family: 'Barlow Condensed', sans-serif;
