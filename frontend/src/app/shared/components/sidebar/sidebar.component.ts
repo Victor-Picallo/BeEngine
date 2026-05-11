@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { NgStyle } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { Category, Favorite } from '../../../data/sports.data';
 
 @Component({
@@ -7,7 +8,7 @@ import { Category, Favorite } from '../../../data/sports.data';
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgStyle],
+  imports: [NgStyle, RouterLink],
 })
 export class SidebarComponent {
   categories = input.required<Category[]>();

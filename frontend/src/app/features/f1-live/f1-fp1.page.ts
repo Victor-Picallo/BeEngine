@@ -4,7 +4,7 @@ import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { interval } from 'rxjs';
 import { F1LiveService } from './f1-live.service';
-import { findOfficialCircuit, projectCircuitCoords } from './official-circuits';
+import { findOfficialCircuit, projectCircuitCoords } from '../calendar/official-circuits';
 import type { ConstructorStandingDisplay, DriverStandingDisplay, JolpikaCalendarRace, JolpikaConstructorStanding, JolpikaDriverStanding, JolpikaLastRace, OpenF1Driver, OpenF1Interval, OpenF1Lap, OpenF1Location, OpenF1Position, OpenF1RaceControl, OpenF1Session, OpenF1Stint, OpenF1TeamRadio, OpenF1Weather, RadioMessage, SectorColor, TimingDriver, TireType, } from './f1-live.types';
 
 const TEAM_COLORS: Record<string, string> = {

@@ -157,6 +157,8 @@ export interface JolpikaLastRace {
   results: JolpikaLastRaceResult[];
 }
 
+export type JolpikaRaceResult = JolpikaLastRace;
+
 export type TireType = 's' | 'm' | 'h' | 'i' | 'w';
 export type SectorColor = 'sec-purple' | 'sec-yellow' | 'sec-green' | 'sec-white';
 

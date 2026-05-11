@@ -6,6 +6,7 @@ import {
   JolpikaConstructorStanding,
   JolpikaDriverStanding,
   JolpikaLastRace,
+  JolpikaRaceResult,
   OpenF1Driver,
   OpenF1Interval,
   OpenF1Lap,
@@ -87,5 +88,9 @@ export class F1LiveService {
 
   getLastRace(): Observable<JolpikaLastRace> {
     return this.api.get<JolpikaLastRace>('/f1/jolpica/last-race');
+  }
+
+  getRaceResults(round: number): Observable<JolpikaRaceResult> {
+    return this.api.get<JolpikaRaceResult>(`/f1/jolpica/results/${round}`);
   }
 }

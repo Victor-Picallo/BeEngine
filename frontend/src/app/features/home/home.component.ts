@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgStyle } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import {
   Category,
   CategoryData,
@@ -30,6 +31,7 @@ import { RightRailComponent } from '../../shared/components/right-rail/right-rai
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     NgStyle,
+    RouterLink,
     TopbarComponent,
     SidebarComponent,
     RaceCardComponent,

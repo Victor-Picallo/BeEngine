@@ -1,0 +1,83 @@
+<div class="fc-root">
+  <header class="fc-topbar">
+    <div class="fc-brand">
+      <div class="fc-brand-mark"></div>
+      <a routerLink="/" class="fc-brand-title">Be<span>Engine</span></a>
+    </div>
+
+    <nav class="fc-nav" aria-label="Navegación F1">
+      <a routerLink="/f1/live">Live</a>
+      <a routerLink="/f1/calendar" class="active">Calendario</a>
+      <a routerLink="/">Noticias</a>
+    </nav>
+  </header>
+
+  <main class="fc-shell">
+    <section class="fc-hero">
+      <div>
+        <div class="fc-kicker">Formula 1</div>
+        <h1>Calendario oficial</h1>
+        <p>{{ completedRounds() }}/{{ totalRounds() }} carreras completadas</p>
+      </div>
+
+      @if (nextRace(); as race) {
+        <div class="fc-next">
+          <span>Próxima cita</span>
+          <strong>{{ race.raceName }}</strong>
+          <small>{{ race.locality }}, {{ race.country }} · {{ formatRaceDate(race) }}</small>
+        </div>
+      }
+    </section>
+
+    @if (loading()) {
+      <div class="fc-grid">
+        @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+          <div class="fc-card fc-skeleton"></div>
+        }
+      </div>
+    } @else if (error()) {
+      <div class="fc-error">{{ error() }}</div>
+    } @else {
+      <section class="fc-grid" aria-label="Calendario de Formula 1">
+        @for (card of cards(); track card.race.round) {
+          <article class="fc-card" [class.done]="card.status === 'done'" [class.next]="card.status === 'next'">
+            <div class="fc-card-head">
+              <span class="fc-round">R{{ card.race.round }}</span>
+              <span class="fc-status">{{ statusLabel(card.status) }}</span>
+            </div>
+
+            <div class="fc-circuit-wrap">
+              <svg class="fc-circuit" [attr.viewBox]="card.viewBox" role="img" [attr.aria-label]="card.race.circuitName">
+                <path [attr.d]="card.circuitPath" pathLength="100" />
+              </svg>
+            </div>
+
+            <div class="fc-card-body">
+              <div class="fc-date">{{ formatRaceDate(card.race) }}</div>
+              <h2>{{ card.race.raceName }}</h2>
+              <div class="fc-location">{{ card.race.circuitName }} · {{ card.race.locality }}, {{ card.race.country }}</div>
+              <p>{{ card.description }}</p>
+            </div>
+
+            @if (card.status === 'done') {
+              <div class="fc-podium">
+                <div class="fc-podium-title">Top 3</div>
+                @if (card.podium.length) {
+                  @for (driver of card.podium; track driver.position) {
+                    <div class="fc-podium-row">
+                      <span class="fc-pos">P{{ driver.position }}</span>
+                      <strong>{{ driver.driver }}</strong>
+                      <small>{{ driver.team }}</small>
+                    </div>
+                  }
+                } @else {
+                  <div class="fc-podium-empty">Resultado pendiente de sincronizar</div>
+                }
+              </div>
+            }
+          </article>
+        }
+      </section>
+    }
+  </main>
+</div>

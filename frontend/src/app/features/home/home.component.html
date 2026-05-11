@@ -187,7 +187,7 @@
           <div style="background: #ffffff; border: 1px solid #e5e5e7; border-radius: 8px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.03);">
             <div style="padding: 10px 14px; border-bottom: 1px solid #e5e5e7; display: flex; justify-content: space-between; align-items: center;">
               <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #1a1a1a; text-transform: uppercase; letter-spacing: 1px;">Próximas sesiones</span>
-              <span style="color: #FFD100; font-size: 11px; font-weight: 600; cursor: pointer;">Calendario →</span>
+              <a routerLink="/f1/calendar" style="color: #FFD100; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none;">Calendario →</a>
             </div>
             <div style="padding: 6px 14px; display: flex; flex-direction: column; gap: 4px;">
               @for (s of data().nextRace.sessions; track s.name) {

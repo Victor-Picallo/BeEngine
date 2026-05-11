@@ -4,6 +4,7 @@ import {
   constructorStandings,
   calendar,
   lastRace,
+  raceResults,
 } from '../controllers/f1Jolpica.controller.js';
 import {
   sessions,
@@ -24,6 +25,7 @@ router.get('/jolpica/driver-standings',    driverStandings);
 router.get('/jolpica/constructor-standings', constructorStandings);
 router.get('/jolpica/calendar',            calendar);
 router.get('/jolpica/last-race',           lastRace);
+router.get('/jolpica/results/:round',      raceResults);
 
 router.get('/openf1/sessions',      sessions);
 router.get('/openf1/drivers',       drivers);

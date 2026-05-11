@@ -60,6 +60,27 @@ const normalizeLastRace = (raw) => {
   };
 };
 
+const normalizeRaceResults = (raw) => {
+  const race = raw?.MRData?.RaceTable?.Races?.[0];
+  if (!race) return null;
+  return {
+    raceName:    race.raceName,
+    round:       parseInt(race.round),
+    circuitName: race.Circuit.circuitName,
+    date:        race.date,
+    results:     (race.Results ?? []).map((r) => ({
+      position: parseInt(r.position),
+      driver:   `${r.Driver.givenName} ${r.Driver.familyName}`,
+      team:     r.Constructor.name,
+      grid:     parseInt(r.grid),
+      laps:     parseInt(r.laps),
+      status:   r.status,
+      points:   parseFloat(r.points),
+      time:     r.Time?.time ?? null,
+    })),
+  };
+};
+
 // ── Fallbacks ─────────────────────────────────────────────
 
 const fallbackDriverStandings = () =>
@@ -128,5 +149,17 @@ export const getLastRace = async () => {
   const raw = await jolpicaClient.get('/current/last/results.json');
   const data = normalizeLastRace(raw);
   if (!data) throw new Error('No last race data available');
+  return { source: 'external', ...data };
+};
+
+export const getRaceResultsByRound = async (round) => {
+  const cleanRound = Number.parseInt(round, 10);
+  if (!Number.isInteger(cleanRound) || cleanRound < 1) {
+    throw new Error('Invalid race round');
+  }
+
+  const raw = await jolpicaClient.get(`/current/${cleanRound}/results.json`);
+  const data = normalizeRaceResults(raw);
+  if (!data) throw new Error(`No race results available for round ${cleanRound}`);
   return { source: 'external', ...data };
 };

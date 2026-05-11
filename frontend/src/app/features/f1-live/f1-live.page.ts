@@ -17,7 +17,7 @@ import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { interval } from 'rxjs';
 import { F1LiveService } from './f1-live.service';
-import { findOfficialCircuit, projectCircuitCoords } from './official-circuits';
+import { findOfficialCircuit, projectCircuitCoords } from '../calendar/official-circuits';
 import type {
   ConstructorStandingDisplay,
   DriverStandingDisplay,
