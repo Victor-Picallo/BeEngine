@@ -3,7 +3,12 @@ import { RouterLink } from '@angular/router';
 import { catchError, forkJoin, of } from 'rxjs';
 import { F1LiveService } from '../f1-live/f1-live.service';
 import { findOfficialCircuit, projectCircuitCoords } from './official-circuits';
+import { defaultSessionFor, slugifyRace } from '../race/race-slug';
+import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
+import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
 import type { JolpikaCalendarRace, JolpikaRaceResult } from '../f1-live/f1-live.types';
+
+type CalendarFilter = 'all' | 'completed' | 'upcoming';
 
 interface CalendarCard {
   race: JolpikaCalendarRace;
@@ -11,8 +16,25 @@ interface CalendarCard {
   description: string;
   circuitPath: string;
   viewBox: string;
-  podium: { position: number; driver: string; team: string; time: string | null }[];
+  startX: number;
+  startY: number;
+  laps: number | null;
+  km: string | null;
+  dateLabel: string;
+  slug: string;
+  defaultSession: string;
+  podium: { position: number; driver: string; team: string; teamColor: string; time: string | null }[];
 }
+
+interface MonthGroup {
+  month: string;
+  races: CalendarCard[];
+}
+
+const MONTHS = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+];
 
 const GENERIC_PATH = 'M 24 92 C 46 30 124 18 164 58 C 198 92 262 34 276 84 C 288 128 228 146 174 126 C 118 106 86 156 42 130 C 18 116 16 100 24 92 Z';
 
@@ -39,6 +61,52 @@ const CIRCUIT_DESCRIPTIONS: Record<string, string> = {
   'las vegas street circuit': 'Las Vegas es una pista urbana de baja carga y mucha velocidad. La temperatura nocturna hace que calentar neumáticos sea parte del reto.',
   'losail international circuit': 'Losail fluye con curvas medias y rápidas bajo los focos. La arena, el viento y la degradación lateral suelen condicionar el ritmo.',
   'yas marina circuit': 'Yas Marina combina zonas técnicas con largas rectas de DRS. Su versión moderna favorece carreras más fluidas y estrategias variadas.',
+  'shanghai international circuit': 'Shanghái combina una horquilla icónica al inicio con una larguísima recta donde los adelantamientos son frecuentes y el desgaste asimétrico.',
+  'suzuka international racing course': 'Suzuka, el favorito de los pilotos. Su figura en ocho y secciones rápidas como las S exigen precisión total a alta velocidad.',
+};
+
+const CIRCUIT_STATS: Record<string, { laps: number; km: string }> = {
+  'bahrain international circuit': { laps: 57, km: '5.412' },
+  'jeddah corniche circuit': { laps: 50, km: '6.174' },
+  'albert park circuit': { laps: 58, km: '5.278' },
+  'suzuka international racing course': { laps: 53, km: '5.807' },
+  'shanghai international circuit': { laps: 56, km: '5.451' },
+  'miami international autodrome': { laps: 57, km: '5.412' },
+  'autodromo enzo e dino ferrari': { laps: 63, km: '4.909' },
+  'circuit de barcelona catalunya': { laps: 66, km: '4.657' },
+  'circuit de monaco': { laps: 78, km: '3.337' },
+  'circuit gilles villeneuve': { laps: 70, km: '4.361' },
+  'red bull ring': { laps: 71, km: '4.318' },
+  'silverstone circuit': { laps: 52, km: '5.891' },
+  'circuit de spa francorchamps': { laps: 44, km: '7.004' },
+  'hungaroring': { laps: 70, km: '4.381' },
+  'circuit zandvoort': { laps: 72, km: '4.259' },
+  'autodromo nazionale di monza': { laps: 53, km: '5.793' },
+  'baku city circuit': { laps: 51, km: '6.003' },
+  'marina bay street circuit': { laps: 61, km: '5.063' },
+  'circuit of the americas': { laps: 56, km: '5.513' },
+  'autodromo hermanos rodriguez': { laps: 71, km: '4.304' },
+  'autodromo jose carlos pace': { laps: 71, km: '4.309' },
+  'las vegas street circuit': { laps: 50, km: '6.201' },
+  'losail international circuit': { laps: 57, km: '5.380' },
+  'yas marina circuit': { laps: 58, km: '5.281' },
+};
+
+const TEAM_COLORS: Record<string, string> = {
+  'red bull': '#3671C6',
+  'red bull racing': '#3671C6',
+  'ferrari': '#E8002D',
+  'mclaren': '#FF8000',
+  'mercedes': '#27F4D2',
+  'aston martin': '#358C75',
+  'alpine': '#FF87BC',
+  'williams': '#64C4FF',
+  'haas': '#B6BABD',
+  'kick sauber': '#52E252',
+  'sauber': '#52E252',
+  'rb': '#6692FF',
+  'racing bulls': '#6692FF',
+  'visa cash app rb': '#6692FF',
 };
 
 const normalize = (value: string) =>
@@ -47,7 +115,7 @@ const normalize = (value: string) =>
 @Component({
   selector: 'app-f1-calendar-page',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, AppHeaderComponent, AppSidebarComponent],
   templateUrl: './f1-calendar.page.html',
   styleUrl: './f1-calendar.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -59,32 +127,86 @@ export class F1CalendarPageComponent implements OnInit {
   error = signal<string | null>(null);
   calendar = signal<JolpikaCalendarRace[]>([]);
   resultsByRound = signal<Record<number, JolpikaRaceResult>>({});
-  today = signal(new Date().toISOString().slice(0, 10));
+  filter = signal<CalendarFilter>('all');
 
   totalRounds = computed(() => this.calendar().length);
   completedRounds = computed(() => this.calendar().filter(r => this.isPastRace(r)).length);
+  remainingRounds = computed(() => this.totalRounds() - this.completedRounds());
+  progressPct = computed(() => {
+    const total = this.totalRounds();
+    if (!total) return 0;
+    return Math.round((this.completedRounds() / total) * 100);
+  });
   nextRace = computed(() => this.calendar().find(r => !this.isPastRace(r)) ?? null);
+  nextRaceDateLabel = computed(() => {
+    const race = this.nextRace();
+    return race ? this.formatLongDate(race) : '';
+  });
 
-  cards = computed<CalendarCard[]>(() => {
+  allCards = computed<CalendarCard[]>(() => {
     const results = this.resultsByRound();
     const nextRound = this.nextRace()?.round ?? null;
 
     return this.calendar().map(race => {
       const done = this.isPastRace(race);
-      const status = done ? 'done' : race.round === nextRound ? 'next' : 'upcoming';
+      const status: CalendarCard['status'] =
+        done ? 'done' : race.round === nextRound ? 'next' : 'upcoming';
       const result = results[race.round];
+      const stats = this.statsFor(race);
+      const { circuitPath, viewBox, startX, startY } = this.circuitSvg(race);
+
       return {
         race,
         status,
         description: this.descriptionFor(race),
-        ...this.circuitSvg(race),
+        circuitPath,
+        viewBox,
+        startX,
+        startY,
+        laps: stats?.laps ?? null,
+        km: stats?.km ?? null,
+        dateLabel: this.formatRaceDate(race),
+        slug: slugifyRace(race),
+        defaultSession: defaultSessionFor(race),
         podium: result?.results
           ?.slice(0, 3)
-          .map(r => ({ position: r.position, driver: r.driver, team: r.team, time: r.time }))
-          ?? [],
+          .map(r => ({
+            position: r.position,
+            driver: r.driver,
+            team: r.team,
+            teamColor: this.teamColor(r.team),
+            time: r.time,
+          })) ?? [],
       };
     });
   });
+
+  filteredCards = computed<CalendarCard[]>(() => {
+    const cards = this.allCards();
+    const f = this.filter();
+    if (f === 'completed') return cards.filter(c => c.status === 'done');
+    if (f === 'upcoming') return cards.filter(c => c.status !== 'done');
+    return cards;
+  });
+
+  monthGroups = computed<MonthGroup[]>(() => {
+    const groups: MonthGroup[] = [];
+    const index: Record<string, MonthGroup> = {};
+    for (const card of this.filteredCards()) {
+      const m = MONTHS[new Date(card.race.date).getMonth()];
+      if (!index[m]) {
+        index[m] = { month: m, races: [] };
+        groups.push(index[m]);
+      }
+      index[m].races.push(card);
+    }
+    return groups;
+  });
+
+  // Pre-computed for the progress dots row.
+  progressDots = computed(() =>
+    this.allCards().map(c => ({ round: c.race.round, status: c.status, name: c.race.raceName }))
+  );
 
   ngOnInit(): void {
     this.service.getCalendar().subscribe({
@@ -100,15 +222,35 @@ export class F1CalendarPageComponent implements OnInit {
     });
   }
 
-  formatRaceDate(race: JolpikaCalendarRace): string {
-    const date = new Date(`${race.date}T${race.time ?? '00:00:00Z'}`);
-    return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(date);
+  setFilter(filter: CalendarFilter): void {
+    this.filter.set(filter);
   }
 
-  statusLabel(status: CalendarCard['status']): string {
-    if (status === 'done') return 'Finalizada';
-    if (status === 'next') return 'Próxima';
-    return 'Pendiente';
+  formatRaceDate(race: JolpikaCalendarRace): string {
+    const date = new Date(`${race.date}T${race.time ?? '00:00:00Z'}`);
+    return new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' })
+      .format(date)
+      .replace('.', '')
+      .toUpperCase();
+  }
+
+  formatLongDate(race: JolpikaCalendarRace): string {
+    const date = new Date(`${race.date}T${race.time ?? '00:00:00Z'}`);
+    return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long' }).format(date);
+  }
+
+  positionLabel(pos: number): string {
+    return pos === 1 ? '1º' : pos === 2 ? '2º' : pos === 3 ? '3º' : `${pos}º`;
+  }
+
+  positionColor(pos: number): string {
+    if (pos === 1) return '#C8963E';
+    if (pos === 2) return '#7A8A96';
+    return '#8B5A2B';
+  }
+
+  cardDelay(index: number): number {
+    return (index % 6) * 50;
   }
 
   private loadCompletedResults(calendar: JolpikaCalendarRace[]): void {
@@ -131,9 +273,7 @@ export class F1CalendarPageComponent implements OnInit {
   private isPastRace(race: JolpikaCalendarRace): boolean {
     const raceTime = race.time ?? '23:59:59Z';
     const raceDate = new Date(`${race.date}T${raceTime}`);
-    return Number.isFinite(raceDate.getTime())
-      ? raceDate < new Date()
-      : race.date < this.today();
+    return Number.isFinite(raceDate.getTime()) ? raceDate < new Date() : false;
   }
 
   private descriptionFor(race: JolpikaCalendarRace): string {
@@ -142,12 +282,25 @@ export class F1CalendarPageComponent implements OnInit {
       ?? `${race.circuitName} reta a los equipos con un equilibrio propio entre velocidad, tracción y gestión de neumáticos durante el fin de semana.`;
   }
 
-  private circuitSvg(race: JolpikaCalendarRace): { circuitPath: string; viewBox: string } {
+  private statsFor(race: JolpikaCalendarRace): { laps: number; km: string } | null {
+    return CIRCUIT_STATS[normalize(race.circuitName)]
+      ?? CIRCUIT_STATS[normalize(race.locality)]
+      ?? null;
+  }
+
+  private teamColor(team: string): string {
+    return TEAM_COLORS[normalize(team)] ?? '#888';
+  }
+
+  private circuitSvg(race: JolpikaCalendarRace): {
+    circuitPath: string; viewBox: string; startX: number; startY: number;
+  } {
+    const fallback = { circuitPath: GENERIC_PATH, viewBox: '0 0 300 170', startX: 24, startY: 92 };
     const official = findOfficialCircuit(race.circuitName) ?? findOfficialCircuit(race.locality);
-    if (!official) return { circuitPath: GENERIC_PATH, viewBox: '0 0 300 170' };
+    if (!official) return fallback;
 
     const points = projectCircuitCoords(official.coords);
-    if (points.length < 3) return { circuitPath: GENERIC_PATH, viewBox: '0 0 300 170' };
+    if (points.length < 3) return fallback;
 
     const minX = Math.min(...points.map(p => p[0]));
     const maxX = Math.max(...points.map(p => p[0]));
@@ -158,9 +311,15 @@ export class F1CalendarPageComponent implements OnInit {
     const scale = Math.min(260 / width, 130 / height);
     const offsetX = (300 - width * scale) / 2 - minX * scale;
     const offsetY = (170 - height * scale) / 2 - minY * scale;
-    const [first, ...rest] = points.map(([x, y]) => [x * scale + offsetX, y * scale + offsetY]);
+    const projected = points.map(([x, y]) => [x * scale + offsetX, y * scale + offsetY]);
+    const [first, ...rest] = projected;
     const path = `M ${first[0].toFixed(1)} ${first[1].toFixed(1)} ${rest.map(([x, y]) => `L ${x.toFixed(1)} ${y.toFixed(1)}`).join(' ')}`;
 
-    return { circuitPath: path, viewBox: '0 0 300 170' };
+    return {
+      circuitPath: path,
+      viewBox: '0 0 300 170',
+      startX: Number(first[0].toFixed(1)),
+      startY: Number(first[1].toFixed(1)),
+    };
   }
 }

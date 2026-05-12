@@ -1,0 +1,500 @@
+/* ── Scrollbar ─────────────────────────────────────────────────────────── */
+app-race-session-page ::-webkit-scrollbar { width: 3px; background: #f0f0f0; }
+app-race-session-page ::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 2px; }
+
+/* ── Keyframes ─────────────────────────────────────────────────────────── */
+@keyframes live-pulse {
+  0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255,209,0,.5); }
+  50%      { opacity: .7; box-shadow: 0 0 0 6px rgba(255,209,0,0); }
+}
+@keyframes scan {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(400%); }
+}
+@keyframes ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes skeleton-pulse {
+  0%,100% { opacity: .6; }
+  50%     { opacity: .25; }
+}
+
+/* ── Font / utility classes ────────────────────────────────────────────── */
+.font-bc  { font-family: 'Barlow Condensed', sans-serif; }
+.fl-mono  { font-family: 'JetBrains Mono', monospace; }
+.fl-skeleton {
+  animation: skeleton-pulse 1.6s ease infinite;
+  background: #e0e0e0;
+  border-radius: 8px;
+}
+
+/* ── Sector colors (light theme) ───────────────────────────────────────── */
+.sec-purple { color: #9333ea; }
+.sec-yellow { color: #FFD100; }
+.sec-green  { color: #16a34a; }
+.sec-white  { color: #1a1a1a; }
+
+/* ── Tire badges ───────────────────────────────────────────────────────── */
+.tire {
+  width: 24px; height: 24px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 900;
+  font-family: 'Barlow', sans-serif;
+  flex-shrink: 0;
+  line-height: 1;
+  letter-spacing: 0;
+}
+.tire-s { background: #E8002D; color: #fff; box-shadow: 0 0 0 1px rgba(232,0,45,.3); }
+.tire-m { background: #FFD100; color: #000; box-shadow: 0 0 0 1px rgba(184,134,11,.4); }
+.tire-h { background: #fff; color: #000; border: 2px solid #1a1a1a; }
+.tire-i { background: #39b5e0; color: #fff; box-shadow: 0 0 0 1px rgba(57,181,224,.3); }
+.tire-w { background: #3fb950; color: #fff; box-shadow: 0 0 0 1px rgba(63,185,80,.3); }
+
+/* ── Status badges ─────────────────────────────────────────────────────── */
+.fl-badge {
+  border-radius: 3px; padding: 2px 8px;
+  font-size: 10px; font-family: 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.5px; font-weight: 700;
+}
+.fl-badge-green  { background: rgba(22,163,74,.13);   border: 1px solid rgba(22,163,74,.4);   color: #16a34a; }
+.fl-badge-grey   { background: rgba(0,0,0,.05);       border: 1px solid rgba(0,0,0,.12);     color: #777;    }
+.fl-badge-yellow { background: rgba(255,209,0,.18);   border: 1px solid rgba(255,209,0,.55); color: #FFD100; }
+
+/* ── Logo diamond (clip-path) ──────────────────────────────────────────── */
+.fl-topbar-diamond {
+  width: 24px; height: 24px;
+  background: #FFD100;
+  clip-path: polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%);
+}
+/* Yellow spans inside titles */
+.fl-topbar-title span { color: #FFD100; }
+.fl-header-title span { color: #FFD100; }
+
+/* ── Animated elements ─────────────────────────────────────────────────── */
+.fl-live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #FFD100;
+  animation: live-pulse 1.5s infinite;
+}
+.fl-header-pulse {
+  width: 8px; height: 8px; border-radius: 50%; background: #FFD100;
+  animation: live-pulse 1.5s infinite;
+}
+.fl-panel-live-dot {
+  width: 5px; height: 5px; border-radius: 50%; background: #16a34a;
+  animation: live-pulse 1s infinite;
+}
+.fl-session-live-dot {
+  position: absolute; top: 6px; right: 6px;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: #FFD100;
+  animation: live-pulse 1.5s infinite;
+}
+/* Ticker animation */
+.fl-ticker-inner {
+  display: flex;
+  animation: ticker 40s linear infinite;
+  white-space: nowrap;
+  gap: 0;
+}
+/* Header decorative elements */
+.fl-header-accent-line {
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, #FFD100, transparent);
+}
+.fl-header-scan {
+  position: absolute; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,209,0,.35), transparent);
+  animation: scan 4s linear infinite;
+  pointer-events: none;
+}
+.fl-header-glow {
+  position: absolute; top: -50%; left: 10%; width: 40%; height: 200%;
+  background: radial-gradient(ellipse, rgba(255,209,0,.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ── Interactive buttons (base + active states) ────────────────────────── */
+.fl-cat-btn {
+  padding: 6px 14px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase;
+  background: transparent; border: none; cursor: pointer;
+  white-space: nowrap; transition: all 0.15s;
+  color: #888; border-bottom: 2px solid transparent; font-weight: 500;
+}
+.fl-cat-btn.active {
+  color: #1a1a1a;
+  background: rgba(255,209,0,.18);
+  border-bottom-color: #FFD100;
+  font-weight: 700;
+}
+.fl-cat-btn:hover { color: #1a1a1a; }
+.fl-session-btn {
+  padding: 10px 18px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px; letter-spacing: 1px; text-transform: uppercase;
+  background: transparent; border: none; cursor: pointer;
+  color: #999; font-weight: 500;
+  position: relative; transition: all 0.15s;
+}
+.fl-session-btn.active {
+  background: #FFD100; color: #000; font-weight: 800;
+}
+.fl-session-btn:hover { color: #1a1a1a; }
+
+/* Topbar session links */
+.fl-topbar-sessions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: 16px;
+}
+.fl-top-session {
+  padding: 6px 10px;
+  border-radius: 4px;
+  color: #777;
+  text-decoration: none;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  font-size: 13px;
+}
+.fl-top-session:hover { color: #1a1a1a; opacity: .95; }
+.fl-top-session.active {
+  background: #FFD100;
+  color: #000;
+  box-shadow: 0 1px 0 rgba(0,0,0,.06);
+}
+.fl-champ-tab {
+  flex: 1; padding: 9px 8px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+  background: transparent; border: none; cursor: pointer;
+  color: #888; font-weight: 500;
+  border-bottom: 2px solid transparent; transition: all 0.15s;
+}
+.fl-champ-tab.active { color: #FFD100; font-weight: 800; border-bottom-color: #FFD100; }
+.fl-radio-filter-btn {
+  padding: 3px 10px; border-radius: 3px;
+  background: transparent; border: 1px solid #e0e0e0;
+  font-size: 10px; font-family: 'Barlow Condensed', sans-serif;
+  color: #888; letter-spacing: 0.5px; cursor: pointer;
+  transition: all 0.12s;
+}
+.fl-radio-filter-btn.active { background: #ececec; border-color: #c0c0c0; color: #333; }
+
+/* ── Timing board (12-column grid; PILOTO expands to fill width) ───────── */
+.fl-timing-header-row,
+.fl-timing-row {
+  display: grid;
+  grid-template-columns: 40px 48px minmax(180px, 1fr) 100px 100px 110px 110px 56px 72px 72px 72px 110px;
+  gap: 0;
+  padding: 0 18px;
+}
+.fl-timing-header-row {
+  padding: 7px 18px;
+  border-bottom: 1px solid #e5e5e7;
+  background: #f0f0f2;
+}
+.fl-th {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px; color: #888; letter-spacing: 1px; text-transform: uppercase;
+}
+.fl-th-right { text-align: right; }
+.fl-th-center { text-align: center; }
+.fl-timing-row {
+  padding-top: 10px; padding-bottom: 10px;
+  border-bottom: 1px solid #f0f0f2;
+  cursor: pointer; transition: background 0.12s;
+  border-left: 3px solid transparent;
+}
+.fl-timing-row:hover { background: rgba(0,0,0,.03) !important; }
+.fl-timing-row.leader { background: rgba(255,209,0,.10); border-left-color: #FFD100; }
+.fl-timing-row.in-pit { background: rgba(255,209,0,.04); border-left-color: #aaa; }
+/* Timing cells */
+.fl-cell-pos {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800; font-size: 20px; color: #aaa; align-self: center;
+}
+.fl-cell-pos.top3 { color: #FFD100; }
+.fl-cell-num {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700; font-size: 16px; color: #1a1a1a;
+  width: 30px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 4px; align-self: center;
+}
+.fl-cell-driver { display: flex; align-items: center; gap: 8px; align-self: center; }
+.fl-driver-team-bar { width: 3px; height: 32px; border-radius: 1px; flex-shrink: 0; }
+.fl-driver-name-main { font-weight: 600; font-size: 15px; color: #1a1a1a; line-height: 1.2; }
+.fl-driver-team-label { font-size: 13px; color: #888; font-family: 'Barlow Condensed', sans-serif; letter-spacing: 0.5px; line-height: 1.2; margin-top: 2px; }
+.fl-cell-gap, .fl-cell-interval {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; color: #666; text-align: right; align-self: center;
+}
+.fl-cell-gap.leader-gap { color: #FFD100; font-weight: 600; }
+.fl-cell-last, .fl-cell-best {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; text-align: right; align-self: center;
+}
+.fl-cell-last        { color: #333; }
+.fl-cell-last.fl-p1  { color: #9333ea; font-weight: 600; }
+.fl-cell-best        { color: #888; }
+.fl-cell-laps {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; color: #aaa; text-align: center; align-self: center;
+}
+.fl-cell-sector { font-size: 12px; text-align: right; align-self: center; }
+.fl-cell-extra  { display: flex; align-items: center; gap: 3px; justify-content: flex-end; align-self: center; }
+.fl-drs-badge {
+  font-size: 8px; font-weight: 700; color: #16a34a;
+  font-family: 'Barlow Condensed', sans-serif; letter-spacing: 0.5px;
+}
+
+/* ── Canvas ────────────────────────────────────────────────────────────── */
+.fl-map-canvas { width: 100%; height: 220px; display: block; }
+
+/* ── Radio messages ────────────────────────────────────────────────────── */
+.fl-radio-msg {
+  padding: 8px 14px;
+  border-bottom: 1px solid #f0f0f2;
+  border-left: 3px solid #d5d5d8;
+  transition: background 0.1s;
+}
+.fl-radio-msg.urgent  { background: rgba(255,209,0,.10); border-left-color: #FFD100; }
+.fl-radio-msg.control { border-left-color: #999; }
+.fl-radio-msg-meta {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 3px;
+}
+.fl-radio-msg-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: #aaa;
+}
+.fl-radio-msg-from {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  padding: 1px 5px; border-radius: 2px;
+}
+.fl-radio-msg-text {
+  font-size: 12px; line-height: 1.4;
+  color: #555; font-weight: 400;
+}
+.fl-radio-msg.urgent .fl-radio-msg-text {
+  color: #1a1a1a; font-weight: 500;
+}
+.fl-radio-filters {
+  display: flex; gap: 4px;
+}
+
+/* ── Ticker items ──────────────────────────────────────────────────────── */
+.fl-ticker-item {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 0 28px;
+  border-right: 1px solid #e5e5e7;
+}
+.fl-ticker-pos {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800; font-size: 13px; width: 22px;
+}
+.fl-ticker-team-bar {
+  width: 3px; height: 14px; border-radius: 1px;
+}
+.fl-ticker-driver {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700; font-size: 13px;
+  color: #555; letter-spacing: 0.5px;
+}
+.fl-ticker-gap {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+
+/* ── Conditions card body ─────────────────────────────────────────────── */
+.fl-cond-body {
+  padding: 8px 12px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.fl-cond-row {
+  display: flex; align-items: center;
+}
+.fl-cond-row-label {
+  font-size: 11px; color: #888; flex: 1;
+}
+.fl-cond-row-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; font-weight: 600;
+}
+.fl-cond-empty {
+  display: flex; align-items: center; justify-content: center;
+  padding: 32px 0;
+}
+
+/* ── Standings card ────────────────────────────────────────────────────── */
+.fl-standings-tabs {
+  display: flex; flex-shrink: 0;
+  border-bottom: 1px solid #e5e5e7;
+  background: #f5f5f7;
+}
+.fl-standings-body {
+  overflow-y: auto;
+  padding: 8px 12px;
+  display: flex; flex-direction: column; gap: 6px;
+  flex: 1;
+}
+.fl-standings-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.fl-standings-pos {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800; font-size: 13px;
+  width: 16px; text-align: center; flex-shrink: 0;
+}
+.fl-standings-team-color {
+  width: 3px; height: 16px;
+  border-radius: 1px; flex-shrink: 0;
+}
+.fl-standings-name {
+  font-size: 11px; color: #444; flex: 1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fl-standings-progress {
+  width: 64px; height: 3px;
+  background: #ececec; border-radius: 1px;
+  overflow: hidden; flex-shrink: 0;
+}
+.fl-standings-progress-fill {
+  height: 100%; border-radius: 1px;
+}
+.fl-standings-points {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 600; color: #1a1a1a;
+  width: 32px; text-align: right; flex-shrink: 0;
+}
+.fl-standings-empty {
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px 0;
+  font-size: 11px; color: #aaa;
+}
+
+/* ── Timing tower header decorations ──────────────────────────────────── */
+.fl-tt-bar {
+  width: 3px; height: 16px;
+  border-radius: 1px; flex-shrink: 0;
+  background: #FFD100;
+}
+.fl-tt-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800; font-size: 13px;
+  color: #1a1a1a; text-transform: uppercase; letter-spacing: 1.5px;
+}
+.fl-tt-live {
+  display: flex; align-items: center; gap: 4px;
+  margin-left: 4px; flex-shrink: 0;
+}
+.fl-tt-live-text {
+  font-size: 9px; color: #16a34a;
+  font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+}
+.fl-tt-legend {
+  margin-left: auto;
+  display: flex; gap: 12px;
+  font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+/* ── Card header (right-aligned status) ────────────────────────────────── */
+.fl-card-header-bar {
+  width: 3px; height: 16px;
+  border-radius: 1px; flex-shrink: 0;
+}
+.fl-card-header-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800; font-size: 12px;
+  color: #1a1a1a; text-transform: uppercase; letter-spacing: 1.5px;
+}
+.fl-card-header-status {
+  margin-left: auto;
+  font-size: 9px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700; letter-spacing: 1px;
+  flex-shrink: 0;
+}
+
+/* ── Card header column (with internal layout below title) ─────────────── */
+.fl-card-header-col-title {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 6px;
+}
+
+/* ── Map legend ────────────────────────────────────────────────────────── */
+.fl-map-legend {
+  padding: 6px 12px;
+  display: flex; align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  border-top: 1px solid #e5e5e7;
+  background: #f0f0f2;
+  flex-shrink: 0;
+}
+.fl-map-legend-circuit {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px; color: #aaa; margin-right: 4px;
+}
+.fl-map-legend-item {
+  display: flex; align-items: center; gap: 4px;
+}
+.fl-map-legend-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+}
+.fl-map-legend-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px; color: #888; font-weight: 600;
+}
+
+/* ── Tire badge with lap-count to the left (in timing row) ─────────────── */
+.fl-tire-stack {
+  display: flex; align-items: center; gap: 6px; justify-content: flex-end;
+}
+.fl-tire-age {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; color: #888;
+}
+
+/* ── Footer links ──────────────────────────────────────────────────────── */
+.fl-footer-text {
+  font-size: 10px; color: #aaa;
+  font-family: 'Barlow Condensed', sans-serif; letter-spacing: 1px;
+}
+.fl-footer-links {
+  display: flex; gap: 16px;
+}
+.fl-footer-link {
+  font-size: 10px; color: #888; font-weight: 500;
+}
+.fl-footer-link:hover { color: #1a1a1a; }
+
+/* ── Empty state in timing tower ───────────────────────────────────────── */
+.fl-empty-state {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 12px; padding: 48px 0;
+}
+.fl-empty-state-icon {
+  color: #d5d5d8; font-size: 48px; line-height: 1;
+  font-family: 'Barlow Condensed', sans-serif;
+}
+.fl-empty-state-title {
+  font-size: 13px; color: #888;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+}
+.fl-empty-state-subtitle {
+  font-size: 11px; color: #bbb;
+}
+.fl-empty-state-small {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px; padding: 32px 0;
+}

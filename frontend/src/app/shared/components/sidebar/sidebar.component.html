@@ -24,31 +24,31 @@
     }
   </div>
 
+  <!-- Sections -->
+  <div style="border-top: 1px solid #e5e5e7; padding: 10px 0;">
+    <div style="padding: 0 12px 6px; font-size: 9px; color: #aaa; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;">Secciones</div>
+    @for (item of sections(); track item) {
+      @if (item === 'Calendario') {
+        <a routerLink="/f1/calendario" class="section-item" style="display: block; width: 100%; text-align: left; padding: 7px 12px; font-size: 13px; color: #888; background: transparent; transition: color 0.1s; text-decoration: none;">{{ item }}</a>
+      } @else {
+        <button class="section-item" style="width: 100%; text-align: left; padding: 7px 12px; font-size: 13px; color: #888; background: transparent; transition: color 0.1s;">{{ item }}</button>
+      }
+    }
+  </div>
+
   <!-- Favorites -->
   <div style="border-top: 1px solid #e5e5e7; padding: 10px 0;">
     <div style="padding: 0 12px 6px; font-size: 9px; color: #aaa; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;">Mis favoritos</div>
     @for (fav of favorites(); track fav.name) {
       <div class="fav-item" style="padding: 6px 12px; display: flex; gap: 8px; align-items: center; cursor: pointer;">
         <div
-          [ngStyle]="{'border': '1px solid ' + accent() + '66', 'color': '#FFD100'}"
+          [ngStyle]="{'border': '1px solid ' + accent() + '66', 'color': accent()}"
           style="width: 28px; height: 28px; border-radius: 50%; background: #f0f0f2; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">{{ fav.name[0] }}</div>
         <div>
           <div style="font-size: 12px; color: #1a1a1a; font-weight: 600;">{{ fav.name }}</div>
           <div style="font-size: 10px; color: #888;">{{ fav.sub }}</div>
         </div>
       </div>
-    }
-  </div>
-
-  <!-- Sections -->
-  <div style="border-top: 1px solid #e5e5e7; padding: 10px 0;">
-    <div style="padding: 0 12px 6px; font-size: 9px; color: #aaa; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;">Secciones</div>
-    @for (item of sections(); track item) {
-      @if (item === 'Calendario') {
-        <a routerLink="/f1/calendar" class="section-item" style="display: block; width: 100%; text-align: left; padding: 7px 12px; font-size: 13px; color: #888; background: transparent; transition: color 0.1s; text-decoration: none;">{{ item }}</a>
-      } @else {
-        <button class="section-item" style="width: 100%; text-align: left; padding: 7px 12px; font-size: 13px; color: #888; background: transparent; transition: color 0.1s;">{{ item }}</button>
-      }
     }
   </div>
 

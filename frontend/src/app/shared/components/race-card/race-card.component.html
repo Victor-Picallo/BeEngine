@@ -7,7 +7,7 @@
     [ngStyle]="{'background': 'linear-gradient(90deg, ' + accent() + '22, transparent)', 'border-bottom': '1px solid ' + accent() + '44'}"
     style="padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
     <div>
-      <div style="color: #FFD100; font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 2px;">
+      <div [style.color]="accent()" style="font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 2px;">
         Próxima carrera · Ronda {{ nextRace().round }}/{{ nextRace().totalRounds }}
       </div>
       <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 22px; color: #1a1a1a; line-height: 1.1;">{{ nextRace().name }}</div>
@@ -31,32 +31,6 @@
             [ngStyle]="{'border': '1px solid ' + accent() + '88'}"
             style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 24px; line-height: 1; color: #1a1a1a; min-width: 36px; background: #f7f7f9; border-radius: 4px; padding: 3px 6px; letter-spacing: 2px;">{{ pad(unit.val) }}</div>
           <div style="font-size: 9px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;">{{ unit.label }}</div>
-        </div>
-      }
-    </div>
-  </div>
-
-  <!-- Circuit + sessions -->
-  <div style="padding: 10px 16px; display: flex; gap: 14px; align-items: center;">
-    <!-- Circuit SVG -->
-    <div style="width: 120px; height: 72px; background: #f5f5f7; border: 1px solid #e5e5e7; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-      <svg width="110" height="68" viewBox="0 0 110 68">
-        <path d="M18,52 L18,22 Q18,12 28,12 L65,12 Q80,12 86,22 L92,34 Q97,44 86,48 L70,52 Q60,55 55,48 L46,40 Q42,34 33,37 L24,43 Q20,46 18,52Z"
-          fill="none" [attr.stroke]="'#FFD100'" stroke-width="3" opacity="0.7" stroke-linejoin="round"/>
-        <circle cx="18" cy="52" r="3.5" [attr.fill]="'#FFD100'" opacity="0.9"/>
-        <text x="15" y="62" [attr.fill]="'#FFD100'" font-size="7" opacity="0.85" font-family="Barlow Condensed" font-weight="700">START</text>
-      </svg>
-    </div>
-
-    <!-- Sessions -->
-    <div style="flex: 1; display: flex; gap: 6px; flex-wrap: wrap;">
-      @for (s of nextRace().sessions; track s.name) {
-        <div
-          [ngStyle]="{'background': s.highlight ? accent() : '#f5f5f7', 'border': '1px solid ' + (s.highlight ? accent() : '#e0e0e0')}"
-          style="border-radius: 4px; padding: 4px 10px; text-align: center; min-width: 66px;">
-          <div [ngStyle]="{'color': s.highlight ? '#1a1a1a' : '#888'}" style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.5px;">{{ s.name }}</div>
-          <div [ngStyle]="{'color': s.highlight ? 'rgba(0,0,0,.6)' : '#aaa'}" style="font-size: 10px;">{{ s.date }}</div>
-          <div [ngStyle]="{'color': s.highlight ? '#1a1a1a' : '#666'}" style="font-size: 11px; font-weight: 600;">{{ s.time }}</div>
         </div>
       }
     </div>

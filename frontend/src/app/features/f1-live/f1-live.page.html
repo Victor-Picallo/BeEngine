@@ -1,36 +1,6 @@
 <div class="fl-root">
 
-  <!-- ══ TOP BAR · 48px ════════════════════════════════════════════════════ -->
-  <header class="fl-topbar">
-    <div class="fl-topbar-left">
-      <div class="fl-topbar-diamond"></div>
-      <a routerLink="/" class="fl-topbar-title" style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;letter-spacing:1px;color:#1a1a1a">Be<span>Engine</span></a>
-    </div>
-    <nav class="fl-topbar-nav">
-      <button class="fl-cat-btn active">F1</button>
-      <button class="fl-cat-btn">MotoGP</button>
-      <button class="fl-cat-btn">FE</button>
-      <button class="fl-cat-btn">WRC</button>
-      <button class="fl-cat-btn">IndyCar</button>
-    </nav>
-
-    <nav class="fl-topbar-sessions" aria-label="Sesiones F1">
-      <a routerLink="/f1/live/fp1" routerLinkActive="active" class="fl-top-session" title="FP1">FP1</a>
-      <a routerLink="/f1/live/fp2" routerLinkActive="active" class="fl-top-session" title="FP2">FP2</a>
-      <a routerLink="/f1/live/fp3" routerLinkActive="active" class="fl-top-session" title="FP3">FP3</a>
-      <a routerLink="/f1/live/qualy" routerLinkActive="active" class="fl-top-session" title="Qualy">QUALY</a>
-      <a routerLink="/f1/live/qualy-sprint" routerLinkActive="active" class="fl-top-session" title="Qualy Sprint">SPRINT</a>
-      <a routerLink="/f1/live/sprint" routerLinkActive="active" class="fl-top-session" title="Sprint Race">RACE</a>
-    </nav>
-    <div class="fl-topbar-right">
-      <div class="fl-topbar-live-badge">
-        <div class="fl-live-dot"></div>
-        <span class="fl-topbar-live-text">LIVE</span>
-      </div>
-      <a routerLink="/" class="fl-topbar-link">Noticias</a>
-      <div class="fl-topbar-avatar">B</div>
-    </div>
-  </header>
+  <app-header></app-header>
 
   <!-- ══ SESSION BAR · 42px ════════════════════════════════════════════════ -->
   <div class="fl-session-bar">

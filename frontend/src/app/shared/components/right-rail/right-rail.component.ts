@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { NgStyle } from '@angular/common';
-import { CountdownTime, Driver, NewsItem, NextRace, padTwo } from '../../../data/sports.data';
+import { Driver, NewsItem, NextRace } from '../../../data/sports.data';
 
 @Component({
   selector: 'app-right-rail',
@@ -10,12 +10,10 @@ import { CountdownTime, Driver, NewsItem, NextRace, padTwo } from '../../../data
   imports: [NgStyle],
 })
 export class RightRailComponent {
-  nextRace   = input.required<NextRace>();
-  standings  = input.required<Driver[]>();
-  news       = input.required<NewsItem[]>();
-  activeCat  = input.required<string>();
-  accent     = input.required<string>();
-  countdown  = input.required<CountdownTime>();
+  nextRace  = input.required<NextRace>();
+  standings = input.required<Driver[]>();
+  news      = input.required<NewsItem[]>();
+  activeCat = input.required<string>();
 
   quickStats = computed(() => {
     const r = this.nextRace();
@@ -29,16 +27,4 @@ export class RightRailComponent {
   });
 
   trendingNews = computed(() => this.news().slice(0, 3));
-
-  countdownUnits = computed(() => {
-    const t = this.countdown();
-    return [
-      { label: 'días',  val: t.d },
-      { label: 'horas', val: t.h },
-      { label: 'min',   val: t.m },
-      { label: 'seg',   val: t.s },
-    ];
-  });
-
-  pad = padTwo;
 }

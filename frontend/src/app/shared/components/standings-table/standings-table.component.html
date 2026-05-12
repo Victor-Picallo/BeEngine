@@ -1,19 +1,17 @@
 <div style="background: #ffffff; border: 1px solid #e5e5e7; border-radius: 8px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.03);">
   <div style="padding: 10px 14px; border-bottom: 1px solid #e5e5e7; display: flex; justify-content: space-between; align-items: center;">
     <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #1a1a1a; text-transform: uppercase; letter-spacing: 1px;">Clasificación Pilotos</span>
-    <button style="color: #FFD100; font-size: 11px; font-weight: 600;" (click)="toggleShowAll()">
-      {{ showAll() ? 'Ver menos' : 'Ver todo' }}
-    </button>
+    <span style="font-size: 11px; color: #888; font-weight: 500;">{{ standings().length }} pilotos</span>
   </div>
 
   <table style="width: 100%; border-collapse: collapse;">
     <tbody>
-      @for (d of visibleDrivers(); track d.driver; let i = $index) {
+      @for (d of standings(); track d.driver; let i = $index) {
         <tr
           class="driver-row"
-          [ngStyle]="{'border-bottom': i < visibleDrivers().length - 1 ? '1px solid #f0f0f2' : 'none', 'background': i % 2 === 0 ? 'transparent' : '#fafafa'}">
+          [ngStyle]="{'border-bottom': i < standings().length - 1 ? '1px solid #f0f0f2' : 'none', 'background': i % 2 === 0 ? 'transparent' : '#fafafa'}">
           <td style="padding: 7px 12px; width: 28px;">
-            <span [ngStyle]="{'color': d.pos <= 3 ? '#FFD100' : '#aaa'}" style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 15px;">{{ d.pos }}</span>
+            <span [ngStyle]="{'color': d.pos <= 3 ? accent() : '#aaa'}" style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 15px;">{{ d.pos }}</span>
           </td>
           <td style="padding: 7px 4px; width: 16px;">
             <div [style.background]="d.teamColor" style="width: 3px; height: 18px; border-radius: 2px;"></div>

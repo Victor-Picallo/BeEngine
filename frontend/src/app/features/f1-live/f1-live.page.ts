@@ -9,7 +9,7 @@ import {
   OnDestroy,
   OnInit,
   signal,
-  ViewChild,
+  viewChild,
   ViewEncapsulation,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
@@ -18,6 +18,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { interval } from 'rxjs';
 import { F1LiveService } from './f1-live.service';
 import { findOfficialCircuit, projectCircuitCoords } from '../calendar/official-circuits';
+import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import type {
   ConstructorStandingDisplay,
   DriverStandingDisplay,
@@ -104,14 +105,14 @@ const COMPOUND_MAP: Record<string, TireType> = {
 @Component({
   selector: 'app-f1-live-page',
   standalone: true,
-  imports: [NgClass, RouterLink],
+  imports: [NgClass, RouterLink, AppHeaderComponent],
   templateUrl: './f1-live.page.html',
   styleUrl: './f1-live.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
 })
 export class F1LivePageComponent implements OnInit, OnDestroy {
-  @ViewChild('mapCanvas') canvasRef?: ElementRef<HTMLCanvasElement>;
+  readonly canvasRef = viewChild<ElementRef<HTMLCanvasElement>>('mapCanvas');
 
   private readonly service    = inject(F1LiveService);
   private readonly destroyRef = inject(DestroyRef);
@@ -675,7 +676,7 @@ export class F1LivePageComponent implements OnInit, OnDestroy {
   // = 60 CD passes per second over the whole template, making clicks (e.g.
   // PILOTOS/CONSTRUCTORES toggle) feel sluggish.
   private startMapAnimation(): void {
-    const canvas = this.canvasRef?.nativeElement;
+    const canvas = this.canvasRef()?.nativeElement;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
