@@ -126,57 +126,67 @@ const normalizeLocation = (raw) =>
     meetingKey:   l.meeting_key,
   }));
 
+// Build a session_key filter param. Numeric keys reference a specific session;
+// otherwise we fall back to OpenF1's "latest" alias.
+const sessionParam = (sessionKey) => {
+  if (sessionKey === undefined || sessionKey === null || sessionKey === '' || sessionKey === 'latest') {
+    return 'session_key=latest';
+  }
+  return `session_key=${encodeURIComponent(sessionKey)}`;
+};
+
 // ── Public service ────────────────────────────────────────
 
 export const getSessions = async () => {
-  const raw = await openF1Client.get('/sessions?year=2025');
+  const year = new Date().getUTCFullYear();
+  const raw = await openF1Client.get(`/sessions?year=${year}`);
   return normalizeSessions(raw);
 };
 
-export const getDrivers = async () => {
-  const raw = await openF1Client.get('/drivers?session_key=latest');
+export const getDrivers = async (sessionKey) => {
+  const raw = await openF1Client.get(`/drivers?${sessionParam(sessionKey)}`);
   return normalizeDrivers(raw);
 };
 
-export const getPositions = async () => {
-  const raw = await openF1Client.get('/position?session_key=latest');
+export const getPositions = async (sessionKey) => {
+  const raw = await openF1Client.get(`/position?${sessionParam(sessionKey)}`);
   return normalizePositions(raw);
 };
 
-export const getWeather = async () => {
-  const raw = await openF1Client.get('/weather?session_key=latest');
+export const getWeather = async (sessionKey) => {
+  const raw = await openF1Client.get(`/weather?${sessionParam(sessionKey)}`);
   return normalizeWeather(raw); // null if no data — frontend handles empty state
 };
 
-export const getLaps = async () => {
-  const raw = await openF1Client.get('/laps?session_key=latest');
+export const getLaps = async (sessionKey) => {
+  const raw = await openF1Client.get(`/laps?${sessionParam(sessionKey)}`);
   return normalizeLaps(raw);
 };
 
-export const getIntervals = async () => {
-  const raw = await openF1Client.get('/intervals?session_key=latest');
+export const getIntervals = async (sessionKey) => {
+  const raw = await openF1Client.get(`/intervals?${sessionParam(sessionKey)}`);
   return normalizeIntervals(raw);
 };
 
-export const getStints = async () => {
-  const raw = await openF1Client.get('/stints?session_key=latest');
+export const getStints = async (sessionKey) => {
+  const raw = await openF1Client.get(`/stints?${sessionParam(sessionKey)}`);
   return normalizeStints(raw);
 };
 
-export const getRaceControl = async () => {
-  const raw = await openF1Client.get('/race_control?session_key=latest');
+export const getRaceControl = async (sessionKey) => {
+  const raw = await openF1Client.get(`/race_control?${sessionParam(sessionKey)}`);
   return normalizeRaceControl(raw);
 };
 
-export const getTeamRadio = async () => {
-  const raw = await openF1Client.get('/team_radio?session_key=latest');
+export const getTeamRadio = async (sessionKey) => {
+  const raw = await openF1Client.get(`/team_radio?${sessionParam(sessionKey)}`);
   return normalizeTeamRadio(raw);
 };
 
 // Telemetry positions for a single driver across the whole session.
 // Used to derive the real circuit outline (instead of a hand-drawn path).
-export const getLocation = async (driverNumber = 1) => {
+export const getLocation = async (driverNumber = 1, sessionKey) => {
   const safe = Number.isFinite(driverNumber) ? driverNumber : 1;
-  const raw = await openF1Client.get(`/location?session_key=latest&driver_number=${safe}`);
+  const raw = await openF1Client.get(`/location?${sessionParam(sessionKey)}&driver_number=${safe}`);
   return normalizeLocation(raw);
 };

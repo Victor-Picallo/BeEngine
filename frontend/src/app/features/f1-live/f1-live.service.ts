@@ -24,6 +24,11 @@ interface SourceWrapped<T> {
   items: T[];
 }
 
+const sessionQuery = (sessionKey?: number | 'latest' | null): string => {
+  if (sessionKey === undefined || sessionKey === null) return '';
+  return `?session_key=${encodeURIComponent(String(sessionKey))}`;
+};
+
 @Injectable({ providedIn: 'root' })
 export class F1LiveService {
   private readonly api = inject(ApiService);
@@ -32,40 +37,42 @@ export class F1LiveService {
     return this.api.get<OpenF1Session[]>('/f1/openf1/sessions');
   }
 
-  getDrivers(): Observable<OpenF1Driver[]> {
-    return this.api.get<OpenF1Driver[]>('/f1/openf1/drivers');
+  getDrivers(sessionKey?: number | 'latest' | null): Observable<OpenF1Driver[]> {
+    return this.api.get<OpenF1Driver[]>(`/f1/openf1/drivers${sessionQuery(sessionKey)}`);
   }
 
-  getPositions(): Observable<OpenF1Position[]> {
-    return this.api.get<OpenF1Position[]>('/f1/openf1/position');
+  getPositions(sessionKey?: number | 'latest' | null): Observable<OpenF1Position[]> {
+    return this.api.get<OpenF1Position[]>(`/f1/openf1/position${sessionQuery(sessionKey)}`);
   }
 
-  getWeather(): Observable<OpenF1Weather> {
-    return this.api.get<OpenF1Weather>('/f1/openf1/weather');
+  getWeather(sessionKey?: number | 'latest' | null): Observable<OpenF1Weather> {
+    return this.api.get<OpenF1Weather>(`/f1/openf1/weather${sessionQuery(sessionKey)}`);
   }
 
-  getLaps(): Observable<OpenF1Lap[]> {
-    return this.api.get<OpenF1Lap[]>('/f1/openf1/laps');
+  getLaps(sessionKey?: number | 'latest' | null): Observable<OpenF1Lap[]> {
+    return this.api.get<OpenF1Lap[]>(`/f1/openf1/laps${sessionQuery(sessionKey)}`);
   }
 
-  getIntervals(): Observable<OpenF1Interval[]> {
-    return this.api.get<OpenF1Interval[]>('/f1/openf1/intervals');
+  getIntervals(sessionKey?: number | 'latest' | null): Observable<OpenF1Interval[]> {
+    return this.api.get<OpenF1Interval[]>(`/f1/openf1/intervals${sessionQuery(sessionKey)}`);
   }
 
-  getStints(): Observable<OpenF1Stint[]> {
-    return this.api.get<OpenF1Stint[]>('/f1/openf1/stints');
+  getStints(sessionKey?: number | 'latest' | null): Observable<OpenF1Stint[]> {
+    return this.api.get<OpenF1Stint[]>(`/f1/openf1/stints${sessionQuery(sessionKey)}`);
   }
 
-  getRaceControl(): Observable<OpenF1RaceControl[]> {
-    return this.api.get<OpenF1RaceControl[]>('/f1/openf1/race-control');
+  getRaceControl(sessionKey?: number | 'latest' | null): Observable<OpenF1RaceControl[]> {
+    return this.api.get<OpenF1RaceControl[]>(`/f1/openf1/race-control${sessionQuery(sessionKey)}`);
   }
 
-  getTeamRadio(): Observable<OpenF1TeamRadio[]> {
-    return this.api.get<OpenF1TeamRadio[]>('/f1/openf1/team-radio');
+  getTeamRadio(sessionKey?: number | 'latest' | null): Observable<OpenF1TeamRadio[]> {
+    return this.api.get<OpenF1TeamRadio[]>(`/f1/openf1/team-radio${sessionQuery(sessionKey)}`);
   }
 
-  getLocation(driverNumber = 1): Observable<OpenF1Location[]> {
-    return this.api.get<OpenF1Location[]>(`/f1/openf1/location?driver=${driverNumber}`);
+  getLocation(driverNumber = 1, sessionKey?: number | 'latest' | null): Observable<OpenF1Location[]> {
+    const base = `/f1/openf1/location?driver=${driverNumber}`;
+    if (sessionKey === undefined || sessionKey === null) return this.api.get<OpenF1Location[]>(base);
+    return this.api.get<OpenF1Location[]>(`${base}&session_key=${encodeURIComponent(String(sessionKey))}`);
   }
 
   getDriverStandings(): Observable<JolpikaDriverStanding[]> {

@@ -12,6 +12,14 @@ import {
 } from '../services/f1OpenF1.service.js';
 import { success, error } from '../utils/response.js';
 
+// OpenF1 accepts numeric session keys or the literal "latest" alias.
+const parseSessionKey = (raw) => {
+  if (raw === undefined || raw === null || raw === '') return undefined;
+  if (raw === 'latest') return 'latest';
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : undefined;
+};
+
 export const sessions = async (req, res) => {
   try {
     const data = await getSessions();
@@ -23,7 +31,7 @@ export const sessions = async (req, res) => {
 
 export const drivers = async (req, res) => {
   try {
-    const data = await getDrivers();
+    const data = await getDrivers(parseSessionKey(req.query.session_key));
     success(res, data);
   } catch (err) {
     error(res, err.message);
@@ -32,7 +40,7 @@ export const drivers = async (req, res) => {
 
 export const positions = async (req, res) => {
   try {
-    const data = await getPositions();
+    const data = await getPositions(parseSessionKey(req.query.session_key));
     success(res, data);
   } catch (err) {
     error(res, err.message);
@@ -41,7 +49,7 @@ export const positions = async (req, res) => {
 
 export const weather = async (req, res) => {
   try {
-    const data = await getWeather();
+    const data = await getWeather(parseSessionKey(req.query.session_key));
     success(res, data);
   } catch (err) {
     error(res, err.message);
@@ -50,7 +58,7 @@ export const weather = async (req, res) => {
 
 export const laps = async (req, res) => {
   try {
-    const data = await getLaps();
+    const data = await getLaps(parseSessionKey(req.query.session_key));
     success(res, data);
   } catch (err) {
     error(res, err.message);
@@ -59,7 +67,7 @@ export const laps = async (req, res) => {
 
 export const intervals = async (req, res) => {
   try {
-    const data = await getIntervals();
+    const data = await getIntervals(parseSessionKey(req.query.session_key));
     success(res, data);
   } catch (err) {
     error(res, err.message);
@@ -68,7 +76,7 @@ export const intervals = async (req, res) => {
 
 export const stints = async (req, res) => {
   try {
-    const data = await getStints();
+    const data = await getStints(parseSessionKey(req.query.session_key));
     success(res, data);
   } catch (err) {
     error(res, err.message);
@@ -77,7 +85,7 @@ export const stints = async (req, res) => {
 
 export const raceControl = async (req, res) => {
   try {
-    const data = await getRaceControl();
+    const data = await getRaceControl(parseSessionKey(req.query.session_key));
     success(res, data);
   } catch (err) {
     error(res, err.message);
@@ -86,7 +94,7 @@ export const raceControl = async (req, res) => {
 
 export const teamRadio = async (req, res) => {
   try {
-    const data = await getTeamRadio();
+    const data = await getTeamRadio(parseSessionKey(req.query.session_key));
     success(res, data);
   } catch (err) {
     error(res, err.message);
@@ -96,7 +104,7 @@ export const teamRadio = async (req, res) => {
 export const location = async (req, res) => {
   try {
     const driver = req.query.driver ? Number(req.query.driver) : 1;
-    const data = await getLocation(driver);
+    const data = await getLocation(driver, parseSessionKey(req.query.session_key));
     success(res, data);
   } catch (err) {
     error(res, err.message);

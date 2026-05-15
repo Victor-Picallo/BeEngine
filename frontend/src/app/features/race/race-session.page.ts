@@ -1,5 +1,5 @@
 import {
-  ChangeDetectionStrategy, Component, computed, DestroyRef, ElementRef,
+  ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef,
   inject, NgZone, OnDestroy, OnInit, signal, viewChild, ViewEncapsulation,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
@@ -62,6 +62,30 @@ const FALLBACK_DOT_NAMES = ['P1', 'P2', 'P3', 'P4', 'P5'];
 
 const COMPOUND_MAP: Record<string, TireType> = { SOFT: 's', MEDIUM: 'm', HARD: 'h', INTERMEDIATE: 'i', WET: 'w' };
 
+const OPENF1_SESSION_TO_KEY: Record<string, SessionKey> = {
+  'Practice 1':        'fp1',
+  'Practice 2':        'fp2',
+  'Practice 3':        'fp3',
+  'Qualifying':        'qualy',
+  'Sprint Shootout':   'qualy-sprint',
+  'Sprint Qualifying': 'qualy-sprint',
+  'Sprint':            'sprint',
+  'Race':              'race',
+};
+
+const SESSION_KEY_TO_OPENF1_NAMES: Record<SessionKey, string[]> = {
+  fp1:            ['Practice 1'],
+  fp2:            ['Practice 2'],
+  fp3:            ['Practice 3'],
+  qualy:          ['Qualifying'],
+  'qualy-sprint': ['Sprint Shootout', 'Sprint Qualifying'],
+  sprint:         ['Sprint'],
+  race:           ['Race'],
+};
+
+const norm = (s: string): string =>
+  s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
+
 @Component({
   selector: 'app-race-session-page',
   standalone: true,
@@ -94,6 +118,10 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
   );
 
   sessionConfig = computed(() => SESSION_CONFIGS[this.sessionKey()]);
+  showLapCount = computed(() => {
+    const k = this.sessionKey();
+    return k === 'sprint' || k === 'race';
+  });
   readonly SESSION_ORDER = SESSION_ORDER;
   readonly SESSION_CONFIGS = SESSION_CONFIGS;
 
@@ -125,6 +153,89 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
     const cal = this.calendar();
     if (!cal.length) return null;
     return findRaceBySlug(cal, slug);
+  });
+
+  // OpenF1 sessions that belong to the routed race weekend. Match strategy:
+  //   1. Exact locality match (race.locality === session.location)
+  //   2. Substring locality match (e.g. Jolpica "Miami" vs OpenF1 "Miami
+  //      Gardens", or vice versa)
+  //   3. Country-only fallback — safe only when the country hosts a single
+  //      weekend per year (e.g. Monaco where locality differs:
+  //      "Monte-Carlo" vs "Monaco"). Skipped when ambiguous.
+  private weekendSessions = computed<OpenF1Session[]>(() => {
+    const sessions = this.sessions();
+    const race     = this.currentRace();
+    if (!sessions.length || !race) return [];
+    const raceLocality = norm(race.locality || '');
+    const raceCountry  = norm(race.country  || '');
+
+    if (raceLocality) {
+      const exact = sessions.filter(s => norm(s.location || '') === raceLocality);
+      if (exact.length) return exact;
+      const partial = sessions.filter(s => {
+        const sLoc = norm(s.location || '');
+        if (!sLoc) return false;
+        return sLoc.includes(raceLocality) || raceLocality.includes(sLoc);
+      });
+      if (partial.length) return partial;
+    }
+
+    if (!raceCountry) return [];
+    const byCountry = sessions.filter(s => norm(s.countryName || '') === raceCountry);
+    // Avoid ambiguous country-only matches when the country hosts more than
+    // one circuit (would otherwise mix sessions from different meetings).
+    const meetingKeys = new Set(byCountry.map(s => s.meetingKey));
+    if (meetingKeys.size > 1) return [];
+    return byCountry;
+  });
+
+  // SessionKey of whichever weekend session is happening right now, or null.
+  liveSessionKey = computed<SessionKey | null>(() => {
+    const weekend = this.weekendSessions();
+    if (!weekend.length) return null;
+    const nowMs = this.now().getTime();
+    const live = weekend.find(s => {
+      const start = Date.parse(s.dateStart);
+      const end   = Date.parse(s.dateEnd);
+      return Number.isFinite(start) && Number.isFinite(end) && nowMs >= start && nowMs <= end;
+    });
+    if (!live) return null;
+    return OPENF1_SESSION_TO_KEY[live.sessionName] ?? null;
+  });
+
+  isSessionLive = computed(() => this.liveSessionKey() === this.sessionKey());
+
+  // Session tabs to render. Always include the regular weekend layout; add
+  // 'qualy-sprint' / 'sprint' only if the OpenF1 sessions for this weekend
+  // confirm those sessions exist. Falls back to non-sprint defaults while
+  // sessions are still loading to avoid a flicker for the common case.
+  availableSessions = computed<SessionKey[]>(() => {
+    const weekend = this.weekendSessions();
+    if (!weekend.length) {
+      return SESSION_ORDER.filter(k => k !== 'qualy-sprint' && k !== 'sprint');
+    }
+    const present = new Set<SessionKey>();
+    for (const s of weekend) {
+      const k = OPENF1_SESSION_TO_KEY[s.sessionName];
+      if (k) present.add(k);
+    }
+    const hasSprint = present.has('sprint') || present.has('qualy-sprint');
+    return SESSION_ORDER.filter(k => {
+      if (k === 'qualy-sprint' || k === 'sprint') return hasSprint;
+      return true;
+    });
+  });
+
+  // Resolves the OpenF1 session_key for the routed (race, sessionKey) pair.
+  // Returns null when sessions haven't loaded yet, or the meeting is in the
+  // future (no OpenF1 entry exists), or the calendar race can't be matched.
+  openF1SessionKey = computed<number | null>(() => {
+    const weekend = this.weekendSessions();
+    if (!weekend.length) return null;
+    const wantedNames = SESSION_KEY_TO_OPENF1_NAMES[this.sessionKey()] ?? [];
+    if (!wantedNames.length) return null;
+    const match = weekend.find(s => wantedNames.includes(s.sessionName));
+    return match?.sessionKey ?? null;
   });
 
   raceStatus = computed<'upcoming' | 'live' | 'done' | 'unknown'>(() => {
@@ -335,6 +446,11 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
   });
 
   statusBadges = computed(() => {
+    if (!this.isSessionLive()) {
+      const status = this.raceStatus();
+      if (status === 'done') return [{ label: 'FINALIZADA', variant: 'grey' as const }];
+      return [{ label: 'PROGRAMADA', variant: 'grey' as const }];
+    }
     const badges: { label: string; variant: 'green' | 'grey' | 'yellow' }[] = [{ label: 'SC STANDBY', variant: 'grey' }];
     const flagsBySector = new Map<number, OpenF1RaceControl>();
     const sortedDesc = [...this.raceControl()].filter(m => m.category === 'Flag' && m.sector != null)
@@ -355,23 +471,36 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
   private animFrameId: number | null = null;
   private mapProgress = 0;
 
+  // Refetch session-specific data whenever the resolved OpenF1 session_key
+  // changes (route → race or session swap, or sessions list arrived later).
+  private readonly sessionDataEffect = effect(() => {
+    const key = this.openF1SessionKey();
+    this.loadSessionData(key);
+  });
+
   ngOnInit(): void {
     this.loadAll();
     interval(1_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.now.set(new Date()));
     interval(10_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      this.service.getPositions().subscribe({ next: p => this.positions.set(p), error: () => {} });
-      this.service.getIntervals().subscribe({ next: i => this.intervals.set(i), error: () => {} });
+      if (!this.isSessionLive()) return;
+      const key = this.openF1SessionKey();
+      this.service.getPositions(key).subscribe({ next: p => this.positions.set(p), error: () => {} });
+      this.service.getIntervals(key).subscribe({ next: i => this.intervals.set(i), error: () => {} });
     });
-    interval(15_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() =>
-      this.service.getLaps().subscribe({ next: l => this.laps.set(l), error: () => {} })
-    );
-    interval(60_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() =>
-      this.service.getWeather().subscribe({ next: w => this.weather.set(w), error: () => {} })
-    );
+    interval(15_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (!this.isSessionLive()) return;
+      this.service.getLaps(this.openF1SessionKey()).subscribe({ next: l => this.laps.set(l), error: () => {} });
+    });
+    interval(60_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (!this.isSessionLive()) return;
+      this.service.getWeather(this.openF1SessionKey()).subscribe({ next: w => this.weather.set(w), error: () => {} });
+    });
     interval(30_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      this.service.getRaceControl().subscribe({ next: r => this.raceControl.set(r), error: () => {} });
-      this.service.getTeamRadio().subscribe({ next: t => this.teamRadio.set(t), error: () => {} });
-      this.service.getStints().subscribe({ next: s => this.stints.set(s), error: () => {} });
+      if (!this.isSessionLive()) return;
+      const key = this.openF1SessionKey();
+      this.service.getRaceControl(key).subscribe({ next: r => this.raceControl.set(r), error: () => {} });
+      this.service.getTeamRadio(key).subscribe({ next: t => this.teamRadio.set(t), error: () => {} });
+      this.service.getStints(key).subscribe({ next: s => this.stints.set(s), error: () => {} });
     });
   }
 
@@ -403,20 +532,69 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
       },
       error: () => this.loading.set(false),
     });
-    this.service.getDrivers().subscribe({ next: d => this.openF1Drivers.set(d), error: () => {} });
-    this.service.getPositions().subscribe({ next: p => this.positions.set(p), error: () => {} });
-    this.service.getWeather().subscribe({ next: w => this.weather.set(w), error: () => {} });
     this.service.getDriverStandings().subscribe({ next: d => this.driverStands.set(d), error: () => {} });
     this.service.getConstructorStandings().subscribe({ next: c => this.constructorStands.set(c), error: () => {} });
     this.service.getLastRace().subscribe({ next: r => this.lastRace.set(r), error: () => {} });
     this.service.getSessions().subscribe({ next: s => this.sessions.set(s), error: () => {} });
-    this.service.getLaps().subscribe({ next: l => this.laps.set(l), error: () => {} });
-    this.service.getIntervals().subscribe({ next: i => this.intervals.set(i), error: () => {} });
-    this.service.getStints().subscribe({ next: s => this.stints.set(s), error: () => {} });
-    this.service.getRaceControl().subscribe({ next: r => this.raceControl.set(r), error: () => {} });
-    this.service.getTeamRadio().subscribe({ next: t => this.teamRadio.set(t), error: () => {} });
-    this.service.getLocation(1).subscribe({
+  }
+
+  // Reloads every per-session OpenF1 dataset for the resolved session_key.
+  // Called when the route resolves to a new session OR when the sessions list
+  // becomes available (effect below). Clears everything if no key is found.
+  //
+  // Each response is guarded by re-checking the current openF1SessionKey()
+  // before writing the signal. Without this, fast tab switches leave many
+  // requests in flight and the last-resolved response wins — making all
+  // tabs appear to share the same data.
+  private loadSessionData(key: number | null): void {
+    if (key === null) {
+      this.openF1Drivers.set([]);
+      this.positions.set([]);
+      this.weather.set(null);
+      this.laps.set([]);
+      this.intervals.set([]);
+      this.stints.set([]);
+      this.raceControl.set([]);
+      this.teamRadio.set([]);
+      this.locations.set([]);
+      return;
+    }
+    const stillCurrent = () => this.openF1SessionKey() === key;
+    this.service.getDrivers(key).subscribe({
+      next: d => stillCurrent() && this.openF1Drivers.set(d),
+      error: () => {},
+    });
+    this.service.getPositions(key).subscribe({
+      next: p => stillCurrent() && this.positions.set(p),
+      error: () => {},
+    });
+    this.service.getWeather(key).subscribe({
+      next: w => stillCurrent() && this.weather.set(w),
+      error: () => {},
+    });
+    this.service.getLaps(key).subscribe({
+      next: l => stillCurrent() && this.laps.set(l),
+      error: () => {},
+    });
+    this.service.getIntervals(key).subscribe({
+      next: i => stillCurrent() && this.intervals.set(i),
+      error: () => {},
+    });
+    this.service.getStints(key).subscribe({
+      next: s => stillCurrent() && this.stints.set(s),
+      error: () => {},
+    });
+    this.service.getRaceControl(key).subscribe({
+      next: r => stillCurrent() && this.raceControl.set(r),
+      error: () => {},
+    });
+    this.service.getTeamRadio(key).subscribe({
+      next: t => stillCurrent() && this.teamRadio.set(t),
+      error: () => {},
+    });
+    this.service.getLocation(1, key).subscribe({
       next: l => {
+        if (!stillCurrent()) return;
         this.locations.set(l);
         if (this.animFrameId !== null) { cancelAnimationFrame(this.animFrameId); this.animFrameId = null; }
         setTimeout(() => this.startMapAnimation(), 0);
@@ -464,6 +642,7 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
       if (now - lastFrameTs < FRAME_INTERVAL_MS) { this.animFrameId = requestAnimationFrame(draw); return; }
       lastFrameTs = now;
       const rows = this.timingRows();
+      const hideDots = !this.isSessionLive();
       const colors = rows.length > 0 ? rows.map(d => d.teamColor) : FALLBACK_DOT_COLORS;
       const names = rows.length > 0 ? rows.map(d => d.short) : FALLBACK_DOT_NAMES;
       ctx.clearRect(0, 0, W, H);
@@ -488,7 +667,12 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
       ctx.beginPath(); tp.forEach(([x, y], i) => i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
       ctx.strokeStyle = '#FFD100'; ctx.lineWidth = 2; ctx.stroke();
       const total = tp.length;
-      if (total === 0) { this.animFrameId = requestAnimationFrame(draw); return; }
+      if (total === 0 || hideDots) {
+        this.mapProgress = (this.mapProgress + 0.12) % 100;
+        frame++;
+        this.animFrameId = requestAnimationFrame(draw);
+        return;
+      }
       const N = colors.length;
       for (let di = 0; di < N; di++) {
         const off = di / N;

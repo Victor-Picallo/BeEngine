@@ -14,25 +14,24 @@
     <!-- SESSION BAR -->
     <div class="fl-session-bar">
       <span class="fl-session-label-text">SESIÓN</span>
-      @for (key of SESSION_ORDER; track key) {
+      @for (key of availableSessions(); track key) {
         <a [routerLink]="buildSessionLink(key)"
            routerLinkActive="active"
            class="fl-session-btn"
            [class.active]="sessionKey() === key">
           {{ SESSION_CONFIGS[key].label }}
-          @if (key === 'race' && sessionKey() !== key) {
+          @if (liveSessionKey() === key && sessionKey() !== key) {
             <span class="fl-session-live-dot"></span>
           }
         </a>
       }
       <div class="fl-session-right">
-        <span class="fl-session-vta-label">VTA</span>
-        <span class="fl-session-vta-num">{{ currentLap() ?? '—' }}</span>
-        <span class="fl-session-vta-slash">/</span>
-        <span class="fl-session-vta-total">{{ totalLapsDisplay() }}</span>
-        <div class="fl-session-divider"></div>
-        <span class="fl-session-elapsed-time">{{ elapsedDisplay() }}</span>
-        <span class="fl-session-elapsed-label">DURACIÓN</span>
+        <div class="fl-header-clock">
+          <div class="fl-header-clock-time">
+            <span class="fl-header-clock-tz">UTC+2 · {{ today() }}</span>
+            <span>{{ pad(now().getHours()) }}:{{ pad(now().getMinutes()) }}:{{ pad(now().getSeconds()) }}</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -112,9 +111,16 @@
 
         <div class="fl-header-spacer"></div>
 
-        <div class="fl-header-clock">
-          <div class="fl-header-clock-time">{{ pad(now().getHours()) }}:{{ pad(now().getMinutes()) }}:{{ pad(now().getSeconds()) }}</div>
-          <div class="fl-header-clock-date">UTC+2 · {{ today() }}</div>
+        <div class="fl-header-session-counters">
+          @if (showLapCount()) {
+            <span class="fl-session-vta-label">VTA</span>
+            <span class="fl-session-vta-num">{{ currentLap() ?? '—' }}</span>
+            <span class="fl-session-vta-slash">/</span>
+            <span class="fl-session-vta-total">{{ totalLapsDisplay() }}</span>
+            <div class="fl-session-divider"></div>
+          }
+          <span class="fl-session-elapsed-time">{{ elapsedDisplay() }}</span>
+          <span class="fl-session-elapsed-label">DURACIÓN</span>
         </div>
       </div>
 
@@ -295,7 +301,16 @@
             <div class="fl-card-header" style="flex-shrink:0">
               <div class="fl-card-header-bar" style="background:#FFD100"></div>
               <span class="fl-card-header-title">MAPA DEL CIRCUITO</span>
-              <span class="fl-card-header-status" style="color:#16a34a">● TRACKING</span>
+              <span class="fl-card-header-status"
+                    [style.color]="isSessionLive() ? '#16a34a' : '#888'">
+                @if (isSessionLive()) {
+                  ● TRACKING
+                } @else if (raceStatus() === 'done') {
+                  ○ FINALIZADA
+                } @else {
+                  ○ PROGRAMADA
+                }
+              </span>
             </div>
             <canvas #mapCanvas width="308" height="218" class="fl-map-canvas" style="flex:1;width:100%;height:auto;display:block"></canvas>
           </div>

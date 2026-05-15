@@ -144,6 +144,56 @@ app-race-session-page ::-webkit-scrollbar-thumb { background: #c0c0c0; border-ra
 }
 .fl-session-btn:hover { color: #1a1a1a; }
 
+/* Duration / laps counter now lives in the header (right side) */
+app-race-session-page .fl-header-session-counters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  text-align: right;
+}
+app-race-session-page .fl-header-session-counters .fl-session-vta-num {
+  font-size: 26px;
+  line-height: 1;
+}
+app-race-session-page .fl-header-session-counters .fl-session-vta-total {
+  font-size: 18px;
+}
+app-race-session-page .fl-header-session-counters .fl-session-vta-slash {
+  font-size: 16px;
+}
+app-race-session-page .fl-header-session-counters .fl-session-vta-label {
+  font-size: 12px;
+}
+app-race-session-page .fl-header-session-counters .fl-session-divider {
+  height: 28px;
+  margin: 0 8px;
+}
+app-race-session-page .fl-header-session-counters .fl-session-elapsed-time {
+  font-size: 22px;
+  line-height: 1;
+}
+app-race-session-page .fl-header-session-counters .fl-session-elapsed-label {
+  font-size: 11px;
+}
+
+/* Clock with UTC tag inline (race page only) */
+app-race-session-page .fl-header-clock-time {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  justify-content: flex-end;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+app-race-session-page .fl-header-clock-tz {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  color: #888;
+  letter-spacing: 1px;
+}
+
 /* Topbar session links */
 .fl-topbar-sessions {
   display: flex;
