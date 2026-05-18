@@ -1,0 +1,199 @@
+<div class="fc-root">
+  <app-header></app-header>
+
+  <div class="fc-body">
+    <app-side></app-side>
+
+    <main class="fc-shell">
+      <div class="fc-hero">
+        <div class="fc-hero-left">
+          <div class="fc-hero-title-row">
+            <span class="fc-hero-bar"></span>
+            <h1>Pilotos <span class="fc-hero-faded">F1 2026</span></h1>
+          </div>
+          <div class="fc-hero-sub">
+            Clasificación del mundial · Fotos oficiales vía
+            <a href="https://openf1.org" target="_blank" rel="noopener noreferrer" class="fd-openf1-link">OpenF1</a>
+          </div>
+        </div>
+      </div>
+
+      @if (loading()) {
+        <section class="fc-grid">
+          @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+            <div class="fc-card fc-skeleton"></div>
+          }
+        </section>
+      } @else if (error(); as err) {
+        <div class="fc-error">{{ err }}</div>
+      } @else {
+        <section class="fc-grid">
+          @for (card of cards(); track card.driver; let i = $index) {
+            @if (cardHasProfile(card)) {
+              <a
+                class="fd-card-link-wrap"
+                [routerLink]="['/f1/pilotos', card.driverId]"
+                [attr.aria-label]="'Ficha de ' + card.driver"
+              >
+                <div
+                  class="fc-card fd-card fd-card--clickable"
+                  [class.next]="card.pos === 1"
+                  [class.done]="card.pos > 3"
+                  [style.animation-delay.ms]="cardDelay(i)"
+                >
+                  <div class="fc-card-circuit fd-card-circuit">
+                    <div class="fc-grid-pattern"></div>
+                    @if (card.pos === 1) {
+                      <div class="fc-glow"></div>
+                    }
+                    @if (card.pos > 3) {
+                      <div class="fc-dim"></div>
+                    }
+
+                    <div class="fd-photo-wrap">
+                      <div
+                        class="fd-photo-fallback"
+                        [style.--fd-team]="card.teamColor"
+                        [attr.aria-hidden]="card.headshotUrl ? 'true' : null"
+                      >
+                        <span class="fd-photo-initials">{{ initialsFor(card) }}</span>
+                      </div>
+                      @if (card.headshotUrl) {
+                        <img
+                          class="fd-headshot"
+                          [src]="card.headshotUrl"
+                          [alt]="card.driver"
+                          loading="lazy"
+                          (error)="imgError($event)"
+                        />
+                      }
+                    </div>
+
+                    <div class="fc-round">P{{ card.pos }}</div>
+                    @if (card.pos === 1) {
+                      <div class="fd-tag-leader">LÍDER</div>
+                    }
+                  </div>
+
+                  <div class="fc-card-body">
+                    <h2 class="fc-card-title">{{ card.driver }}</h2>
+                    <div class="fc-card-meta">
+                      <span class="fd-team-bar" [style.background]="card.teamColor"></span>
+                      <span class="fc-loc">{{ card.team }}</span>
+                      <span class="fc-meta-sep">·</span>
+                      <span class="fc-stats">{{ card.points }} pts</span>
+                      @if (card.wins > 0) {
+                        <span class="fc-meta-sep">·</span>
+                        <span class="fc-stats">{{ card.wins }} {{ card.wins === 1 ? 'victoria' : 'victorias' }}</span>
+                      }
+                    </div>
+                    @if (card.countryCode3 || card.countryCode2) {
+                      <p class="fc-card-desc fd-card-desc fd-card-nat">
+                        @if (card.countryCode2) {
+                          <img
+                            class="fd-flag-img"
+                            [src]="flagImgUrl(card.countryCode2)"
+                            width="28"
+                            height="21"
+                            alt=""
+                            loading="lazy"
+                            (error)="imgError($event)"
+                          />
+                        }
+                        @if (card.countryCode3) {
+                          <span class="fd-iso3">{{ card.countryCode3 }}</span>
+                        }
+                      </p>
+                    }
+                  </div>
+                </div>
+              </a>
+            } @else {
+              <div
+                class="fc-card fd-card"
+                [class.next]="card.pos === 1"
+                [class.done]="card.pos > 3"
+                [style.animation-delay.ms]="cardDelay(i)"
+              >
+                <div class="fc-card-circuit fd-card-circuit">
+                  <div class="fc-grid-pattern"></div>
+                  @if (card.pos === 1) {
+                    <div class="fc-glow"></div>
+                  }
+                  @if (card.pos > 3) {
+                    <div class="fc-dim"></div>
+                  }
+
+                  <div class="fd-photo-wrap">
+                    <div
+                      class="fd-photo-fallback"
+                      [style.--fd-team]="card.teamColor"
+                      [attr.aria-hidden]="card.headshotUrl ? 'true' : null"
+                    >
+                      <span class="fd-photo-initials">{{ initialsFor(card) }}</span>
+                    </div>
+                    @if (card.headshotUrl) {
+                      <img
+                        class="fd-headshot"
+                        [src]="card.headshotUrl"
+                        [alt]="card.driver"
+                        loading="lazy"
+                        (error)="imgError($event)"
+                      />
+                    }
+                  </div>
+
+                  <div class="fc-round">P{{ card.pos }}</div>
+                  @if (card.pos === 1) {
+                    <div class="fd-tag-leader">LÍDER</div>
+                  }
+                </div>
+
+                <div class="fc-card-body">
+                  <h2 class="fc-card-title">{{ card.driver }}</h2>
+                  <div class="fc-card-meta">
+                    <span class="fd-team-bar" [style.background]="card.teamColor"></span>
+                    <span class="fc-loc">{{ card.team }}</span>
+                    <span class="fc-meta-sep">·</span>
+                    <span class="fc-stats">{{ card.points }} pts</span>
+                    @if (card.wins > 0) {
+                      <span class="fc-meta-sep">·</span>
+                      <span class="fc-stats">{{ card.wins }} {{ card.wins === 1 ? 'victoria' : 'victorias' }}</span>
+                    }
+                  </div>
+                  @if (card.countryCode3 || card.countryCode2) {
+                    <p class="fc-card-desc fd-card-desc fd-card-nat">
+                      @if (card.countryCode2) {
+                        <img
+                          class="fd-flag-img"
+                          [src]="flagImgUrl(card.countryCode2)"
+                          width="28"
+                          height="21"
+                          alt=""
+                          loading="lazy"
+                          (error)="imgError($event)"
+                        />
+                      }
+                      @if (card.countryCode3) {
+                        <span class="fd-iso3">{{ card.countryCode3 }}</span>
+                      }
+                    </p>
+                  }
+                </div>
+              </div>
+            }
+          }
+        </section>
+
+        <footer class="fc-footer">
+          <span>BeEngine · Pilotos F1 2026</span>
+          <div class="fc-footer-links">
+            <a routerLink="/">← Home</a>
+            <a routerLink="/f1/escuderias">Escuderías →</a>
+            <a routerLink="/f1/calendario">Calendario →</a>
+          </div>
+        </footer>
+      }
+    </main>
+  </div>
+</div>

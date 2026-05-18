@@ -1,0 +1,108 @@
+/* Escuderías: cards claras, sin franja tipo “circuito” oscura; logo aislado del fallback. */
+
+.fc-constructors .fc-card {
+  background: #fff;
+  border: 1px solid #e5e5e7;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Líder constructores: mismo acento que pilotos (.fc-card.next en calendario), sin que lo pise la regla anterior. */
+.fc-constructors .fc-card.next {
+  border-color: var(--accent, #ffd100);
+  box-shadow:
+    0 4px 24px rgba(255, 209, 0, 0.18),
+    0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.fc-constructors .fc-card.next:hover {
+  box-shadow:
+    0 6px 28px rgba(255, 209, 0, 0.22),
+    0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.fc-constructors .fc-constructors-card-strip {
+  background: #fff !important;
+  border-bottom: 1px solid #ececee;
+}
+
+/* Rejilla / brillo: el calendario ya define .fc-grid-pattern y .fc-glow; la foto va después en el DOM y queda encima. */
+.fc-constructors .fc-constructors-card-strip .fc-grid-pattern {
+  opacity: 0.06;
+}
+
+.fc-constructors .fc-card.next .fc-constructors-card-strip .fc-grid-pattern {
+  opacity: 0.12;
+}
+
+.fc-constructors .fc-constructors-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #fafafa 0%, #f0f0f2 100%);
+}
+
+.fc-constructors .fc-constructors-initials {
+  color: rgba(0, 0, 0, 0.14);
+}
+
+.fc-constructors .fd-card.next .fc-constructors-initials {
+  color: rgba(0, 0, 0, 0.18);
+}
+
+/* Misma altura de franja que pilotos: hereda .fd-card-circuit (200px) del bundle; no alargamos la card. */
+
+/*
+ * Una celda 1×1fr: el <img> se estira al hueco y object-fit: contain escala el bitmap
+ * entero dentro (sin recortes); la card sigue midiendo lo mismo que pilotos (200px).
+ */
+.fc-constructors .fc-constructors-photo-wrap {
+  background: #fff !important;
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  padding: 10px 14px 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+  min-height: 0;
+  z-index: 1;
+}
+
+.fc-constructors .fc-team-showcase-img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  object-fit: contain;
+  object-position: center center;
+  margin: 0;
+}
+
+.fc-constructors .fc-round {
+  z-index: 4;
+  background: rgba(0, 0, 0, 0.06);
+  color: #1a1a1a;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  font-weight: 800;
+}
+
+.fc-constructors .fc-card.next .fc-round {
+  background: var(--accent, #ffd100);
+  color: #000;
+  border-color: transparent;
+}
+
+.fc-constructors .fd-tag-leader {
+  z-index: 4;
+}
+
+.fc-constructors .fc-card.done {
+  opacity: 1;
+}

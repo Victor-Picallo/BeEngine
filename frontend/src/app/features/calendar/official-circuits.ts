@@ -59,7 +59,11 @@ for (const c of OFFICIAL_CIRCUITS) {
  */
 export function findOfficialCircuit(query: string | null | undefined): OfficialCircuit | null {
   if (!query) return null;
-  const q = normalize(query);
+  // Ergast/Jolpica often uses titles like «Albert Park Grand Prix Circuit», while outline
+  // datasets use «Albert Park Circuit». The inserted «Grand Prix» breaks substring matching
+  // (`albert … grand prix … circuit` does not contain the contiguous substring
+  // `albert park circuit`), so normalize only after stripping that filler phrase.
+  const q = normalize(query.replace(/\bgrand prix\b/gi, ' '));
   if (!q) return null;
   const direct = NAME_INDEX.get(q);
   if (direct) return direct;

@@ -20,6 +20,36 @@ export const routes: Routes = [
       import('./features/calendar/f1-calendar.page').then(m => m.F1CalendarPageComponent),
   },
 
+  {
+    path: 'f1/pilotos',
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('./features/drivers/f1-drivers.page').then(m => m.F1DriversPageComponent),
+  },
+
+  {
+    path: 'f1/escuderias/:constructorId',
+    loadComponent: () =>
+      import('./features/constructors/constructor-profile/f1-constructor-profile.page').then(
+        m => m.F1ConstructorProfilePageComponent,
+      ),
+  },
+
+  {
+    path: 'f1/escuderias',
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('./features/constructors/f1-constructors.page').then(m => m.F1ConstructorsPageComponent),
+  },
+
+  {
+    path: 'f1/pilotos/:driverId',
+    loadComponent: () =>
+      import('./features/drivers/driver-profile/f1-driver-profile.page').then(
+        m => m.F1DriverProfilePageComponent,
+      ),
+  },
+
   // Per-race session pages: /f1/calendario/{race-slug}/{session}
   {
     path: 'f1/calendario/:race/:session',

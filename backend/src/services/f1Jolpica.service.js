@@ -1,13 +1,43 @@
 import { jolpicaClient } from '../external/jolpica/jolpica.client.js';
 import f1Mock from '../data/f1.data.js';
 
+const normName = (s) =>
+  String(s ?? '')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
 // ── Normalizers ───────────────────────────────────────────
+
+const normalizeCurrentSeasonDrivers = (raw) => {
+  const drivers = raw?.MRData?.DriverTable?.Drivers ?? [];
+  return drivers.map((d) => ({
+    driverId: d.driverId,
+    fullName: `${d.givenName} ${d.familyName}`.trim(),
+    code:     (d.code ?? '').trim().toUpperCase(),
+  }));
+};
+
+const enrichStandingsDriverIds = (rows, seasonDrivers) => {
+  if (!seasonDrivers.length) return rows;
+  return rows.map((row) => {
+    const id = (row.driverId ?? '').trim();
+    if (id && id !== 'unknown') return row;
+    const jn = normName(row.driver);
+    const byName = seasonDrivers.find((s) => normName(s.fullName) === jn);
+    if (byName?.driverId) return { ...row, driverId: byName.driverId };
+    return row;
+  });
+};
 
 const normalizeDriverStandings = (raw) => {
   const list = raw?.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings ?? [];
   return list.map((ds) => ({
     pos:         parseInt(ds.position),
     driver:      `${ds.Driver.givenName} ${ds.Driver.familyName}`,
+    driverId:    ds.Driver?.driverId ?? '',
     team:        ds.Constructors?.[0]?.name ?? 'Unknown',
     points:      parseFloat(ds.points),
     wins:        parseInt(ds.wins),
@@ -18,11 +48,12 @@ const normalizeDriverStandings = (raw) => {
 const normalizeConstructorStandings = (raw) => {
   const list = raw?.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings ?? [];
   return list.map((cs) => ({
-    pos:         parseInt(cs.position),
-    team:        cs.Constructor.name,
-    points:      parseFloat(cs.points),
-    wins:        parseInt(cs.wins),
-    nationality: cs.Constructor.nationality,
+    pos:            parseInt(cs.position),
+    team:           cs.Constructor.name,
+    constructorId: cs.Constructor.constructorId ?? '',
+    points:         parseFloat(cs.points),
+    wins:           parseInt(cs.wins),
+    nationality:    cs.Constructor.nationality,
   }));
 };
 
@@ -83,10 +114,22 @@ const normalizeRaceResults = (raw) => {
 
 // ── Fallbacks ─────────────────────────────────────────────
 
+const MOCK_DRIVER_ID = {
+  'M. Verstappen': 'max_verstappen',
+  'L. Hamilton': 'hamilton',
+  'C. Leclerc': 'leclerc',
+  'L. Norris': 'norris',
+  'C. Sainz': 'sainz',
+  'G. Russell': 'russell',
+  'F. Alonso': 'alonso',
+  'O. Piastri': 'piastri',
+};
+
 const fallbackDriverStandings = () =>
   f1Mock.standings.map((d) => ({
     pos:         d.pos,
     driver:      d.driver,
+    driverId:    MOCK_DRIVER_ID[d.driver] ?? 'unknown',
     team:        d.team,
     points:      d.points,
     wins:        0,
@@ -95,11 +138,15 @@ const fallbackDriverStandings = () =>
 
 const fallbackConstructorStandings = () =>
   f1Mock.constructors.map((c) => ({
-    pos:         c.pos,
-    team:        c.team,
-    points:      c.points,
-    wins:        0,
-    nationality: 'Unknown',
+    pos:            c.pos,
+    team:           c.team,
+    constructorId: c.team
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/gi, '_')
+      .replace(/^_|_$/g, '') || 'unknown',
+    points:         c.points,
+    wins:           0,
+    nationality:    'Unknown',
   }));
 
 const fallbackCalendar = () => {
@@ -120,8 +167,16 @@ const fallbackCalendar = () => {
 
 export const getDriverStandings = async () => {
   try {
-    const raw = await jolpicaClient.get('/current/driverStandings.json');
-    return { source: 'external', items: normalizeDriverStandings(raw) };
+    const [rawStand, rawSeasonDrivers] = await Promise.all([
+      jolpicaClient.get('/current/driverStandings.json'),
+      jolpicaClient.get('/current/drivers.json').catch(() => null),
+    ]);
+    let items = normalizeDriverStandings(rawStand);
+    if (rawSeasonDrivers) {
+      const season = normalizeCurrentSeasonDrivers(rawSeasonDrivers);
+      items = enrichStandingsDriverIds(items, season);
+    }
+    return { source: 'external', items };
   } catch {
     return { source: 'mock', items: fallbackDriverStandings() };
   }

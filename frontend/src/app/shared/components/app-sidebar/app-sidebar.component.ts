@@ -1,8 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { SUB_CATEGORIES, type Category, type Favorite } from '../../../data/sports.data';
-
-const DEFAULT_SECTIONS = ['Noticias', 'Calendario', 'Resultados', 'Estadísticas', 'Vídeos'];
+import { F1_SIDEBAR_SECTION_LABELS } from '../../f1-sidebar-sections';
 
 @Component({
   selector: 'app-side',
@@ -24,7 +23,7 @@ export class AppSidebarComponent {
   readonly categories = signal<Category[]>(SUB_CATEGORIES['f1']);
   readonly activeCat  = signal('f1');
   readonly favorites  = signal<Favorite[]>([]);
-  readonly sections   = signal<string[]>(DEFAULT_SECTIONS);
+  readonly sections   = signal<string[]>([...F1_SIDEBAR_SECTION_LABELS]);
 
   readonly currentCat = computed(
     () => this.categories().find(c => c.id === this.activeCat()) ?? this.categories()[0],

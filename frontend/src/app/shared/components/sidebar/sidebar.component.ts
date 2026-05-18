@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { NgStyle } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Category, Favorite } from '../../../data/sports.data';
+import { f1SidebarSectionPath } from '../../f1-sidebar-sections';
 
 @Component({
   selector: 'app-sidebar',
@@ -16,6 +17,9 @@ export class SidebarComponent {
   accent     = input.required<string>();
   favorites  = input.required<Favorite[]>();
   sections   = input.required<string[]>();
+
+  /** Ruta Angular para secciones con página; `null` → botón placeholder. */
+  readonly sectionPath = f1SidebarSectionPath;
 
   catChange = output<string>();
 }

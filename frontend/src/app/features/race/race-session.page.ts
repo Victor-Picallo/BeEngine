@@ -1,12 +1,13 @@
 import {
   ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef,
-  inject, NgZone, OnDestroy, OnInit, signal, viewChild, ViewEncapsulation,
+  inject, NgZone, OnDestroy, OnInit, signal, untracked, viewChild, ViewEncapsulation,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { interval, map } from 'rxjs';
 import { F1LiveService } from '../f1-live/f1-live.service';
+import { sessionsForRaceWeekend } from '../f1-live/f1-weekend-sessions';
 import { findOfficialCircuit, projectCircuitCoords } from '../calendar/official-circuits';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import {
@@ -83,9 +84,6 @@ const SESSION_KEY_TO_OPENF1_NAMES: Record<SessionKey, string[]> = {
   race:           ['Race'],
 };
 
-const norm = (s: string): string =>
-  s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
-
 @Component({
   selector: 'app-race-session-page',
   standalone: true,
@@ -155,38 +153,11 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
     return findRaceBySlug(cal, slug);
   });
 
-  // OpenF1 sessions that belong to the routed race weekend. Match strategy:
-  //   1. Exact locality match (race.locality === session.location)
-  //   2. Substring locality match (e.g. Jolpica "Miami" vs OpenF1 "Miami
-  //      Gardens", or vice versa)
-  //   3. Country-only fallback — safe only when the country hosts a single
-  //      weekend per year (e.g. Monaco where locality differs:
-  //      "Monte-Carlo" vs "Monaco"). Skipped when ambiguous.
+  /** OpenF1 sessions for this Jolpika weekend (see {@link sessionsForRaceWeekend}). */
   private weekendSessions = computed<OpenF1Session[]>(() => {
-    const sessions = this.sessions();
-    const race     = this.currentRace();
-    if (!sessions.length || !race) return [];
-    const raceLocality = norm(race.locality || '');
-    const raceCountry  = norm(race.country  || '');
-
-    if (raceLocality) {
-      const exact = sessions.filter(s => norm(s.location || '') === raceLocality);
-      if (exact.length) return exact;
-      const partial = sessions.filter(s => {
-        const sLoc = norm(s.location || '');
-        if (!sLoc) return false;
-        return sLoc.includes(raceLocality) || raceLocality.includes(sLoc);
-      });
-      if (partial.length) return partial;
-    }
-
-    if (!raceCountry) return [];
-    const byCountry = sessions.filter(s => norm(s.countryName || '') === raceCountry);
-    // Avoid ambiguous country-only matches when the country hosts more than
-    // one circuit (would otherwise mix sessions from different meetings).
-    const meetingKeys = new Set(byCountry.map(s => s.meetingKey));
-    if (meetingKeys.size > 1) return [];
-    return byCountry;
+    const race = this.currentRace();
+    if (!race) return [];
+    return sessionsForRaceWeekend(this.sessions(), race);
   });
 
   // SessionKey of whichever weekend session is happening right now, or null.
@@ -205,10 +176,8 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
 
   isSessionLive = computed(() => this.liveSessionKey() === this.sessionKey());
 
-  // Session tabs to render. Always include the regular weekend layout; add
-  // 'qualy-sprint' / 'sprint' only if the OpenF1 sessions for this weekend
-  // confirm those sessions exist. Falls back to non-sprint defaults while
-  // sessions are still loading to avoid a flicker for the common case.
+  // Session tabs: FP1–FP3 + qualy + race; sprint qualy + sprint when OpenF1 has them.
+  // Sprint weekends only schedule one free practice in OpenF1 — hide FP2 and FP3.
   availableSessions = computed<SessionKey[]>(() => {
     const weekend = this.weekendSessions();
     if (!weekend.length) {
@@ -222,13 +191,15 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
     const hasSprint = present.has('sprint') || present.has('qualy-sprint');
     return SESSION_ORDER.filter(k => {
       if (k === 'qualy-sprint' || k === 'sprint') return hasSprint;
+      if (hasSprint && (k === 'fp2' || k === 'fp3')) return false;
       return true;
     });
   });
 
   // Resolves the OpenF1 session_key for the routed (race, sessionKey) pair.
-  // Returns null when sessions haven't loaded yet, or the meeting is in the
-  // future (no OpenF1 entry exists), or the calendar race can't be matched.
+  // Returns null when sessions haven't loaded yet, when the calendar race can't
+  // be matched — or when this tab has no counterpart in OpenF1 (e.g. FP2/FP3
+  // are not scheduled on sprint weekends; we do not alias another practice).
   openF1SessionKey = computed<number | null>(() => {
     const weekend = this.weekendSessions();
     if (!weekend.length) return null;
@@ -249,6 +220,14 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
     if (diffHours > 0.5) return 'upcoming';
     if (diffHours < -3) return 'done';
     return 'live';
+  });
+
+  /** Footer text when timing table has no rows. */
+  timingEmptySubtitle = computed(() => {
+    const rs = this.raceStatus();
+    if (rs === 'upcoming') return 'Esta sesión aún no ha comenzado';
+    if (rs === 'done') return 'Resultados pendientes de sincronizar';
+    return 'Esperando datos del proveedor';
   });
 
   notFound = computed(() =>
@@ -476,6 +455,20 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
   private readonly sessionDataEffect = effect(() => {
     const key = this.openF1SessionKey();
     this.loadSessionData(key);
+  });
+
+  /** Deep links to FP2/FP3 on a sprint weekend are invalid once OpenF1 data is known. */
+  private readonly alignSessionRouteEffect = effect(() => {
+    const slug = this.raceSlug();
+    const key = this.sessionKey();
+    const weekend = this.weekendSessions();
+    const avail = this.availableSessions();
+    if (!slug || !weekend.length) return;
+    if (avail.includes(key)) return;
+    const fallback = (avail.includes('fp1') ? 'fp1' : avail[0]) ?? 'fp1';
+    untracked(() => {
+      void this.router.navigate(['/f1/calendario', slug, fallback], { replaceUrl: true });
+    });
   });
 
   ngOnInit(): void {

@@ -1,0 +1,139 @@
+/* Driver cards — extends fc-* from f1-calendar.page.css */
+
+.fd-openf1-link {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.fd-openf1-link:hover {
+  border-bottom-color: var(--accent);
+}
+
+/* Taller strip so portrait headshots fit with room to spare. */
+.fd-card-circuit {
+  height: 200px;
+}
+
+.fd-photo-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  /* Letterbox sides / top-bottom stay on-brand when using object-fit: contain */
+  background: #0a0a0a;
+}
+
+.fd-headshot {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* Full pilot in frame — no aggressive crop (cover was only nose/mouth). */
+  object-fit: contain;
+  object-position: center center;
+}
+
+.fd-photo-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(
+    ellipse 80% 100% at 50% 100%,
+    color-mix(in srgb, var(--fd-team, #666) 45%, #0a0a0a) 0%,
+    #0a0a0a 72%
+  );
+}
+
+.fd-photo-initials {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 900;
+  font-size: 52px;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.22);
+  user-select: none;
+}
+
+.fd-card.next .fd-photo-initials {
+  color: rgba(255, 255, 255, 0.28);
+}
+
+.fd-tag-leader {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 2;
+  background: var(--accent);
+  color: #000;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 9px;
+  letter-spacing: 1.2px;
+  padding: 3px 8px;
+  border-radius: 3px;
+}
+
+.fd-team-bar {
+  display: inline-block;
+  width: 3px;
+  height: 12px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.fd-card .fc-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.fd-card-nat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.fd-flag-img {
+  width: 28px;
+  height: 21px;
+  object-fit: cover;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.fd-iso3 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+}
+
+.fd-card-link-wrap {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.fd-card--clickable {
+  cursor: pointer;
+}
+
+.fd-card .fc-round,
+.fd-card .fd-tag-leader {
+  pointer-events: none;
+}
+
+.fd-card--clickable:focus-visible {
+  outline: 2px solid var(--accent, #ffd100);
+  outline-offset: 2px;
+}

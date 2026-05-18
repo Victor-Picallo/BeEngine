@@ -28,8 +28,12 @@
   <div style="border-top: 1px solid #e5e5e7; padding: 10px 0;">
     <div style="padding: 0 12px 6px; font-size: 9px; color: #aaa; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;">Secciones</div>
     @for (item of sections(); track item) {
-      @if (item === 'Calendario') {
-        <a routerLink="/f1/calendario" class="section-item" style="display: block; width: 100%; text-align: left; padding: 7px 12px; font-size: 13px; color: #888; background: transparent; transition: color 0.1s; text-decoration: none;">{{ item }}</a>
+      @if (sectionPath(item); as path) {
+        <a
+          [routerLink]="path"
+          class="section-item"
+          style="display: block; width: 100%; text-align: left; padding: 7px 12px; font-size: 13px; color: #888; background: transparent; transition: color 0.1s; text-decoration: none;"
+        >{{ item }}</a>
       } @else {
         <button class="section-item" style="width: 100%; text-align: left; padding: 7px 12px; font-size: 13px; color: #888; background: transparent; transition: color 0.1s;">{{ item }}</button>
       }

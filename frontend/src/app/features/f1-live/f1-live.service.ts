@@ -3,7 +3,9 @@ import { map, Observable } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import {
   JolpikaCalendarRace,
+  JolpikaConstructorProfile,
   JolpikaConstructorStanding,
+  JolpikaDriverProfile,
   JolpikaDriverStanding,
   JolpikaLastRace,
   JolpikaRaceResult,
@@ -81,10 +83,24 @@ export class F1LiveService {
       .pipe(map(res => res.items ?? []));
   }
 
+  getDriverProfile(driverId: string, careerPage = 1): Observable<JolpikaDriverProfile> {
+    const id = encodeURIComponent(driverId.trim());
+    const p = Math.max(1, careerPage);
+    const q = p > 1 ? `?careerPage=${p}` : '';
+    return this.api.get<JolpikaDriverProfile>(`/f1/jolpica/drivers/${id}/profile${q}`);
+  }
+
   getConstructorStandings(): Observable<JolpikaConstructorStanding[]> {
     return this.api
       .get<SourceWrapped<JolpikaConstructorStanding>>('/f1/jolpica/constructor-standings')
       .pipe(map(res => res.items ?? []));
+  }
+
+  getConstructorProfile(constructorId: string, careerPage = 1): Observable<JolpikaConstructorProfile> {
+    const id = encodeURIComponent(constructorId.trim());
+    const p = Math.max(1, careerPage);
+    const q = p > 1 ? `?careerPage=${p}` : '';
+    return this.api.get<JolpikaConstructorProfile>(`/f1/jolpica/constructors/${id}/profile${q}`);
   }
 
   getCalendar(): Observable<JolpikaCalendarRace[]> {

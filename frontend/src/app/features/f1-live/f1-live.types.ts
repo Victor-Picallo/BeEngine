@@ -36,7 +36,10 @@ export interface OpenF1Session {
   sessionName: string;
   sessionType: string;
   countryName: string;
+  /** City / venue label from OpenF1 (e.g. "Miami Gardens" — may differ from Ergast locality "Miami"). */
   location: string;
+  /** OpenF1 short label (e.g. "Miami") — stable for tying a Jolpika weekend to sessions. */
+  circuitShortName?: string;
   dateStart: string;
   dateEnd: string;
   year: number;
@@ -113,18 +116,142 @@ export interface OpenF1Location {
 export interface JolpikaDriverStanding {
   pos: number;
   driver: string;
+  /** Ergast / Jolpica driver id (e.g. max_verstappen). */
+  driverId: string;
   team: string;
   points: number;
   wins: number;
   nationality: string;
 }
 
+export interface JolpikaCareerHistoryPagination {
+  page: number;
+  pageSize: number;
+  totalYears: number;
+  totalPages: number;
+  /** Máximo de puntos en una temporada (historial completo) para escalar el gráfico entre páginas. */
+  maxPts: number;
+}
+
+export interface JolpikaDriverProfileRaceRow {
+  round: number;
+  gp: string;
+  grid: number;
+  pos: number;
+  pts: number;
+  gap: string;
+  laps: number;
+  fl: boolean;
+  teamName: string;
+}
+
+export interface JolpikaDriverProfileCareerRow {
+  year: number;
+  team: string;
+  races: number;
+  wins: number;
+  podiums: number;
+  poles: number;
+  pts: number;
+  pos: number | null;
+  /** Final championship table for that year (all rounds run). */
+  seasonComplete: boolean;
+  /** World champion that year (pos 1 when season complete). */
+  titleWon: boolean;
+}
+
+export interface JolpikaDriverProfile {
+  source: string;
+  driverId: string;
+  givenName: string;
+  familyName: string;
+  code: string;
+  number: number | null;
+  dateOfBirth: string | null;
+  nationality: string;
+  championships: number;
+  debut: string;
+  currentSeasonYear: number;
+  stats: {
+    wins: number;
+    podiums: number;
+    poles: number;
+    fastestLaps: number;
+    races: number;
+    points: number;
+    winsCurrentSeason: number;
+  };
+  currentSeason: JolpikaDriverProfileRaceRow[];
+  careerHistory: JolpikaDriverProfileCareerRow[];
+  careerHistoryPagination: JolpikaCareerHistoryPagination | null;
+}
+
 export interface JolpikaConstructorStanding {
   pos: number;
   team: string;
+  /** Ergast / Jolpica constructor id (e.g. red_bull). */
+  constructorId: string;
   points: number;
   wins: number;
   nationality: string;
+}
+
+export interface JolpikaConstructorProfileDriver {
+  driverId: string;
+  givenName: string;
+  familyName: string;
+  code: string;
+  number: number | null;
+  nationality: string;
+}
+
+export interface JolpikaConstructorProfileStanding {
+  pos: number;
+  points: number;
+  wins: number;
+}
+
+export interface JolpikaConstructorProfileRaceRow {
+  round: number;
+  gp: string;
+  d1Pos: number | null;
+  d2Pos: number | null;
+  points: number;
+  cumPts: number;
+}
+
+export interface JolpikaConstructorProfileCareerRow {
+  year: number;
+  wins: number;
+  podiums: number;
+  poles: number;
+  pts: number;
+  pos: number;
+  /** Ronda reflejada en la tabla de clasificación (Jolpica/Ergast). */
+  standingsRound: number;
+  /** Campeona de constructores solo si la temporada está cerrada (no la actual a mitad de año). */
+  titleWon?: boolean;
+}
+
+export interface JolpikaConstructorProfile {
+  source: string;
+  constructorId: string;
+  name: string;
+  nationality: string;
+  wikiUrl: string | null;
+  currentSeasonYear: number;
+  standing: JolpikaConstructorProfileStanding | null;
+  stats: {
+    championships: number;
+    totalWins: number;
+    totalPodiums: number;
+    totalPoles: number;
+  };
+  drivers: JolpikaConstructorProfileDriver[];
+  currentSeason: JolpikaConstructorProfileRaceRow[];
+  careerHistory: JolpikaConstructorProfileCareerRow[];
+  bioText: string;
+  careerHistoryPagination: JolpikaCareerHistoryPagination | null;
 }
 
 export interface JolpikaCalendarRace {

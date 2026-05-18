@@ -1,0 +1,371 @@
+<div class="fc-root">
+  <app-header></app-header>
+
+  <div class="fc-body">
+    <app-side></app-side>
+
+    <main class="fc-shell dp-shell">
+      <a routerLink="/f1/pilotos" class="dp-back">← Pilotos</a>
+
+      @if (loading()) {
+        <div class="dp-skeleton-hero"></div>
+        <div class="dp-skeleton-grid"></div>
+      } @else if (error(); as err) {
+        <div class="fc-error">{{ err }}</div>
+      } @else if (profile(); as p) {
+        <div
+          class="dp-hero"
+          [style.--dp-team]="teamHue()"
+        >
+          <div class="dp-hero-bar"></div>
+
+          <div class="dp-hero-inner">
+            <div class="dp-photo-col">
+              <div class="dp-photo-wrap">
+                <div class="dp-photo-fallback" [style.--dp-team]="teamHue()">
+                  <span class="dp-photo-initials">{{ p.code }}</span>
+                </div>
+                @if (headshotUrl()) {
+                  <img
+                    class="dp-headshot"
+                    [src]="headshotUrl()"
+                    [alt]="p.givenName + ' ' + p.familyName"
+                    loading="eager"
+                    (error)="imgError($event)"
+                  />
+                }
+              </div>
+            </div>
+
+            <div class="dp-hero-main">
+              <div class="dp-name-row">
+                <div class="dp-num">{{ displayNumber() }}</div>
+                <div class="dp-name-block">
+                  <div class="dp-nat-row">
+                    @if (countryCode2()) {
+                      <img
+                        class="dp-flag"
+                        [src]="flagImgUrl(countryCode2())"
+                        width="22"
+                        height="16"
+                        alt=""
+                        (error)="imgError($event)"
+                      />
+                    }
+                    <span class="dp-nat">{{ nationalityLabel() }}</span>
+                  </div>
+                  <div class="dp-first">{{ p.givenName }}</div>
+                  <div class="dp-last">{{ p.familyName | uppercase }}</div>
+                </div>
+              </div>
+
+              <div class="dp-team-row">
+                <span class="dp-team-bar"></span>
+                <div>
+                  <div class="dp-team-label">EQUIPO</div>
+                  <div class="dp-team-name">{{ openf1()?.teamName ?? standing()?.team ?? '—' }}</div>
+                </div>
+              </div>
+
+              @if (standing(); as st) {
+                <div class="dp-stand-mini">
+                  P{{ st.pos }} en el mundial · {{ st.points | number: '1.0-1' }} pts
+                  @if (st.wins > 0) {
+                    · {{ st.wins }} {{ st.wins === 1 ? 'victoria' : 'victorias' }} (temporada)
+                  }
+                </div>
+              }
+
+              <div class="dp-facts">
+                <div>
+                  <div class="dp-fact-label">Nacimiento</div>
+                  <div class="dp-fact-val">{{ fmtBirth(p.dateOfBirth) }}</div>
+                </div>
+                <div>
+                  <div class="dp-fact-label">Debut</div>
+                  <div class="dp-fact-val">{{ p.debut }}</div>
+                </div>
+                <div>
+                  <div class="dp-fact-label">Código</div>
+                  <div class="dp-fact-val">{{ p.code }}</div>
+                </div>
+              </div>
+            </div>
+
+            @if (p.championships > 0) {
+              <div class="dp-champ-badge">
+                <div class="dp-champ-circle">
+                  <span>{{ p.championships }}×</span>
+                </div>
+                <span class="dp-champ-cap">Títulos mundiales</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <section class="dp-stats">
+          <div class="dp-section-head">
+            <span class="dp-section-bar"></span>
+            <h2>Estadísticas</h2>
+          </div>
+          <div class="dp-stat-grid">
+            <div class="dp-stat-card dp-stat-big">
+              <div class="dp-stat-label">Campeonatos</div>
+              <div class="dp-stat-val" [class.dp-accent]="p.championships > 0">{{ p.championships }}</div>
+              <div class="dp-stat-sub">Títulos mundiales</div>
+            </div>
+            <div class="dp-stat-card">
+              <div class="dp-stat-label">Victorias</div>
+              <div class="dp-stat-val" [style.color]="teamHue()">{{ p.stats.wins }}</div>
+              <div class="dp-stat-sub">{{ p.stats.winsCurrentSeason }} en {{ p.currentSeasonYear }}</div>
+            </div>
+            <div class="dp-stat-card">
+              <div class="dp-stat-label">Podios</div>
+              <div class="dp-stat-val">{{ p.stats.podiums }}</div>
+              <div class="dp-stat-sub">Top 3 total</div>
+            </div>
+            <div class="dp-stat-card">
+              <div class="dp-stat-label">Poles</div>
+              <div class="dp-stat-val dp-pole">{{ p.stats.poles }}</div>
+              <div class="dp-stat-sub">Salidas desde P1</div>
+            </div>
+            <div class="dp-stat-card">
+              <div class="dp-stat-label">Vueltas rápidas</div>
+              <div class="dp-stat-val">{{ p.stats.fastestLaps }}</div>
+              <div class="dp-stat-sub">Mejor vuelta en carrera</div>
+            </div>
+            <div class="dp-stat-card">
+              <div class="dp-stat-label">Carreras</div>
+              <div class="dp-stat-val">{{ p.stats.races }}</div>
+              <div class="dp-stat-sub">Grandes premios</div>
+            </div>
+            <div class="dp-stat-card">
+              <div class="dp-stat-label">Puntos (carrera)</div>
+              <div class="dp-stat-val" [style.color]="teamHue()">{{ p.stats.points | number: '1.0-1' }}</div>
+              <div class="dp-stat-sub">Suma de puntos por GP</div>
+            </div>
+          </div>
+        </section>
+
+        <div class="dp-two-col">
+          <section class="dp-bio">
+            <div class="dp-section-head dp-section-head-sm">
+              <span class="dp-section-bar" [style.background]="teamHue()"></span>
+              <h2>Biografía</h2>
+            </div>
+            <p class="dp-bio-text">{{ bioText() }}</p>
+          </section>
+
+          <section class="dp-season">
+            <div class="dp-season-card">
+              <div class="dp-season-head">
+                <div class="dp-season-title">
+                  <span class="dp-section-bar"></span>
+                  <h2>Temporada {{ p.currentSeasonYear }}</h2>
+                  <span class="dp-muted">· {{ p.currentSeason.length }} carreras</span>
+                </div>
+                @if (p.currentSeason.length) {
+                  @let sum = seasonSummary(p.currentSeason);
+                  <div class="dp-season-kpis">
+                    <div>
+                      <div class="dp-kpi-val" [style.color]="teamHue()">{{ sum.wins }}</div>
+                      <div class="dp-kpi-lab">VICTORIAS</div>
+                    </div>
+                    <div>
+                      <div class="dp-kpi-val" [style.color]="teamHue()">{{ sum.podiums }}</div>
+                      <div class="dp-kpi-lab">PODIOS</div>
+                    </div>
+                    <div>
+                      <div class="dp-kpi-val" [style.color]="teamHue()">{{ sum.pts }}</div>
+                      <div class="dp-kpi-lab">PUNTOS</div>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              @if (p.currentSeason.length) {
+                <div class="dp-pts-bars">
+                  @for (r of p.currentSeason; track r.round) {
+                    <div class="dp-pts-cell">
+                      <div
+                        class="dp-pts-bar"
+                        [style.height.px]="(r.pts / 26) * 36 + 4"
+                        [style.background]="r.pos === 1 ? teamHue() : teamHue() + '55'"
+                      ></div>
+                      <span class="dp-pts-rnd">R{{ r.round }}</span>
+                    </div>
+                  }
+                </div>
+
+                <table class="dp-table">
+                  <thead>
+                    <tr>
+                      <th>RND</th>
+                      <th>GP</th>
+                      <th>GRID</th>
+                      <th>POS</th>
+                      <th class="right">PTS</th>
+                      <th class="right">TIEMPO</th>
+                      <th class="center">FL</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (r of p.currentSeason; track r.round; let idx = $index) {
+                      <tr [class.alt]="idx % 2 === 1">
+                        <td class="muted">R{{ r.round }}</td>
+                        <td>
+                          <span class="dp-gp-bar" [style.background]="rowTeamColor(r.teamName)"></span>
+                          {{ r.gp }}
+                        </td>
+                        <td class="mono">P{{ r.grid }}</td>
+                        <td>
+                          @if (r.pos === 1) {
+                            <span class="dp-badge dp-badge-gold">1</span>
+                          } @else if (r.pos === 2) {
+                            <span class="dp-badge dp-badge-silver">2</span>
+                          } @else if (r.pos === 3) {
+                            <span class="dp-badge dp-badge-bronze">3</span>
+                          } @else {
+                            <span class="dp-pos-num">{{ r.pos }}</span>
+                          }
+                        </td>
+                        <td class="right">
+                          <strong [style.color]="r.pts >= 25 ? teamHue() : null">{{ r.pts }}</strong>
+                          <span class="dp-muted2">pts</span>
+                        </td>
+                        <td class="right mono sm">{{ r.gap }}</td>
+                        <td class="center">
+                          @if (r.fl) {
+                            <span class="dp-fl">FL</span>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              } @else {
+                <p class="dp-empty">Aún no hay resultados de carrera publicados para esta temporada.</p>
+              }
+            </div>
+          </section>
+        </div>
+
+        @if (p.careerHistory.length || (p.careerHistoryPagination && p.careerHistoryPagination.totalYears > 0)) {
+        <section class="dp-career">
+          <div class="dp-season-card">
+            <div class="dp-season-head">
+              <div class="dp-season-title">
+                <span class="dp-section-bar" [style.background]="teamHue()"></span>
+                <h2>Historial de carrera</h2>
+                <span class="dp-muted"
+                  >· {{ careerSeasonCount(p) }} temporadas
+                  @if (p.careerHistoryPagination; as pag) {
+                    <span> · pág. {{ pag.page }}/{{ pag.totalPages }}</span>
+                  }
+                </span>
+              </div>
+              @if (p.careerHistoryPagination; as pag) {
+                <div class="dp-career-pager" role="navigation" aria-label="Paginación del historial">
+                  <button type="button" class="dp-career-pager-btn" [disabled]="pag.page <= 1" (click)="stepCareerPage(-1)">
+                    ← Más recientes
+                  </button>
+                  <button
+                    type="button"
+                    class="dp-career-pager-btn"
+                    [disabled]="pag.page >= pag.totalPages"
+                    (click)="stepCareerPage(1)"
+                  >
+                    Más antiguos →
+                  </button>
+                </div>
+              }
+            </div>
+
+            <div class="dp-career-chart">
+              <div class="dp-chart-label">Puntos por temporada</div>
+              <div class="dp-chart-bars">
+                @for (y of p.careerHistory; track y.year) {
+                  <div class="dp-chart-cell">
+                    @if (y.titleWon) {
+                      <div class="dp-champ-dot"></div>
+                    } @else {
+                      <div class="dp-champ-spacer"></div>
+                    }
+                    <div
+                      class="dp-chart-bar"
+                      [style.height.px]="(y.pts / maxCareerPts()) * 56 + 3"
+                      [style.background]="y.titleWon ? teamHue() : teamHue() + '44'"
+                    ></div>
+                    <span class="dp-chart-yr">{{ y.year.toString().slice(2) }}</span>
+                  </div>
+                }
+              </div>
+              <div class="dp-chart-legend">
+                <span class="dp-champ-dot inline"></span> Campeón del mundo
+              </div>
+            </div>
+
+            <div class="dp-table-wrap">
+              <table class="dp-table dp-table-career">
+                <thead>
+                  <tr>
+                    <th>AÑO</th>
+                    <th>EQUIPO</th>
+                    <th>CARR.</th>
+                    <th>VIC.</th>
+                    <th>POD.</th>
+                    <th>POLES</th>
+                    <th>PUNTOS</th>
+                    <th>POS.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (y of p.careerHistory; track y.year; let i = $index) {
+                    <tr [class.champ-row]="y.titleWon" [class.alt]="i % 2 === 1">
+                      <td>
+                        @if (y.titleWon) {
+                          <span class="dp-champ-dot inline"></span>
+                        }
+                        <strong [style.color]="y.titleWon ? teamHue() : null">{{ y.year }}</strong>
+                      </td>
+                      <td class="team-cell">{{ y.team }}</td>
+                      <td>{{ y.races }}</td>
+                      <td><strong [style.color]="y.wins > 0 ? teamHue() : null">{{ y.wins }}</strong></td>
+                      <td>{{ y.podiums }}</td>
+                      <td [class.dp-pole]="y.poles > 0">{{ y.poles }}</td>
+                      <td><strong>{{ y.pts | number: '1.0-1' }}</strong></td>
+                      <td>
+                        @if (y.pos != null) {
+                          <span
+                            class="dp-pos-pill"
+                            [class.champ]="y.titleWon"
+                            [style.border-color]="y.titleWon ? 'transparent' : teamHue() + '44'"
+                            [style.background]="y.titleWon ? teamHue() : (y.pos != null && y.pos <= 3 ? 'rgba(0,0,0,.04)' : 'transparent')"
+                            [style.color]="y.titleWon ? '#fff' : teamHue()"
+                          >
+                            P{{ y.pos }}
+                          </span>
+                        } @else {
+                          <span class="dp-muted">—</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+        }
+
+        <footer class="fc-footer dp-footer">
+          <span>BeEngine · Ficha piloto · Datos Jolpica / OpenF1</span>
+          <div class="fc-footer-links">
+            <a routerLink="/">← Home</a>
+            <a routerLink="/f1/calendario">Calendario →</a>
+          </div>
+        </footer>
+      }
+    </main>
+  </div>
+</div>

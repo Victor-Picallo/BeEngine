@@ -5,6 +5,8 @@ import {
   calendar,
   lastRace,
   raceResults,
+  driverProfile,
+  constructorProfile,
 } from '../controllers/f1Jolpica.controller.js';
 import {
   sessions,
@@ -22,6 +24,8 @@ import {
 const router = Router();
 
 router.get('/jolpica/driver-standings',    driverStandings);
+router.get('/jolpica/drivers/:driverId/profile', driverProfile);
+router.get('/jolpica/constructors/:constructorId/profile', constructorProfile);
 router.get('/jolpica/constructor-standings', constructorStandings);
 router.get('/jolpica/calendar',            calendar);
 router.get('/jolpica/last-race',           lastRace);

@@ -1,4 +1,5 @@
 import express       from 'express';
+import compression   from 'compression';
 import helmet        from 'helmet';
 import morgan        from 'morgan';
 import corsMiddleware       from './middlewares/cors.middleware.js';
@@ -10,6 +11,7 @@ const app = express();
 
 // ── Security ──────────────────────────────────────────────
 app.use(helmet());
+app.use(compression());
 app.use(corsMiddleware);
 
 // ── Logging ───────────────────────────────────────────────

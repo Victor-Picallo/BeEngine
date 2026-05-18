@@ -4,15 +4,16 @@ import { openF1Client } from '../external/openf1/openf1.client.js';
 
 const normalizeSessions = (raw) =>
   (Array.isArray(raw) ? raw : []).map((s) => ({
-    sessionKey:  s.session_key,
-    meetingKey:  s.meeting_key,
-    sessionName: s.session_name,
-    sessionType: s.session_type,
-    countryName: s.country_name,
-    location:    s.location,
-    dateStart:   s.date_start,
-    dateEnd:     s.date_end,
-    year:        s.year,
+    sessionKey:       s.session_key,
+    meetingKey:       s.meeting_key,
+    sessionName:      s.session_name,
+    sessionType:      s.session_type,
+    countryName:      s.country_name,
+    location:         s.location,
+    circuitShortName: s.circuit_short_name ?? '',
+    dateStart:        s.date_start,
+    dateEnd:          s.date_end,
+    year:             s.year,
   }));
 
 const normalizeDrivers = (raw) =>
@@ -93,18 +94,20 @@ const normalizeStints = (raw) =>
   }));
 
 const normalizeRaceControl = (raw) =>
-  (Array.isArray(raw) ? raw : []).map((r) => ({
-    date:         r.date,
-    category:     r.category ?? '',
-    message:      r.message ?? null,
-    driverNumber: r.driver_number ?? null,
-    flag:         r.flag ?? null,
-    lapNumber:    r.lap_number ?? null,
-    scope:        r.scope ?? null,
-    sector:       r.sector ?? null,
-    sessionKey:   r.session_key,
-    meetingKey:   r.meeting_key,
-  }));
+  (Array.isArray(raw) ? raw : [])
+    .filter((r) => r != null && typeof r === 'object')
+    .map((r) => ({
+      date:         r.date ?? '',
+      category:     r.category ?? '',
+      message:      r.message ?? null,
+      driverNumber: r.driver_number ?? null,
+      flag:         r.flag ?? null,
+      lapNumber:    r.lap_number ?? null,
+      scope:        r.scope ?? null,
+      sector:       r.sector ?? null,
+      sessionKey:   r.session_key,
+      meetingKey:   r.meeting_key,
+    }));
 
 const normalizeTeamRadio = (raw) =>
   (Array.isArray(raw) ? raw : []).map((t) => ({
@@ -174,8 +177,20 @@ export const getStints = async (sessionKey) => {
 };
 
 export const getRaceControl = async (sessionKey) => {
-  const raw = await openF1Client.get(`/race_control?${sessionParam(sessionKey)}`);
-  return normalizeRaceControl(raw);
+  try {
+    const raw = await openF1Client.get(`/race_control?${sessionParam(sessionKey)}`);
+    try {
+      return normalizeRaceControl(raw);
+    } catch (err) {
+      console.warn('[f1OpenF1] race_control normalize failed:', err?.message ?? err);
+      return [];
+    }
+  } catch (err) {
+    // OpenF1 occasionally returns 5xx or transient errors for this endpoint.
+    // Empty feed is preferable to failing the whole /api proxy with HTTP 500.
+    console.warn('[f1OpenF1] race_control failed:', err?.message ?? err);
+    return [];
+  }
 };
 
 export const getTeamRadio = async (sessionKey) => {

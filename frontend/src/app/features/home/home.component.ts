@@ -29,6 +29,7 @@ import {
 } from '../../data/sports.data';
 import { HomeService } from './services/home.service';
 import { F1LiveService } from '../f1-live/f1-live.service';
+import { sessionsForRaceWeekend } from '../f1-live/f1-weekend-sessions';
 import type {
   JolpikaCalendarRace,
   JolpikaConstructorStanding,
@@ -42,6 +43,7 @@ import { RaceCardComponent } from '../../shared/components/race-card/race-card.c
 import { StandingsTableComponent } from '../../shared/components/standings-table/standings-table.component';
 import { NewsListComponent } from '../../shared/components/news-list/news-list.component';
 import { RightRailComponent } from '../../shared/components/right-rail/right-rail.component';
+import { F1_SIDEBAR_SECTION_LABELS } from '../../shared/f1-sidebar-sections';
 
 // ── Team color & nationality lookups ──────────────────────────────────────
 const TEAM_COLORS: Record<string, string> = {
@@ -118,7 +120,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private readonly destroyRef  = inject(DestroyRef);
 
   readonly flagMap         = FLAG_MAP;
-  readonly sidebarSections = ['Noticias', 'Calendario', 'Resultados', 'Estadísticas', 'Vídeos'];
+  readonly sidebarSections = [...F1_SIDEBAR_SECTION_LABELS];
 
   categories        = signal<Category[]>([]);
   activeCat         = signal('f1');
@@ -153,7 +155,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private nextMeetingSessions = computed<OpenF1Session[]>(() => {
     const race = this.nextRaceRaw();
     if (!race) return [];
-    return this.sessionsRaw().filter(s => s.location === race.locality);
+    return sessionsForRaceWeekend(this.sessionsRaw(), race);
   });
 
   // The session currently within its time window (if any).
