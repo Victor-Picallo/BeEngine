@@ -103,6 +103,7 @@
             @for (card of group.races; track card.race.round; let i = $index) {
               <a class="fc-card fc-card-link"
                  [routerLink]="['/f1/calendario', card.slug, card.defaultSession]"
+                 appReturnNav
                  [attr.aria-label]="'Ver ' + card.race.raceName"
                  [class.done]="card.status === 'done'"
                  [class.next]="card.status === 'next'"

@@ -45,6 +45,7 @@ import { RaceCardComponent } from '../../shared/components/race-card/race-card.c
 import { StandingsTableComponent } from '../../shared/components/standings-table/standings-table.component';
 import { NewsListComponent } from '../../shared/components/news-list/news-list.component';
 import { RightRailComponent } from '../../shared/components/right-rail/right-rail.component';
+import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
 import { NewsImageComponent } from '../news/news-image/news-image.component';
 import { F1_SIDEBAR_SECTION_LABELS } from '../../shared/f1-sidebar-sections';
 // ── Team color & nationality lookups ──────────────────────────────────────
@@ -116,6 +117,7 @@ const lastNameInitial = (full: string): string => {
     NewsListComponent,
     RightRailComponent,
     NewsImageComponent,
+    ReturnNavDirective,
   ],
 })
 export class HomeComponent implements OnInit, OnDestroy {

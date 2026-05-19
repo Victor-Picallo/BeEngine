@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
 import { catchError, forkJoin, of } from 'rxjs';
 import { F1LiveService } from '../f1-live/f1-live.service';
 import { findOfficialCircuit, projectCircuitCoords } from './official-circuits';
@@ -115,7 +116,7 @@ const normalize = (value: string) =>
 @Component({
   selector: 'app-f1-calendar-page',
   standalone: true,
-  imports: [RouterLink, AppHeaderComponent, AppSidebarComponent],
+  imports: [RouterLink, ReturnNavDirective, AppHeaderComponent, AppSidebarComponent],
   templateUrl: './f1-calendar.page.html',
   styleUrl: './f1-calendar.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

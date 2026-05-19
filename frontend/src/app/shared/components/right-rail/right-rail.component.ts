@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { ReturnNavDirective } from '../../../core/directives/return-nav.directive';
 import {
   Constructor,
   Driver,
@@ -26,7 +27,7 @@ function truncate(text: string, max = 52): string {
   templateUrl: './right-rail.component.html',
   styleUrl: './right-rail.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NewsImageComponent],
+  imports: [RouterLink, ReturnNavDirective, NewsImageComponent],
 })
 export class RightRailComponent {
   nextRace = input.required<NextRace>();

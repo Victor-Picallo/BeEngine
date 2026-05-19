@@ -106,6 +106,7 @@
                 class="cl-const-row"
                 [class.cl-const-row--top]="c.pos === 1"
                 [routerLink]="c.constructorId ? ['/f1/escuderias', c.constructorId] : null"
+                appReturnNav
                 [style.--cl-team]="c.teamColor"
                 [style.cursor]="c.constructorId ? 'pointer' : 'default'"
               >
@@ -159,6 +160,7 @@
                 [style.--cl-team]="d.teamColor"
                 [style.animation-delay.ms]="rowDelay(i)"
                 [routerLink]="d.driverId ? ['/f1/pilotos', d.driverId] : null"
+                appReturnNav
               >
                 <div class="cl-row-pos">
                   <span class="cl-pos-num" [style.color]="d.pos <= 3 ? posColor(d.pos) : null">{{ d.pos }}</span>

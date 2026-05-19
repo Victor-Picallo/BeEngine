@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
 import { catchError, of, switchMap } from 'rxjs';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
@@ -20,7 +21,7 @@ import { NEWS_PAGE_CATEGORIES, type NewsArticle } from './news.types';
 @Component({
   selector: 'app-f1-news-detail-page',
   standalone: true,
-  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink, NewsImageComponent],
+  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink, ReturnNavDirective, NewsImageComponent],
   templateUrl: './f1-news-detail.page.html',
   styleUrls: ['../calendar/f1-calendar.page.css', './f1-news.page.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -30,6 +31,9 @@ export class F1NewsDetailPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly backNav = inject(BackNavigationService);
   private readonly destroyRef = inject(DestroyRef);
+
+  returnUrl = signal<string | null>(null);
+  backLabel = computed(() => this.backNav.labelFor(this.returnUrl(), '/noticias'));
 
   loading = signal(true);
   error = signal<string | null>(null);
@@ -47,10 +51,11 @@ export class F1NewsDetailPageComponent implements OnInit {
   });
 
   goBack(): void {
-    this.backNav.goBack('/noticias');
+    this.backNav.goBack('/noticias', this.returnUrl());
   }
 
   ngOnInit(): void {
+    this.returnUrl.set(this.backNav.captureReturnUrl());
     this.route.paramMap
       .pipe(
         switchMap(params => {

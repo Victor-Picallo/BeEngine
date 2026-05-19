@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { NgStyle } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { ReturnNavDirective } from '../../../core/directives/return-nav.directive';
 import { NewsItem } from '../../../data/sports.data';
 import { NewsImageComponent } from '../../../features/news/news-image/news-image.component';
 
@@ -9,7 +10,7 @@ import { NewsImageComponent } from '../../../features/news/news-image/news-image
   templateUrl: './news-list.component.html',
   styleUrl: './news-list.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgStyle, RouterLink, NewsImageComponent],
+  imports: [NgStyle, RouterLink, ReturnNavDirective, NewsImageComponent],
 })
 export class NewsListComponent {
   news    = input.required<NewsItem[]>();

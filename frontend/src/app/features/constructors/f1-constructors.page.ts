@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
 import { F1LiveService } from '../f1-live/f1-live.service';
 import type { JolpikaConstructorStanding } from '../f1-live/f1-live.types';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
@@ -63,7 +64,7 @@ function buildCards(rows: JolpikaConstructorStanding[]): ConstructorCard[] {
 @Component({
   selector: 'app-f1-constructors-page',
   standalone: true,
-  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink],
+  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink, ReturnNavDirective],
   templateUrl: './f1-constructors.page.html',
   styleUrls: ['../calendar/f1-calendar.page.css', '../drivers/f1-drivers.page.css', './f1-constructors.page.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

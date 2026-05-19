@@ -5,7 +5,7 @@
     <app-side></app-side>
 
     <main class="fc-shell dp-shell">
-      <button type="button" class="dp-back" (click)="goBack()">← Volver</button>
+      <button type="button" class="dp-back" (click)="goBack()">← {{ backLabel() }}</button>
 
       @if (loading()) {
         <div class="cp-skeleton-hero"></div>
@@ -46,6 +46,7 @@
                     <a
                       class="cp-driver-card"
                       [routerLink]="['/f1/pilotos', d.driverId]"
+                      appReturnNav
                       [attr.aria-label]="'Ficha de ' + d.givenName + ' ' + d.familyName"
                     >
                       <div class="cp-driver-avatar">

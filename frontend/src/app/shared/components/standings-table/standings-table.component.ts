@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { NgStyle } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { ReturnNavDirective } from '../../../core/directives/return-nav.directive';
 import { Driver, FLAG_MAP } from '../../../data/sports.data';
 
 @Component({
@@ -8,7 +9,7 @@ import { Driver, FLAG_MAP } from '../../../data/sports.data';
   templateUrl: './standings-table.component.html',
   styleUrl: './standings-table.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgStyle, RouterLink],
+  imports: [NgStyle, RouterLink, ReturnNavDirective],
 })
 export class StandingsTableComponent {
   standings = input.required<Driver[]>();

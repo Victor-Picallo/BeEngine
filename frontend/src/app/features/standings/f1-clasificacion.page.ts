@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
 import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
@@ -35,7 +36,7 @@ import {
 @Component({
   selector: 'app-f1-clasificacion-page',
   standalone: true,
-  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink],
+  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink, ReturnNavDirective],
   templateUrl: './f1-clasificacion.page.html',
   styleUrls: ['./f1-clasificacion.page.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

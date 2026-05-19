@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
 import { catchError, finalize, of, switchMap, tap } from 'rxjs';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
@@ -19,7 +20,7 @@ import { NEWS_PAGE_CATEGORIES, NEWS_PAGE_SIZE, type NewsArticle } from './news.t
 @Component({
   selector: 'app-f1-news-page',
   standalone: true,
-  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink, NewsImageComponent],
+  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink, ReturnNavDirective, NewsImageComponent],
   templateUrl: './f1-news.page.html',
   styleUrls: ['../calendar/f1-calendar.page.css', './f1-news.page.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

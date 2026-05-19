@@ -125,8 +125,11 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
   readonly SESSION_ORDER = SESSION_ORDER;
   readonly SESSION_CONFIGS = SESSION_CONFIGS;
 
+  returnUrl = signal<string | null>(null);
+  backLabel = computed(() => this.backNav.labelFor(this.returnUrl(), '/f1/calendario'));
+
   goBack(): void {
-    this.backNav.goBack('/f1/calendario');
+    this.backNav.goBack('/f1/calendario', this.returnUrl());
   }
 
   // ── Data signals ──
@@ -478,6 +481,7 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
+    this.returnUrl.set(this.backNav.captureReturnUrl());
     this.loadAll();
     interval(1_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.now.set(new Date()));
     interval(10_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {

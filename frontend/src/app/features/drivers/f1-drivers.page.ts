@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
 import { catchError, of } from 'rxjs';
 import { F1LiveService } from '../f1-live/f1-live.service';
 import type { JolpikaDriverStanding, OpenF1Driver } from '../f1-live/f1-live.types';
@@ -86,7 +87,7 @@ function buildCards(rows: JolpikaDriverStanding[], open: OpenF1Driver[]): Driver
 @Component({
   selector: 'app-f1-drivers-page',
   standalone: true,
-  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink],
+  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink, ReturnNavDirective],
   templateUrl: './f1-drivers.page.html',
   styleUrls: ['../calendar/f1-calendar.page.css', './f1-drivers.page.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

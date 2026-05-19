@@ -79,7 +79,8 @@
         @if (featuredNews(); as featured) {
           <a
             class="hm-featured"
-            [routerLink]="featured.id ? ['/noticias', featured.id] : '/noticias'">
+            [routerLink]="featured.id ? ['/noticias', featured.id] : '/noticias'"
+            appReturnNav>
             <app-news-image
               [cat]="featured.cat ?? 'f1'"
               [src]="featured.imageUrl ?? null"
@@ -148,6 +149,7 @@
                 <a
                   class="hm-constructor-row"
                   [routerLink]="c.constructorId ? ['/f1/escuderias', c.constructorId] : null"
+                  appReturnNav
                   [style.cursor]="c.constructorId ? 'pointer' : 'default'">
                   <span class="hm-constructor-pos">{{ c.pos }}</span>
                   <div style="flex: 1">

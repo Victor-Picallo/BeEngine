@@ -27,7 +27,10 @@ import {
   tap,
   timer,
 } from 'rxjs';
-import { BackNavigationService } from '../../../core/services/back-navigation.service';
+import {
+  BackNavigationService,
+  RETURN_URL_STATE_KEY,
+} from '../../../core/services/back-navigation.service';
 import { F1LiveService } from '../../f1-live/f1-live.service';
 import type {
   JolpikaDriverProfile,
@@ -118,6 +121,9 @@ export class F1DriverProfilePageComponent {
   readonly accent = ACCENT;
   readonly flagImgUrl = driverFlagCdnUrl;
   readonly fmtBirth = formatBirthEs;
+
+  returnUrl = signal<string | null>(null);
+  backLabel = computed(() => this.backNav.labelFor(this.returnUrl(), '/f1/pilotos'));
 
   loading = signal(true);
   careerHistoryLoading = signal(false);
@@ -214,6 +220,8 @@ export class F1DriverProfilePageComponent {
   }
 
   constructor() {
+    this.returnUrl.set(this.backNav.captureReturnUrl());
+
     fromEvent(window, 'popstate')
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
@@ -250,7 +258,7 @@ export class F1DriverProfilePageComponent {
   }
 
   goBack(): void {
-    this.backNav.goBack('/f1/pilotos');
+    this.backNav.goBack('/f1/pilotos', this.returnUrl());
   }
 
   private syncCareerPageUrl(page: number): void {
@@ -259,7 +267,14 @@ export class F1DriverProfilePageComponent {
       queryParams: { careerPage: page > 1 ? page : null },
       queryParamsHandling: 'merge',
     });
-    this.location.replaceState(this.router.serializeUrl(tree));
+    const url = this.router.serializeUrl(tree);
+    const prev = (history.state ?? {}) as Record<string, unknown>;
+    const returnUrl = this.returnUrl() ?? prev[RETURN_URL_STATE_KEY];
+    this.location.replaceState(
+      url,
+      '',
+      returnUrl ? { ...prev, [RETURN_URL_STATE_KEY]: returnUrl } : prev,
+    );
   }
 
   private restoreScroll(): void {

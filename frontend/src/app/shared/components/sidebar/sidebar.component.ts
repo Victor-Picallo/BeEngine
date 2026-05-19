@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { NgStyle } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { ReturnNavDirective } from '../../../core/directives/return-nav.directive';
 import { Category, Favorite } from '../../../data/sports.data';
 import { f1SidebarSectionPath } from '../../f1-sidebar-sections';
 
@@ -9,7 +10,7 @@ import { f1SidebarSectionPath } from '../../f1-sidebar-sections';
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgStyle, RouterLink],
+  imports: [NgStyle, RouterLink, ReturnNavDirective],
 })
 export class SidebarComponent {
   categories = input.required<Category[]>();

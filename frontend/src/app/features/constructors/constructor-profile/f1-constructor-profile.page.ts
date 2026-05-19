@@ -26,7 +26,11 @@ import {
   tap,
   timer,
 } from 'rxjs';
-import { BackNavigationService } from '../../../core/services/back-navigation.service';
+import {
+  BackNavigationService,
+  RETURN_URL_STATE_KEY,
+} from '../../../core/services/back-navigation.service';
+import { ReturnNavDirective } from '../../../core/directives/return-nav.directive';
 import { F1LiveService } from '../../f1-live/f1-live.service';
 import type {
   JolpikaConstructorProfile,
@@ -66,7 +70,7 @@ function matchOpenF1Driver(
 @Component({
   selector: 'app-f1-constructor-profile-page',
   standalone: true,
-  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink, DecimalPipe],
+  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink, ReturnNavDirective, DecimalPipe],
   templateUrl: './f1-constructor-profile.page.html',
   styleUrls: [
     '../../calendar/f1-calendar.page.css',
@@ -85,6 +89,9 @@ export class F1ConstructorProfilePageComponent {
 
   readonly accent = ACCENT;
   readonly flagImgUrl = flagCdnUrl;
+
+  returnUrl = signal<string | null>(null);
+  backLabel = computed(() => this.backNav.labelFor(this.returnUrl(), '/f1/escuderias'));
 
   loading = signal(true);
   careerHistoryLoading = signal(false);
@@ -158,6 +165,8 @@ export class F1ConstructorProfilePageComponent {
   }
 
   constructor() {
+    this.returnUrl.set(this.backNav.captureReturnUrl());
+
     fromEvent(window, 'popstate')
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
@@ -194,7 +203,7 @@ export class F1ConstructorProfilePageComponent {
   }
 
   goBack(): void {
-    this.backNav.goBack('/f1/escuderias');
+    this.backNav.goBack('/f1/escuderias', this.returnUrl());
   }
 
   private syncCareerPageUrl(page: number): void {
@@ -203,7 +212,14 @@ export class F1ConstructorProfilePageComponent {
       queryParams: { careerPage: page > 1 ? page : null },
       queryParamsHandling: 'merge',
     });
-    this.location.replaceState(this.router.serializeUrl(tree));
+    const url = this.router.serializeUrl(tree);
+    const prev = (history.state ?? {}) as Record<string, unknown>;
+    const returnUrl = this.returnUrl() ?? prev[RETURN_URL_STATE_KEY];
+    this.location.replaceState(
+      url,
+      '',
+      returnUrl ? { ...prev, [RETURN_URL_STATE_KEY]: returnUrl } : prev,
+    );
   }
 
   private restoreScroll(): void {

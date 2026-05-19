@@ -15,6 +15,7 @@
     <a
       class="hm-news-row"
       [routerLink]="n.id ? ['/noticias', n.id] : '/noticias'"
+      appReturnNav
       [style.border-bottom]="i < listItems().length - 1 ? '1px solid #f5f5f2' : 'none'">
       <div class="hm-news-thumb">
         <app-news-image

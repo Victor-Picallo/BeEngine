@@ -41,6 +41,7 @@
             <a
               class="nw-card nw-card--hero card-anim"
               [routerLink]="['/noticias', a.id]"
+              appReturnNav
               [style.--nw-accent]="accent()"
             >
               <app-news-image
@@ -80,6 +81,7 @@
             <a
               class="nw-card card-anim"
               [routerLink]="['/noticias', a.id]"
+              appReturnNav
               [style.animation-delay.ms]="cardDelay(i)"
               [style.--nw-accent]="accent()"
             >
