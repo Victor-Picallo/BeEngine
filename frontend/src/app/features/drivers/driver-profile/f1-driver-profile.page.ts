@@ -40,11 +40,13 @@ import type {
 } from '../../f1-live/f1-live.types';
 import { AppHeaderComponent } from '../../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../../shared/components/app-sidebar/app-sidebar.component';
+import { SeriesContextService } from '../../../core/series/series-context.service';
+import { SeriesAccentDirective } from '../../../core/series/series-accent.directive';
 import {
-  ACCENT,
   countryCodesForDriver,
   flagCdnUrl as driverFlagCdnUrl,
   normalize,
+  resolveDriverHeadshotRawUrl,
   resolveDriverHeadshotUrl,
   teamColor,
 } from '../drivers-shared';
@@ -105,9 +107,10 @@ function formatBirthEs(iso: string | null): string {
     RouterLink,
     DecimalPipe,
     UpperCasePipe,
+    SeriesAccentDirective,
   ],
   templateUrl: './f1-driver-profile.page.html',
-  styleUrls: ['../../calendar/f1-calendar.page.css', './f1-driver-profile.page.css'],
+  styleUrls: ['../../calendar/f1-calendar.page.css', './f1-driver-profile.page.css', '../driver-portrait.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class F1DriverProfilePageComponent {
@@ -118,12 +121,15 @@ export class F1DriverProfilePageComponent {
   private readonly backNav = inject(BackNavigationService);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly accent = ACCENT;
+  readonly seriesCtx = inject(SeriesContextService);
+  readonly accent = computed(() => this.seriesCtx.config().accent);
   readonly flagImgUrl = driverFlagCdnUrl;
   readonly fmtBirth = formatBirthEs;
 
   returnUrl = signal<string | null>(null);
-  backLabel = computed(() => this.backNav.labelFor(this.returnUrl(), '/f1/pilotos'));
+  backLabel = computed(() =>
+    this.backNav.labelFor(this.returnUrl(), this.seriesCtx.urlPath('pilotos')),
+  );
 
   loading = signal(true);
   careerHistoryLoading = signal(false);
@@ -150,7 +156,9 @@ export class F1DriverProfilePageComponent {
   headshotUrl = computed(() => {
     const p = this.profile();
     const full = p ? `${p.givenName} ${p.familyName}`.trim() : '';
-    return resolveDriverHeadshotUrl(p?.driverId ?? '', full, this.openf1()?.headshotUrl);
+    return resolveDriverHeadshotUrl(p?.driverId ?? '', full, this.openf1()?.headshotUrl, {
+      size: this.seriesCtx.id() === 'f2' ? 'large' : 'card',
+    });
   });
 
   displayNumber = computed(() => {
@@ -258,7 +266,7 @@ export class F1DriverProfilePageComponent {
   }
 
   goBack(): void {
-    this.backNav.goBack('/f1/pilotos', this.returnUrl());
+    this.backNav.goBack(this.seriesCtx.path('pilotos'), this.returnUrl());
   }
 
   private syncCareerPageUrl(page: number): void {
@@ -426,7 +434,22 @@ export class F1DriverProfilePageComponent {
 
   imgError(ev: Event): void {
     const el = ev.target;
-    if (el instanceof HTMLImageElement) el.style.display = 'none';
+    if (!(el instanceof HTMLImageElement)) return;
+    if (this.seriesCtx.id() === 'f2' && !el.dataset['f2Retry'] && el.classList.contains('dp-headshot')) {
+      const raw = resolveDriverHeadshotRawUrl(this.profile()?.driverId ?? '');
+      if (raw) {
+        el.dataset['f2Retry'] = '1';
+        el.src = raw;
+        return;
+      }
+    }
+    el.style.display = 'none';
+  }
+
+  photoLoaded(ev: Event): void {
+    const el = ev.target;
+    if (!(el instanceof HTMLImageElement)) return;
+    el.closest('.dp-photo-wrap')?.classList.add('dp-photo-loaded');
   }
 
   rowTeamColor(teamName: string): string {

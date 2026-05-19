@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../../core/directives/return-nav.directive';
+import { SeriesContextService } from '../../../core/series/series-context.service';
 import {
   Constructor,
   Driver,
@@ -30,6 +31,8 @@ function truncate(text: string, max = 52): string {
   imports: [RouterLink, ReturnNavDirective, NewsImageComponent],
 })
 export class RightRailComponent {
+  private readonly series = inject(SeriesContextService);
+
   nextRace = input.required<NextRace>();
   standings = input.required<Driver[]>();
   constructors = input<Constructor[]>([]);
@@ -44,20 +47,29 @@ export class RightRailComponent {
     const leader = this.standings()[0];
     const topTeam = this.constructors()[0];
     const latest = this.news()[0];
+    const p = this.series.path.bind(this.series);
 
     const links: QuickLink[] = [];
 
     if (lr.slug && lr.name !== '—') {
-      links.push({
-        label: 'Última carrera',
-        desc: lr.name,
-        route: ['/f1/calendario', lr.slug, 'race'],
-      });
+      if (this.series.config().features.raceSessionPage) {
+        links.push({
+          label: 'Última carrera',
+          desc: lr.name,
+          route: p('calendario', lr.slug, 'race'),
+        });
+      } else {
+        links.push({
+          label: 'Última carrera',
+          desc: lr.name,
+          route: p('clasificacion'),
+        });
+      }
     } else {
       links.push({
         label: 'Última carrera',
-        desc: 'Calendario F1',
-        route: ['/f1/calendario'],
+        desc: 'Calendario',
+        route: p('calendario'),
       });
     }
 
@@ -65,19 +77,19 @@ export class RightRailComponent {
       links.push({
         label: 'Piloto líder',
         desc: `${leader.driver} · ${leader.points} pts`,
-        route: ['/f1/pilotos', leader.driverId],
+        route: p('pilotos', leader.driverId),
       });
     } else if (leader) {
       links.push({
         label: 'Piloto líder',
         desc: `${leader.driver} · ${leader.points} pts`,
-        route: ['/f1/pilotos'],
+        route: p('pilotos'),
       });
     } else {
       links.push({
         label: 'Piloto líder',
         desc: 'Clasificación pilotos',
-        route: ['/f1/clasificacion'],
+        route: p('clasificacion'),
       });
     }
 
@@ -85,19 +97,19 @@ export class RightRailComponent {
       links.push({
         label: 'Equipo líder',
         desc: `${topTeam.team} · ${topTeam.points} pts`,
-        route: ['/f1/escuderias', topTeam.constructorId],
+        route: p('escuderias', topTeam.constructorId),
       });
     } else if (topTeam) {
       links.push({
         label: 'Equipo líder',
         desc: `${topTeam.team} · ${topTeam.points} pts`,
-        route: ['/f1/escuderias'],
+        route: p('escuderias'),
       });
     } else {
       links.push({
         label: 'Equipo líder',
         desc: 'Clasificación constructores',
-        route: ['/f1/clasificacion'],
+        route: p('clasificacion'),
       });
     }
 

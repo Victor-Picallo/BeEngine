@@ -34,7 +34,7 @@
   </table>
   @if (showFooter()) {
     <div class="hm-card-foot">
-      <a routerLink="/f1/pilotos">Ver todos los pilotos →</a>
+      <a [routerLink]="seriesCtx.urlPath('pilotos')">Ver todos los pilotos →</a>
     </div>
   }
 </div>

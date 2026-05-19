@@ -1,5 +1,4 @@
 :host {
-  --accent: #FFD100;
   --bg: #f2f1ee;
   --card-bg: #fff;
   --border: #e8e7e2;
@@ -60,7 +59,7 @@
 }
 
 .fc-brand-title span {
-  color: #000;
+  color: var(--accent-fg, #000);
 }
 
 .fc-cats {
@@ -323,7 +322,7 @@
 
 .fc-progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), rgba(255, 209, 0, .73));
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 73%, transparent));
   border-radius: 3px;
   transition: width 0.6s ease;
 }
@@ -454,7 +453,7 @@
 
 .fc-card.next {
   border-color: var(--accent);
-  box-shadow: 0 4px 24px rgba(255, 209, 0, .15), 0 1px 4px rgba(0, 0, 0, .06);
+  box-shadow: 0 4px 24px color-mix(in srgb, var(--accent) 15%, transparent), 0 1px 4px rgba(0, 0, 0, .06);
 }
 
 /* ── Card · circuit zone ── */
@@ -484,7 +483,7 @@
 .fc-glow {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 60% 40%, rgba(255, 209, 0, .15) 0%, transparent 70%);
+  background: radial-gradient(ellipse at 60% 40%, color-mix(in srgb, var(--accent) 15%, transparent) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -592,7 +591,7 @@
 
 .fc-card.next .fc-round {
   background: var(--accent);
-  color: #000;
+  color: var(--accent-fg, #000);
 }
 
 .fc-date {
@@ -616,7 +615,7 @@
 
 .fc-card.next .fc-date {
   background: rgba(0, 0, 0, .6);
-  border-color: rgba(255, 209, 0, .4);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
   color: var(--accent);
 }
 
@@ -654,7 +653,7 @@
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 800;
   font-size: 10px;
-  color: #000;
+  color: var(--accent-fg, #000);
   letter-spacing: 1.5px;
 }
 

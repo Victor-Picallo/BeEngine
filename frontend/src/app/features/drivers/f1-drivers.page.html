@@ -9,13 +9,14 @@
         <div class="fc-hero-left">
           <div class="fc-hero-title-row">
             <span class="fc-hero-bar"></span>
-            <h1>Pilotos <span class="fc-hero-faded">F1 2026</span></h1>
+            <h1>Pilotos <span class="fc-hero-faded">{{ seriesCtx.config().short }} 2026</span></h1>
           </div>
           <div class="fc-hero-sub">
-            Parrilla 2026 en BeEngine · Puntos desde caché
-            <a href="https://jolpi.ca" target="_blank" rel="noopener noreferrer" class="fd-openf1-link">Jolpica</a>
-            · Fotos vía
-            <a href="https://openf1.org" target="_blank" rel="noopener noreferrer" class="fd-openf1-link">OpenF1</a>
+            Parrilla 2026 en BeEngine · Datos BeEngine
+            @if (seriesCtx.config().features.openF1) {
+              · Fotos vía
+              <a href="https://openf1.org" target="_blank" rel="noopener noreferrer" class="fd-openf1-link">OpenF1</a>
+            }
           </div>
         </div>
       </div>
@@ -28,13 +29,15 @@
         </section>
       } @else if (error(); as err) {
         <div class="fc-error">{{ err }}</div>
+      } @else if (!cards().length) {
+        <div class="fc-error">No hay pilotos en la parrilla para esta serie.</div>
       } @else {
         <section class="fc-grid">
           @for (card of cards(); track card.driver; let i = $index) {
             @if (cardHasProfile(card)) {
               <a
                 class="fd-card-link-wrap"
-                [routerLink]="['/f1/pilotos', card.driverId]"
+                [routerLink]="seriesCtx.path('pilotos', card.driverId)"
                 appReturnNav
                 [attr.aria-label]="'Ficha de ' + card.driver"
               >
@@ -53,7 +56,10 @@
                       <div class="fc-dim"></div>
                     }
 
-                    <div class="fd-photo-wrap">
+                    <div
+                      class="fd-photo-wrap"
+                      [class.fd-photo-wrap--f2]="seriesCtx.id() === 'f2'"
+                    >
                       <div
                         class="fd-photo-fallback"
                         [style.--fd-team]="card.teamColor"
@@ -64,10 +70,12 @@
                       @if (card.headshotUrl) {
                         <img
                           class="fd-headshot"
+                          [class.fd-headshot--f2]="seriesCtx.id() === 'f2'"
                           [src]="card.headshotUrl"
                           [alt]="card.driver"
-                          loading="lazy"
-                          (error)="imgError($event)"
+                          [loading]="seriesCtx.id() === 'f2' || card.pos <= 6 ? 'eager' : 'lazy'"
+                          (load)="photoLoaded($event)"
+                          (error)="imgError($event, card)"
                         />
                       }
                     </div>
@@ -127,7 +135,10 @@
                     <div class="fc-dim"></div>
                   }
 
-                  <div class="fd-photo-wrap">
+                  <div
+                    class="fd-photo-wrap"
+                    [class.fd-photo-wrap--f2]="seriesCtx.id() === 'f2'"
+                  >
                     <div
                       class="fd-photo-fallback"
                       [style.--fd-team]="card.teamColor"
@@ -138,10 +149,12 @@
                     @if (card.headshotUrl) {
                       <img
                         class="fd-headshot"
+                        [class.fd-headshot--f2]="seriesCtx.id() === 'f2'"
                         [src]="card.headshotUrl"
                         [alt]="card.driver"
-                        loading="lazy"
-                        (error)="imgError($event)"
+                        [loading]="seriesCtx.id() === 'f2' || card.pos <= 6 ? 'eager' : 'lazy'"
+                        (load)="photoLoaded($event)"
+                        (error)="imgError($event, card)"
                       />
                     }
                   </div>
@@ -189,11 +202,11 @@
         </section>
 
         <footer class="fc-footer">
-          <span>BeEngine · Pilotos F1 2026</span>
+          <span>BeEngine · Pilotos {{ seriesCtx.config().short }} 2026</span>
           <div class="fc-footer-links">
-            <a routerLink="/">← Home</a>
-            <a routerLink="/f1/escuderias">Escuderías →</a>
-            <a routerLink="/f1/calendario">Calendario →</a>
+            <a [routerLink]="seriesCtx.homePath()">← Home</a>
+            <a [routerLink]="seriesCtx.urlPath('escuderias')">Escuderías →</a>
+            <a [routerLink]="seriesCtx.urlPath('calendario')">Calendario →</a>
           </div>
         </footer>
       }

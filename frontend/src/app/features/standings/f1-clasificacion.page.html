@@ -20,7 +20,7 @@
               <h1 class="cl-hero-title">
                 Clasificación<br />
                 <span class="cl-hero-title-accent">{{ view() === 'constructors' ? 'Constructores' : 'Pilotos' }}</span>
-                <span class="cl-hero-title-year">F1 2026</span>
+                <span class="cl-hero-title-year">{{ seriesCtx.config().short }} 2026</span>
               </h1>
             </div>
 
@@ -105,7 +105,7 @@
               <a
                 class="cl-const-row"
                 [class.cl-const-row--top]="c.pos === 1"
-                [routerLink]="c.constructorId ? ['/f1/escuderias', c.constructorId] : null"
+                [routerLink]="c.constructorId ? seriesCtx.path('escuderias', c.constructorId) : null"
                 appReturnNav
                 [style.--cl-team]="c.teamColor"
                 [style.cursor]="c.constructorId ? 'pointer' : 'default'"
@@ -159,7 +159,7 @@
                 [class.cl-row--top3]="d.pos <= 3"
                 [style.--cl-team]="d.teamColor"
                 [style.animation-delay.ms]="rowDelay(i)"
-                [routerLink]="d.driverId ? ['/f1/pilotos', d.driverId] : null"
+                [routerLink]="d.driverId ? seriesCtx.path('pilotos', d.driverId) : null"
                 appReturnNav
               >
                 <div class="cl-row-pos">
@@ -174,17 +174,23 @@
                 </div>
 
                 <div class="cl-row-photo">
-                  <div class="cl-photo-wrap" [style.--cl-team]="d.teamColor">
+                  <div
+                    class="cl-photo-wrap"
+                    [class.cl-photo-wrap--f2]="seriesCtx.id() === 'f2'"
+                    [style.--cl-team]="d.teamColor"
+                  >
                     <div class="cl-photo-fallback" [attr.aria-hidden]="d.headshotUrl ? 'true' : null">
                       <span>{{ initials(d.name) }}</span>
                     </div>
                     @if (d.headshotUrl) {
                       <img
                         class="cl-photo-img"
+                        [class.cl-photo-img--f2]="seriesCtx.id() === 'f2'"
                         [src]="d.headshotUrl"
                         [alt]="d.name"
                         loading="lazy"
-                        (error)="imgError($event)"
+                        (load)="photoLoaded($event)"
+                        (error)="imgError($event, d)"
                       />
                     }
                   </div>
@@ -284,12 +290,12 @@
         }
 
         <footer class="cl-foot">
-          <span>BeEngine · Clasificación oficial F1 2026 · Datos Jolpica / OpenF1</span>
+          <span>BeEngine · Clasificación {{ seriesCtx.config().short }} 2026</span>
           <nav class="cl-foot-nav">
             <a routerLink="/">← Home</a>
-            <a routerLink="/f1/calendario">Calendario</a>
-            <a routerLink="/f1/pilotos">Pilotos</a>
-            <a routerLink="/f1/escuderias">Equipos</a>
+            <a [routerLink]="seriesCtx.urlPath('calendario')">Calendario</a>
+            <a [routerLink]="seriesCtx.urlPath('pilotos')">Pilotos</a>
+            <a [routerLink]="seriesCtx.urlPath('escuderias')">Equipos</a>
           </nav>
         </footer>
       }

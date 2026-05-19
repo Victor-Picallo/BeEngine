@@ -208,6 +208,7 @@ export function buildDriverRows(
   standings: JolpikaDriverStanding[],
   openf1: OpenF1Driver[],
   races: JolpikaRaceResult[],
+  options?: { headshotSize?: 'card' | 'large' },
 ): ClDriverRow[] {
   if (!standings.length) return [];
 
@@ -250,7 +251,9 @@ export function buildDriverRows(
       poles: raceAgg?.poles ?? 0,
       gap: gapPts <= 0 ? '—' : `-${Math.round(gapPts)}`,
       change: prevRanks ? prevRank - curRank : 0,
-      headshotUrl: resolveDriverHeadshotUrl(id, s.driver, o?.headshotUrl),
+      headshotUrl: resolveDriverHeadshotUrl(id, s.driver, o?.headshotUrl, {
+        size: options?.headshotSize ?? 'card',
+      }),
       cumPts: cum.length ? cum : [s.points],
       barPct: leaderPts > 0 ? (s.points / leaderPts) * 100 : 0,
     };

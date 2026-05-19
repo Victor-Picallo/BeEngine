@@ -9,7 +9,7 @@
         <div class="fc-hero-left">
           <div class="fc-hero-title-row">
             <span class="fc-hero-bar"></span>
-            <h1>Escuderías <span class="fc-hero-faded">F1 2026</span></h1>
+            <h1>Escuderías <span class="fc-hero-faded">{{ seriesCtx.config().short }} 2026</span></h1>
           </div>
           <div class="fc-hero-sub">
             Parrilla 2026 en BeEngine · Puntos desde caché
@@ -35,7 +35,7 @@
             @if (cardHasDetail(card)) {
               <a
                 class="fd-card-link-wrap"
-                [routerLink]="['/f1/escuderias', card.constructorId]"
+                [routerLink]="seriesCtx.path('escuderias', card.constructorId)"
                 appReturnNav
                 [attr.aria-label]="'Ficha de ' + card.team"
               >
@@ -190,11 +190,11 @@
         </section>
 
         <footer class="fc-footer">
-          <span>BeEngine · Escuderías F1 2026</span>
+          <span>BeEngine · Escuderías {{ seriesCtx.config().short }} 2026</span>
           <div class="fc-footer-links">
             <a routerLink="/">← Home</a>
-            <a routerLink="/f1/pilotos">Pilotos →</a>
-            <a routerLink="/f1/calendario">Calendario →</a>
+            <a [routerLink]="seriesCtx.urlPath('pilotos')">Pilotos →</a>
+            <a [routerLink]="seriesCtx.urlPath('calendario')">Calendario →</a>
           </div>
         </footer>
       }

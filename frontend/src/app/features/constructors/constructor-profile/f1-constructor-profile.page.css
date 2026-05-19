@@ -98,7 +98,7 @@
 }
 
 .cp-wiki {
-  color: var(--accent, #ffd100);
+  color: var(--accent);
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -232,7 +232,7 @@
   height: 28px;
   padding: 0 6px;
   border-radius: 999px;
-  background: var(--accent, #ffd100);
+  background: var(--accent);
   color: #000;
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 900;
@@ -250,7 +250,7 @@
   width: 3px;
   height: 18px;
   border-radius: 1px;
-  background: var(--accent, #ffd100);
+  background: var(--accent);
 }
 
 .cp-section-head h2 {
@@ -304,7 +304,7 @@
 }
 
 .cp-accent {
-  color: var(--accent, #ffd100);
+  color: var(--accent);
 }
 
 .cp-bio-text {

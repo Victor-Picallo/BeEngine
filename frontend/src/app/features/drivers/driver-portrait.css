@@ -1,0 +1,46 @@
+/* F2: retrato oficial (JPG) — encuadre tipo busto F1, fondo estudio integrado. */
+
+.fd-photo-wrap--f2 {
+  /* Tonos del backdrop azul de los retratos oficiales F2 */
+  background: linear-gradient(180deg, #1a2744 0%, #0a0a0a 72%);
+}
+
+.fd-photo-wrap--f2.fd-photo-loaded .fd-photo-fallback {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fd-headshot--f2 {
+  object-fit: contain;
+  object-position: center bottom;
+  transform: scale(1.02);
+  transform-origin: center bottom;
+}
+
+.cl-photo-wrap--f2 {
+  background: linear-gradient(180deg, #1a2744 0%, #0a0a0a 72%);
+}
+
+.cl-photo-wrap--f2.cl-photo-loaded .cl-photo-fallback {
+  opacity: 0;
+}
+
+.cl-photo-img--f2 {
+  object-fit: contain;
+  object-position: center bottom;
+}
+
+.dp-photo-wrap--f2 .dp-photo-fallback {
+  background: linear-gradient(180deg, #1a2744 0%, #111 100%);
+}
+
+.dp-photo-wrap--f2.dp-photo-loaded .dp-photo-fallback {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dp-headshot--f2 {
+  object-fit: contain;
+  object-position: bottom center;
+  max-height: 92%;
+}

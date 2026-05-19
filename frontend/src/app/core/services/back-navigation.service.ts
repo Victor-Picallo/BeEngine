@@ -59,9 +59,11 @@ export class BackNavigationService {
   labelFor(returnUrl: string | null, fallbackPath: string): string {
     const path = (returnUrl ?? fallbackPath).split('?')[0];
     if (path === '/' || path === '') return 'Inicio';
-    if (path.startsWith('/f1/clasificacion')) return 'Clasificación';
-    if (path === '/f1/pilotos') return 'Pilotos';
-    if (path === '/f1/escuderias') return 'Escuderías';
+    if (path.startsWith('/f1/clasificacion') || path.startsWith('/f2/clasificacion') || path.startsWith('/f3/clasificacion')) return 'Clasificación';
+    if (path === '/f1/pilotos' || path === '/f2/pilotos' || path === '/f3/pilotos') return 'Pilotos';
+    if (path === '/f1/escuderias' || path === '/f2/escuderias' || path === '/f3/escuderias') return 'Escuderías';
+    if (path === '/f2' || path === '/f3') return 'Inicio';
+    if (path.startsWith('/f2/calendario') || path.startsWith('/f3/calendario')) return 'Calendario';
     if (path.startsWith('/f1/calendario')) return 'Calendario';
     if (path.startsWith('/noticias')) return 'Noticias';
     if (path.startsWith('/f1/live')) return 'En vivo';
@@ -76,7 +78,7 @@ export class BackNavigationService {
    * Vuelve al origen si se pasó `returnUrl`; si no, al historial del navegador;
    * si tampoco hay, a `fallback`.
    */
-  goBack(fallback: string | readonly string[], returnUrl?: string | null): void {
+  goBack(fallback: string | readonly (string | number)[], returnUrl?: string | null): void {
     if (returnUrl) {
       void this.router.navigateByUrl(returnUrl);
       return;

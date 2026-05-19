@@ -1,7 +1,19 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  signal,
+} from '@angular/core';
+import { catchError, map, of, tap } from 'rxjs';
+import { bindSeriesLoad } from '../../core/series/bind-series-load';
+import type { SeriesId } from '../../core/series/series.types';
+import { SeriesContextService } from '../../core/series/series-context.service';
+import { SeriesAccentDirective } from '../../core/series/series-accent.directive';
 import { RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
-import { catchError, forkJoin, of } from 'rxjs';
+import { forkJoin } from 'rxjs';
 import { F1LiveService } from '../f1-live/f1-live.service';
 import { findOfficialCircuit, projectCircuitCoords } from './official-circuits';
 import { defaultSessionFor, slugifyRace } from '../race/race-slug';
@@ -116,13 +128,15 @@ const normalize = (value: string) =>
 @Component({
   selector: 'app-f1-calendar-page',
   standalone: true,
-  imports: [RouterLink, ReturnNavDirective, AppHeaderComponent, AppSidebarComponent],
+  imports: [RouterLink, ReturnNavDirective, AppHeaderComponent, AppSidebarComponent, SeriesAccentDirective],
   templateUrl: './f1-calendar.page.html',
   styleUrl: './f1-calendar.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class F1CalendarPageComponent implements OnInit {
+export class F1CalendarPageComponent {
   private readonly service = inject(F1LiveService);
+  private readonly destroyRef = inject(DestroyRef);
+  readonly seriesCtx = inject(SeriesContextService);
 
   loading = signal(true);
   error = signal<string | null>(null);
@@ -209,18 +223,29 @@ export class F1CalendarPageComponent implements OnInit {
     this.allCards().map(c => ({ round: c.race.round, status: c.status, name: c.race.raceName }))
   );
 
-  ngOnInit(): void {
-    this.service.getCalendar().subscribe({
-      next: calendar => {
+  constructor() {
+    bindSeriesLoad((seriesId) => this.fetchCalendar(seriesId), this.destroyRef);
+  }
+
+  private fetchCalendar(_seriesId: SeriesId) {
+    this.loading.set(true);
+    this.error.set(null);
+    this.calendar.set([]);
+    this.resultsByRound.set({});
+
+    return this.service.getCalendar().pipe(
+      tap((calendar) => {
         this.calendar.set(calendar);
         this.loading.set(false);
         this.loadCompletedResults(calendar);
-      },
-      error: () => {
+      }),
+      catchError(() => {
         this.error.set('No se pudo cargar el calendario oficial.');
         this.loading.set(false);
-      },
-    });
+        return of(null);
+      }),
+      map(() => undefined),
+    );
   }
 
   setFilter(filter: CalendarFilter): void {
@@ -248,6 +273,13 @@ export class F1CalendarPageComponent implements OnInit {
     if (pos === 1) return '#C8963E';
     if (pos === 2) return '#7A8A96';
     return '#8B5A2B';
+  }
+
+  raceCardLink(card: CalendarCard): (string | number)[] {
+    if (!this.seriesCtx.config().features.raceSessionPage) {
+      return this.seriesCtx.path('clasificacion');
+    }
+    return this.seriesCtx.path('calendario', card.slug, card.defaultSession);
   }
 
   cardDelay(index: number): number {

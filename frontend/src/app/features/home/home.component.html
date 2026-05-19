@@ -3,7 +3,11 @@
 } @else if (error()) {
   <p class="hm-error">{{ error() }}</p>
 } @else {
-  <div [style.--hm-accent]="accent()">
+  <div
+    [style.--hm-accent]="accent()"
+    [style.--accent]="accent()"
+    [style.--cl-accent]="accent()"
+    [style.--accent-fg]="accentFg()">
     <app-topbar
       [categories]="categories()"
       [activeCat]="activeCat()"
@@ -17,15 +21,17 @@
         [ngStyle]="{'background': 'linear-gradient(90deg, ' + accent() + 'f0, ' + accent() + 'a0)'}">
         <div style="display: flex; align-items: center; gap: 8px">
           <div class="pulse-dot"></div>
-          <span class="hm-live-text" [style.color]="accent() === '#FFD100' ? '#000' : '#fff'">
+          <span class="hm-live-text" [style.color]="accentFg()">
             EN VIVO · {{ live.sessionLabel }} — {{ live.raceName }}
           </span>
-          <span [style.color]="accent() === '#FFD100' ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.8)'" style="font-size: 12px">
+          <span [style.color]="accentFg() === '#000' ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.8)'" style="font-size: 12px">
             {{ live.circuitName }}
           </span>
         </div>
         <div style="display: flex; gap: 8px; align-items: center">
-          <a routerLink="/f1/live" class="hm-live-link">Ver Live →</a>
+          @if (seriesCtx.config().features.livePage) {
+            <a routerLink="/f1/live" class="hm-live-link">Ver Live →</a>
+          }
           <button type="button" class="hm-live-dismiss" (click)="dismissBanner()">✕</button>
         </div>
       </div>
@@ -73,7 +79,7 @@
               }
             </div>
           </div>
-          <a routerLink="/f1/calendario" class="hm-season-calendar-btn">Ver calendario</a>
+          <a [routerLink]="seriesUrl('calendario')" class="hm-season-calendar-btn">Ver calendario</a>
         </section>
 
         @if (featuredNews(); as featured) {
@@ -93,7 +99,7 @@
                 <span
                   class="hm-featured-tag"
                   [style.background]="accent()"
-                  [style.color]="accent() === '#FFD100' ? '#000' : '#fff'">{{ featured.tag }}</span>
+                  [style.color]="accentFg()">{{ featured.tag }}</span>
                 @if (featured.hot) {
                   <span class="hm-featured-hot">DESTACADO</span>
                 }
@@ -130,11 +136,11 @@
                       <div class="hm-podium-bar" [style.background]="p.teamColor"></div>
                       <div class="hm-podium-driver">{{ p.driver }}</div>
                       <div class="hm-podium-team">{{ p.team }}</div>
-                      <div class="hm-podium-time" [style.color]="accent() === '#FFD100' ? '#888' : accent()">{{ p.time }}</div>
+                      <div class="hm-podium-time" [style.color]="accentPodium()">{{ p.time }}</div>
                     </div>
                   }
                 </div>
-                <a routerLink="/f1/calendario" class="hm-cta-btn">Ver resultados completos →</a>
+                <a [routerLink]="seriesUrl('calendario')" class="hm-cta-btn">Ver resultados completos →</a>
               }
             </div>
 
@@ -148,7 +154,7 @@
               @for (c of data().constructors; track c.constructorId ?? c.team) {
                 <a
                   class="hm-constructor-row"
-                  [routerLink]="c.constructorId ? ['/f1/escuderias', c.constructorId] : null"
+                  [routerLink]="c.constructorId ? seriesLink('escuderias', c.constructorId) : null"
                   appReturnNav
                   [style.cursor]="c.constructorId ? 'pointer' : 'default'">
                   <span class="hm-constructor-pos">{{ c.pos }}</span>
@@ -167,7 +173,7 @@
                 </a>
               }
               <div class="hm-constructors-foot">
-                <a routerLink="/f1/escuderias">Ver todas las escuderías →</a>
+                <a [routerLink]="seriesUrl('escuderias')">Ver todas las escuderías →</a>
               </div>
             </div>
           </div>

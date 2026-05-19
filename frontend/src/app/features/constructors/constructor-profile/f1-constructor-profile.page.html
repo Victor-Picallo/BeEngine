@@ -45,7 +45,7 @@
                   @for (d of p.drivers; track d.driverId) {
                     <a
                       class="cp-driver-card"
-                      [routerLink]="['/f1/pilotos', d.driverId]"
+                      [routerLink]="seriesCtx.path('pilotos', d.driverId)"
                       appReturnNav
                       [attr.aria-label]="'Ficha de ' + d.givenName + ' ' + d.familyName"
                     >

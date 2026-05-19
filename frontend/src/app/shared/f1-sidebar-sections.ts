@@ -1,29 +1,12 @@
-/**
- * Etiquetas del bloque “Secciones” en páginas F1 (sidebar clara).
- * Sin “Vídeos”. “Escuderías” va justo después de “Pilotos”.
- */
-export const F1_SIDEBAR_SECTION_LABELS: readonly string[] = [
-  'Inicio',
-  'Noticias',
-  'Calendario',
-  'Pilotos',
-  'Escuderías',
-  'Clasificación',
-];
+import { seriesSectionPath } from '../core/series/series-sidebar';
+import { SERIES_SECTION_LABELS } from '../core/series/series-sidebar';
 
-const SECTION_PATH: Readonly<Record<string, string>> = {
-  Inicio: '/',
-  Noticias: '/noticias',
-  Calendario: '/f1/calendario',
-  Pilotos: '/f1/pilotos',
-  /** Con o sin tilde en el literal del array */
-  Escuderías: '/f1/escuderias',
-  Escuderias: '/f1/escuderias',
-  Clasificación: '/f1/clasificacion',
-  Clasificacion: '/f1/clasificacion',
-};
+/** @deprecated Usar SERIES_SECTION_LABELS; se mantiene por compatibilidad. */
+export const F1_SIDEBAR_SECTION_LABELS = SERIES_SECTION_LABELS;
 
-/** Si no hay ruta, la sección se muestra como botón inactivo (p. ej. Noticias). */
+/** Rutas del sidebar para F1. */
 export function f1SidebarSectionPath(label: string): string | null {
-  return SECTION_PATH[label] ?? null;
+  return seriesSectionPath('f1', label);
 }
+
+export { seriesSectionPath, SERIES_SECTION_LABELS };

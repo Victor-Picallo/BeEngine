@@ -14,15 +14,15 @@
 
 /* Líder constructores: mismo acento que pilotos (.fc-card.next en calendario), sin que lo pise la regla anterior. */
 .fc-constructors .fc-card.next {
-  border-color: var(--accent, #ffd100);
+  border-color: var(--accent);
   box-shadow:
-    0 4px 24px rgba(255, 209, 0, 0.18),
+    0 4px 24px color-mix(in srgb, var(--accent) 18%, transparent),
     0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
 .fc-constructors .fc-card.next:hover {
   box-shadow:
-    0 6px 28px rgba(255, 209, 0, 0.22),
+    0 6px 28px color-mix(in srgb, var(--accent) 22%, transparent),
     0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
@@ -100,8 +100,8 @@
 }
 
 .fc-constructors .fc-card.next .fc-round {
-  background: var(--accent, #ffd100);
-  color: #000;
+  background: var(--accent);
+  color: var(--accent-fg, #000);
   border-color: transparent;
 }
 

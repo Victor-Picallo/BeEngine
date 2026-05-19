@@ -40,8 +40,9 @@ import type {
 } from '../../f1-live/f1-live.types';
 import { AppHeaderComponent } from '../../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../../shared/components/app-sidebar/app-sidebar.component';
+import { SeriesContextService } from '../../../core/series/series-context.service';
+import { SeriesAccentDirective } from '../../../core/series/series-accent.directive';
 import {
-  ACCENT,
   countryCodesFromNationality,
   flagCdnUrl,
   normalize,
@@ -70,7 +71,7 @@ function matchOpenF1Driver(
 @Component({
   selector: 'app-f1-constructor-profile-page',
   standalone: true,
-  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink, ReturnNavDirective, DecimalPipe],
+  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink, ReturnNavDirective, DecimalPipe, SeriesAccentDirective],
   templateUrl: './f1-constructor-profile.page.html',
   styleUrls: [
     '../../calendar/f1-calendar.page.css',
@@ -87,11 +88,14 @@ export class F1ConstructorProfilePageComponent {
   private readonly backNav = inject(BackNavigationService);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly accent = ACCENT;
+  readonly seriesCtx = inject(SeriesContextService);
+  readonly accent = computed(() => this.seriesCtx.config().accent);
   readonly flagImgUrl = flagCdnUrl;
 
   returnUrl = signal<string | null>(null);
-  backLabel = computed(() => this.backNav.labelFor(this.returnUrl(), '/f1/escuderias'));
+  backLabel = computed(() =>
+    this.backNav.labelFor(this.returnUrl(), this.seriesCtx.urlPath('escuderias')),
+  );
 
   loading = signal(true);
   careerHistoryLoading = signal(false);
@@ -203,7 +207,7 @@ export class F1ConstructorProfilePageComponent {
   }
 
   goBack(): void {
-    this.backNav.goBack('/f1/escuderias', this.returnUrl());
+    this.backNav.goBack(this.seriesCtx.path('escuderias'), this.returnUrl());
   }
 
   private syncCareerPageUrl(page: number): void {

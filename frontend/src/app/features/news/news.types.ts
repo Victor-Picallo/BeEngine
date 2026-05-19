@@ -36,6 +36,7 @@ export interface NewsCategoryTab {
 
 export const NEWS_PAGE_CATEGORIES: NewsCategoryTab[] = [
   { id: 'f1', label: 'Formula 1', accent: '#FFD100' },
+  { id: 'f2', label: 'Formula 2', accent: '#0090FF' },
   { id: 'motogp', label: 'MotoGP', accent: '#0052CC' },
   { id: 'fe', label: 'Formula E', accent: '#00C8FF' },
   { id: 'wrc', label: 'WRC', accent: '#FF8C00' },

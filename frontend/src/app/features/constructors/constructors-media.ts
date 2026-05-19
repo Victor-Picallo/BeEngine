@@ -1,3 +1,5 @@
+import { f2TeamCarImageUrl, f2TeamLogoUrl } from '../f2/f2-media';
+
 /**
  * Jolpica/Ergast no incluyen URL de monoplaza ni render del coche.
  * OpenF1 tampoco expone imagen por escudería (solo color / nombre vía pilotos).
@@ -37,6 +39,8 @@ const LOGO_SLUG_OVERRIDE: Record<string, string> = {
 export function f1TeamShowcaseImageUrl(constructorId: string): string | null {
   const id = (constructorId || '').trim().toLowerCase();
   if (!id) return null;
+  const f2 = f2TeamLogoUrl(id);
+  if (f2) return f2;
   if (CONSTRUCTOR_LOGO_URL[id]) return CONSTRUCTOR_LOGO_URL[id];
 
   const slug = LOGO_SLUG_OVERRIDE[id] ?? encodeURIComponent(id.replace(/_/g, ' '));
@@ -69,6 +73,8 @@ const CAR_2026: Record<string, { folder: string; fileBase: string }> = {
 export function f1TeamCarImageUrl(constructorId: string): string | null {
   const id = (constructorId || '').trim().toLowerCase();
   if (!id) return null;
+  const f2 = f2TeamCarImageUrl(id);
+  if (f2) return f2;
   const m = CAR_2026[id];
   if (!m) return null;
   return `${CAR_CLOUD}/v1740000001/common/f1/2026/${m.folder}/${m.fileBase}carright.webp`;

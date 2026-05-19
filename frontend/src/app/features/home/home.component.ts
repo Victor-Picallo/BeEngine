@@ -10,8 +10,9 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgStyle } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { catchError, forkJoin, interval, of } from 'rxjs';
+import { Router, RouterLink } from '@angular/router';
+import { catchError, filter, forkJoin, interval, of } from 'rxjs';
+import { NavigationEnd } from '@angular/router';
 import {
   Category,
   CategoryData,
@@ -25,7 +26,6 @@ import {
   NextRace,
   PodiumEntry,
   Session,
-  SUB_CATEGORIES,
 } from '../../data/sports.data';
 import { HomeService } from './services/home.service';
 import { F1LiveService } from '../f1-live/f1-live.service';
@@ -47,7 +47,11 @@ import { NewsListComponent } from '../../shared/components/news-list/news-list.c
 import { RightRailComponent } from '../../shared/components/right-rail/right-rail.component';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
 import { NewsImageComponent } from '../news/news-image/news-image.component';
-import { F1_SIDEBAR_SECTION_LABELS } from '../../shared/f1-sidebar-sections';
+import { SERIES_SECTION_LABELS } from '../../shared/f1-sidebar-sections';
+import { SeriesContextService } from '../../core/series/series-context.service';
+import { FORMULA_SERIES_IDS, homePathForSeries, SERIES_CONFIG } from '../../core/series/series.config';
+import type { SeriesId } from '../../core/series/series.types';
+import { accentForeground, accentPodiumHighlight } from '../../core/series/series-accent.utils';
 // ── Team color & nationality lookups ──────────────────────────────────────
 const TEAM_COLORS: Record<string, string> = {
   'mercedes':           '#27F4D2',
@@ -125,12 +129,13 @@ export class HomeComponent implements OnInit, OnDestroy {
   private readonly f1          = inject(F1LiveService);
   private readonly newsService = inject(NewsService);
   private readonly destroyRef  = inject(DestroyRef);
+  private readonly router      = inject(Router);
+  readonly seriesCtx           = inject(SeriesContextService);
 
   readonly flagMap         = FLAG_MAP;
-  readonly sidebarSections = [...F1_SIDEBAR_SECTION_LABELS];
+  readonly sidebarSections = [...SERIES_SECTION_LABELS];
 
   categories        = signal<Category[]>([]);
-  activeCat         = signal('f1');
   loading           = signal(true);
   error             = signal<string | null>(null);
   countdown         = signal<CountdownTime>({ d: 0, h: 0, m: 0, s: 0 });
@@ -144,14 +149,22 @@ export class HomeComponent implements OnInit, OnDestroy {
   private sessionsRaw   = signal<OpenF1Session[]>([]);
   private newsRaw       = signal<NewsItem[]>([]);
   // ── Derived ──
-  currentCat = computed(
-    () => this.categories().find(c => c.id === this.activeCat()) ?? this.categories()[0],
-  );
-  accent = computed(() => this.currentCat()?.accent ?? '#FFD100');
+  activeCat = computed(() => this.seriesCtx.id());
 
-  // Sidebar shows the series belonging to the active top-level category.
-  sidebarCategories = computed<Category[]>(
-    () => SUB_CATEGORIES[this.activeCat()] ?? SUB_CATEGORIES['f1'],
+  currentCat = computed(() => {
+    const cfg = this.seriesCtx.config();
+    return { id: cfg.id, label: cfg.label, short: cfg.short, accent: cfg.accent };
+  });
+
+  accent = computed(() => this.seriesCtx.config().accent);
+  accentFg = computed(() => accentForeground(this.accent()));
+  accentPodium = computed(() => accentPodiumHighlight(this.accent()));
+
+  sidebarCategories = computed<Category[]>(() =>
+    FORMULA_SERIES_IDS.map((id) => {
+      const c = SERIES_CONFIG[id];
+      return { id: c.id, label: c.label, short: c.short, accent: c.accent };
+    }),
   );
 
   private nextRaceRaw = computed<JolpikaCalendarRace | null>(() => {
@@ -178,7 +191,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     return null;
   });
 
-  liveBannerVisible = computed(() => this.bannerDismissed() ? false : this.liveSession() !== null);
+  liveBannerVisible = computed(() => {
+    if (!this.seriesCtx.config().features.livePage) return false;
+    return this.bannerDismissed() ? false : this.liveSession() !== null;
+  });
   bannerDismissed   = signal(false);
 
   // ── Adapter to CategoryData shape for existing template ──
@@ -240,6 +256,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private countdownInterval?: ReturnType<typeof setInterval>;
   private refreshTimer?:      ReturnType<typeof setInterval>;
   private clockTimer?:        ReturnType<typeof setInterval>;
+  private loadedSeries: SeriesId | null = null;
 
   ngOnInit(): void {
     this.homeService
@@ -250,8 +267,22 @@ export class HomeComponent implements OnInit, OnDestroy {
         error: () => {},
       });
 
-    this.loadAll();
+    this.ensureSeriesData();
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => this.ensureSeriesData());
+
     this.startIntervals();
+  }
+
+  private ensureSeriesData(): void {
+    const sid = this.seriesCtx.id();
+    if (sid === this.loadedSeries && !this.loading()) return;
+    this.loadedSeries = sid;
+    this.loadAll();
   }
 
   ngOnDestroy(): void {
@@ -261,9 +292,17 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   setCat(id: string): void {
-    this.activeCat.set(id);
-    // Real-data wiring is F1-only; other categories will be added when their
-    // data sources are connected.
+    const seriesId = id as SeriesId;
+    if (seriesId === this.seriesCtx.id()) return;
+    void this.router.navigateByUrl(homePathForSeries(seriesId));
+  }
+
+  seriesLink(...segments: (string | number)[]): (string | number)[] {
+    return this.seriesCtx.path(...segments.map(String));
+  }
+
+  seriesUrl(...segments: string[]): string {
+    return this.seriesCtx.urlPath(...segments);
   }
 
   // ── Loaders ─────────────────────────────────────────────────────────────
@@ -361,7 +400,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.f1.getSessions().pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ next: s => this.sessionsRaw.set(s), error: () => {} });
     this.newsService
-      .getFeed('f1', 'Todos', 6, 0)
+      .getFeed(this.seriesCtx.id(), 'Todos', 6, 0)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: res =>

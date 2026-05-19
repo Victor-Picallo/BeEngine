@@ -1,4 +1,5 @@
 import type { JolpikaDriverStanding, OpenF1Driver } from '../f1-live/f1-live.types';
+import { f2DriverHeadshotRawUrl, f2DriverHeadshotUrl } from '../f2/f2-media';
 
 export const ACCENT = '#FFD100';
 
@@ -23,6 +24,25 @@ export const TEAM_COLORS: Record<string, string> = {
   'audi revolut f1 team': '#E5002B',
   'cadillac f1 team': '#C0C0C0',
   cadillac: '#C0C0C0',
+  /* F2 2026 */
+  'campos racing': '#FF6B00',
+  campos: '#FF6B00',
+  'invicta racing': '#E31937',
+  invicta: '#E31937',
+  'mp motorsport': '#0090FF',
+  hitech: '#5B4FCF',
+  trident: '#003DA5',
+  'art grand prix': '#E8002D',
+  art: '#E8002D',
+  'dams lucas oil': '#FFD100',
+  dams: '#FFD100',
+  'rodin motorsport': '#111111',
+  rodin: '#111111',
+  'prema racing': '#E8002D',
+  prema: '#E8002D',
+  'van amersfoort racing': '#FF4500',
+  'aix racing': '#00A651',
+  aix: '#00A651',
 };
 
 const NATIONALITY_TO_CC: Record<string, string> = {
@@ -52,6 +72,8 @@ const NATIONALITY_TO_CC: Record<string, string> = {
   Russian: 'RU',
   Indian: 'IN',
   'South African': 'ZA',
+  Bulgarian: 'BG',
+  Paraguayan: 'PY',
 };
 
 /** ISO 3166-1 alpha-2 → alpha-3 (F1 grid + extras). */
@@ -96,6 +118,7 @@ const ALPHA2_TO_ALPHA3: Record<string, string> = {
   CZ: 'CZE',
   RO: 'ROU',
   BG: 'BGR',
+  PY: 'PRY',
   HR: 'HRV',
   RS: 'SRB',
 };
@@ -174,11 +197,19 @@ export function resolveDriverHeadshotUrl(
   driverId: string,
   driverFullName: string | undefined,
   openF1HeadshotUrl: string | undefined | null,
+  options?: { size?: 'card' | 'large' },
 ): string {
+  const f2 = f2DriverHeadshotUrl(driverId, options?.size ?? 'card');
+  if (f2) return f2;
+
   const official = f1OfficialHeadshotWhenOpenF1Missing(driverId, driverFullName);
   if (official) return official;
   const raw = (openF1HeadshotUrl && String(openF1HeadshotUrl).trim()) || '';
   return raw ? hiResF1HeadshotUrl(raw) : '';
+}
+
+export function resolveDriverHeadshotRawUrl(driverId: string): string {
+  return f2DriverHeadshotRawUrl(driverId) ?? '';
 }
 
 export function flagCdnUrl(alpha2: string): string {

@@ -28,7 +28,7 @@ app.get('/', (_req, res) => {
     data: {
       name: 'BeEngine API',
       health: '/api/health',
-      routes: ['/api/categories', '/api/home', '/api/news', '/api/calendar'],
+      routes: ['/api/categories', '/api/home', '/api/news', '/api/f1', '/api/f2'],
     },
   });
 });

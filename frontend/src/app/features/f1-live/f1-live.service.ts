@@ -1,6 +1,8 @@
 import { inject, Injectable } from '@angular/core';
-import { map, Observable, shareReplay } from 'rxjs';
+import { map, Observable, of, shareReplay } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
+import { SeriesContextService } from '../../core/series/series-context.service';
+import type { SeriesId } from '../../core/series/series.types';
 import {
   JolpikaCalendarRace,
   JolpikaConstructorProfile,
@@ -36,97 +38,120 @@ const sessionQuery = (sessionKey?: number | 'latest' | null): string => {
 @Injectable({ providedIn: 'root' })
 export class F1LiveService {
   private readonly api = inject(ApiService);
-  /** Evita repetir GET al volver de una ficha. */
-  private constructorStandings$?: Observable<JolpikaConstructorStanding[]>;
-  private driverStandings$?: Observable<JolpikaDriverStanding[]>;
+  private readonly series = inject(SeriesContextService);
+
+  private constructorStandingsCache = new Map<SeriesId, Observable<JolpikaConstructorStanding[]>>();
+  private driverStandingsCache = new Map<SeriesId, Observable<JolpikaDriverStanding[]>>();
+
+  private prefix(): string {
+    return this.series.apiPrefix();
+  }
+
+  private openF1Enabled(): boolean {
+    return this.series.config().features.openF1;
+  }
 
   getSessions(): Observable<OpenF1Session[]> {
-    return this.api.get<OpenF1Session[]>('/f1/openf1/sessions');
+    if (!this.openF1Enabled()) return of([]);
+    return this.api.get<OpenF1Session[]>(`${this.prefix()}/openf1/sessions`);
   }
 
   getDrivers(sessionKey?: number | 'latest' | null): Observable<OpenF1Driver[]> {
-    return this.api.get<OpenF1Driver[]>(`/f1/openf1/drivers${sessionQuery(sessionKey)}`);
+    if (!this.openF1Enabled()) return of([]);
+    return this.api.get<OpenF1Driver[]>(`${this.prefix()}/openf1/drivers${sessionQuery(sessionKey)}`);
   }
 
   getPositions(sessionKey?: number | 'latest' | null): Observable<OpenF1Position[]> {
-    return this.api.get<OpenF1Position[]>(`/f1/openf1/position${sessionQuery(sessionKey)}`);
+    if (!this.openF1Enabled()) return of([]);
+    return this.api.get<OpenF1Position[]>(`${this.prefix()}/openf1/position${sessionQuery(sessionKey)}`);
   }
 
   getWeather(sessionKey?: number | 'latest' | null): Observable<OpenF1Weather> {
-    return this.api.get<OpenF1Weather>(`/f1/openf1/weather${sessionQuery(sessionKey)}`);
+    if (!this.openF1Enabled()) return of([] as unknown as OpenF1Weather);
+    return this.api.get<OpenF1Weather>(`${this.prefix()}/openf1/weather${sessionQuery(sessionKey)}`);
   }
 
   getLaps(sessionKey?: number | 'latest' | null): Observable<OpenF1Lap[]> {
-    return this.api.get<OpenF1Lap[]>(`/f1/openf1/laps${sessionQuery(sessionKey)}`);
+    if (!this.openF1Enabled()) return of([]);
+    return this.api.get<OpenF1Lap[]>(`${this.prefix()}/openf1/laps${sessionQuery(sessionKey)}`);
   }
 
   getIntervals(sessionKey?: number | 'latest' | null): Observable<OpenF1Interval[]> {
-    return this.api.get<OpenF1Interval[]>(`/f1/openf1/intervals${sessionQuery(sessionKey)}`);
+    if (!this.openF1Enabled()) return of([]);
+    return this.api.get<OpenF1Interval[]>(`${this.prefix()}/openf1/intervals${sessionQuery(sessionKey)}`);
   }
 
   getStints(sessionKey?: number | 'latest' | null): Observable<OpenF1Stint[]> {
-    return this.api.get<OpenF1Stint[]>(`/f1/openf1/stints${sessionQuery(sessionKey)}`);
+    if (!this.openF1Enabled()) return of([]);
+    return this.api.get<OpenF1Stint[]>(`${this.prefix()}/openf1/stints${sessionQuery(sessionKey)}`);
   }
 
   getRaceControl(sessionKey?: number | 'latest' | null): Observable<OpenF1RaceControl[]> {
-    return this.api.get<OpenF1RaceControl[]>(`/f1/openf1/race-control${sessionQuery(sessionKey)}`);
+    if (!this.openF1Enabled()) return of([]);
+    return this.api.get<OpenF1RaceControl[]>(`${this.prefix()}/openf1/race-control${sessionQuery(sessionKey)}`);
   }
 
   getTeamRadio(sessionKey?: number | 'latest' | null): Observable<OpenF1TeamRadio[]> {
-    return this.api.get<OpenF1TeamRadio[]>(`/f1/openf1/team-radio${sessionQuery(sessionKey)}`);
+    if (!this.openF1Enabled()) return of([]);
+    return this.api.get<OpenF1TeamRadio[]>(`${this.prefix()}/openf1/team-radio${sessionQuery(sessionKey)}`);
   }
 
   getLocation(driverNumber = 1, sessionKey?: number | 'latest' | null): Observable<OpenF1Location[]> {
-    const base = `/f1/openf1/location?driver=${driverNumber}`;
+    if (!this.openF1Enabled()) return of([]);
+    const base = `${this.prefix()}/openf1/location?driver=${driverNumber}`;
     if (sessionKey === undefined || sessionKey === null) return this.api.get<OpenF1Location[]>(base);
     return this.api.get<OpenF1Location[]>(`${base}&session_key=${encodeURIComponent(String(sessionKey))}`);
   }
 
   getDriverStandings(forceRefresh = false): Observable<JolpikaDriverStanding[]> {
-    if (forceRefresh) this.driverStandings$ = undefined;
-    if (!this.driverStandings$) {
-      this.driverStandings$ = this.api
-        .get<SourceWrapped<JolpikaDriverStanding>>('/f1/jolpica/driver-standings')
+    const sid = this.series.id();
+    if (forceRefresh) this.driverStandingsCache.delete(sid);
+    if (!this.driverStandingsCache.has(sid)) {
+      const obs = this.api
+        .get<SourceWrapped<JolpikaDriverStanding>>(`${this.prefix()}/jolpica/driver-standings`)
         .pipe(
           map((res) => res.items ?? []),
           shareReplay({ bufferSize: 1, refCount: false }),
         );
+      this.driverStandingsCache.set(sid, obs);
     }
-    return this.driverStandings$;
+    return this.driverStandingsCache.get(sid)!;
   }
 
   getDriverProfile(driverId: string, careerPage = 1): Observable<JolpikaDriverProfile> {
     const id = encodeURIComponent(driverId.trim());
     const p = Math.max(1, careerPage);
     const q = p > 1 ? `?careerPage=${p}` : '';
-    return this.api.get<JolpikaDriverProfile>(`/f1/jolpica/drivers/${id}/profile${q}`);
+    return this.api.get<JolpikaDriverProfile>(`${this.prefix()}/jolpica/drivers/${id}/profile${q}`);
   }
 
   getDriverProfileAggregates(driverId: string): Observable<JolpikaDriverProfileAggregates> {
     const id = encodeURIComponent(driverId.trim());
     return this.api.get<JolpikaDriverProfileAggregates>(
-      `/f1/jolpica/drivers/${id}/profile/aggregates`,
+      `${this.prefix()}/jolpica/drivers/${id}/profile/aggregates`,
     );
   }
 
   getConstructorStandings(forceRefresh = false): Observable<JolpikaConstructorStanding[]> {
-    if (forceRefresh) this.constructorStandings$ = undefined;
-    if (!this.constructorStandings$) {
-      this.constructorStandings$ = this.api
-        .get<SourceWrapped<JolpikaConstructorStanding>>('/f1/jolpica/constructor-standings')
+    const sid = this.series.id();
+    if (forceRefresh) this.constructorStandingsCache.delete(sid);
+    if (!this.constructorStandingsCache.has(sid)) {
+      const obs = this.api
+        .get<SourceWrapped<JolpikaConstructorStanding>>(`${this.prefix()}/jolpica/constructor-standings`)
         .pipe(
           map((res) => res.items ?? []),
           shareReplay({ bufferSize: 1, refCount: false }),
         );
+      this.constructorStandingsCache.set(sid, obs);
     }
-    return this.constructorStandings$;
+    return this.constructorStandingsCache.get(sid)!;
   }
 
   getConstructorProfile(constructorId: string, careerPage = 1): Observable<JolpikaConstructorProfile> {
     const id = encodeURIComponent(constructorId.trim());
     const p = Math.max(1, careerPage);
     const q = p > 1 ? `?careerPage=${p}` : '';
-    return this.api.get<JolpikaConstructorProfile>(`/f1/jolpica/constructors/${id}/profile${q}`);
+    return this.api.get<JolpikaConstructorProfile>(`${this.prefix()}/jolpica/constructors/${id}/profile${q}`);
   }
 
   getConstructorProfileAggregates(
@@ -134,21 +159,21 @@ export class F1LiveService {
   ): Observable<JolpikaConstructorProfileAggregates> {
     const id = encodeURIComponent(constructorId.trim());
     return this.api.get<JolpikaConstructorProfileAggregates>(
-      `/f1/jolpica/constructors/${id}/profile/aggregates`,
+      `${this.prefix()}/jolpica/constructors/${id}/profile/aggregates`,
     );
   }
 
   getCalendar(): Observable<JolpikaCalendarRace[]> {
     return this.api
-      .get<SourceWrapped<JolpikaCalendarRace>>('/f1/jolpica/calendar')
-      .pipe(map(res => res.items ?? []));
+      .get<SourceWrapped<JolpikaCalendarRace>>(`${this.prefix()}/jolpica/calendar`)
+      .pipe(map((res) => res.items ?? []));
   }
 
   getLastRace(): Observable<JolpikaLastRace> {
-    return this.api.get<JolpikaLastRace>('/f1/jolpica/last-race');
+    return this.api.get<JolpikaLastRace>(`${this.prefix()}/jolpica/last-race`);
   }
 
   getRaceResults(round: number): Observable<JolpikaRaceResult> {
-    return this.api.get<JolpikaRaceResult>(`/f1/jolpica/results/${round}`);
+    return this.api.get<JolpikaRaceResult>(`${this.prefix()}/jolpica/results/${round}`);
   }
 }

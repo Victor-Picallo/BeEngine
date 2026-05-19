@@ -1,7 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { SidebarComponent } from '../sidebar/sidebar.component';
-import { SUB_CATEGORIES, type Category, type Favorite } from '../../../data/sports.data';
-import { F1_SIDEBAR_SECTION_LABELS } from '../../f1-sidebar-sections';
+import { SeriesContextService } from '../../../core/series/series-context.service';
+import { FORMULA_SERIES_IDS, homePathForSeries, SERIES_CONFIG } from '../../../core/series/series.config';
+import { SERIES_SECTION_LABELS } from '../../../core/series/series-sidebar';
+import type { Category, Favorite } from '../../../data/sports.data';
 
 @Component({
   selector: 'app-side',
@@ -13,20 +16,33 @@ import { F1_SIDEBAR_SECTION_LABELS } from '../../f1-sidebar-sections';
       [activeCat]="activeCat()"
       [accent]="accent()"
       [favorites]="favorites()"
-      [sections]="sections()">
+      [sections]="sections()"
+      (catChange)="onSeriesChange($event)">
     </app-sidebar>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppSidebarComponent {
-  // Calendar / race / live pages are F1-context — show the F1 series tree.
-  readonly categories = signal<Category[]>(SUB_CATEGORIES['f1']);
-  readonly activeCat  = signal('f1');
-  readonly favorites  = signal<Favorite[]>([]);
-  readonly sections   = signal<string[]>([...F1_SIDEBAR_SECTION_LABELS]);
+  private readonly router = inject(Router);
+  private readonly seriesCtx = inject(SeriesContextService);
 
-  readonly currentCat = computed(
-    () => this.categories().find(c => c.id === this.activeCat()) ?? this.categories()[0],
+  favorites = input<Favorite[]>([]);
+
+  readonly categories = signal<Category[]>(
+    FORMULA_SERIES_IDS.map((id) => {
+      const c = SERIES_CONFIG[id];
+      return { id: c.id, label: c.label, short: c.short, accent: c.accent };
+    }),
   );
-  readonly accent = computed(() => this.currentCat()?.accent ?? '#FFD100');
+
+  readonly activeCat = computed(() => this.seriesCtx.id());
+  readonly sections = signal<string[]>([...SERIES_SECTION_LABELS]);
+
+  readonly accent = computed(() => this.seriesCtx.config().accent);
+
+  onSeriesChange(id: string): void {
+    const seriesId = id as 'f1' | 'f2' | 'f3';
+    if (seriesId === this.seriesCtx.id()) return;
+    void this.router.navigateByUrl(homePathForSeries(seriesId));
+  }
 }

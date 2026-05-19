@@ -4,22 +4,24 @@ import {
   computed,
   DestroyRef,
   inject,
-  OnInit,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
-import { catchError, of } from 'rxjs';
+import { catchError, forkJoin, map, of, tap } from 'rxjs';
+import { bindSeriesLoad } from '../../core/series/bind-series-load';
+import type { SeriesId } from '../../core/series/series.types';
 import { F1LiveService } from '../f1-live/f1-live.service';
 import type { JolpikaDriverStanding, OpenF1Driver } from '../f1-live/f1-live.types';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
+import { SeriesContextService } from '../../core/series/series-context.service';
+import { SeriesAccentDirective } from '../../core/series/series-accent.directive';
 import {
-  ACCENT,
   countryCodesForDriver,
   flagCdnUrl as driverFlagCdnUrl,
   normalize,
+  resolveDriverHeadshotRawUrl,
   resolveDriverHeadshotUrl,
   teamColor,
 } from './drivers-shared';
@@ -87,16 +89,17 @@ function buildCards(rows: JolpikaDriverStanding[], open: OpenF1Driver[]): Driver
 @Component({
   selector: 'app-f1-drivers-page',
   standalone: true,
-  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink, ReturnNavDirective],
+  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink, ReturnNavDirective, SeriesAccentDirective],
   templateUrl: './f1-drivers.page.html',
-  styleUrls: ['../calendar/f1-calendar.page.css', './f1-drivers.page.css'],
+  styleUrls: ['../calendar/f1-calendar.page.css', './f1-drivers.page.css', './driver-portrait.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class F1DriversPageComponent implements OnInit {
+export class F1DriversPageComponent {
   private readonly f1 = inject(F1LiveService);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly accent = ACCENT;
+  readonly seriesCtx = inject(SeriesContextService);
+  readonly accent = computed(() => this.seriesCtx.config().accent);
   readonly flagImgUrl = driverFlagCdnUrl;
   loading = signal(true);
   error = signal<string | null>(null);
@@ -109,41 +112,69 @@ export class F1DriversPageComponent implements OnInit {
     return (index % 6) * 50;
   }
 
-  imgError(ev: Event): void {
+  imgError(ev: Event, card?: DriverCard): void {
     const el = ev.target;
-    if (el instanceof HTMLImageElement) el.style.display = 'none';
+    if (!(el instanceof HTMLImageElement)) return;
+    if (card && this.seriesCtx.id() === 'f2' && !el.dataset['f2Retry']) {
+      const raw = resolveDriverHeadshotRawUrl(card.driverId);
+      if (raw) {
+        el.dataset['f2Retry'] = '1';
+        el.src = raw;
+        return;
+      }
+    }
+    el.style.display = 'none';
+  }
+
+  photoLoaded(ev: Event): void {
+    const el = ev.target;
+    if (!(el instanceof HTMLImageElement)) return;
+    el.closest('.fd-photo-wrap')?.classList.add('fd-photo-loaded');
   }
 
   cardHasProfile(card: DriverCard): boolean {
     return Boolean(card.driverId && card.driverId !== 'unknown');
   }
 
-  ngOnInit(): void {
-    this.f1
-      .getDriverStandings()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (standings) => {
-          this.raw.set(standings);
-          this.loading.set(false);
-          this.error.set(null);
-        },
-        error: () => {
-          this.loading.set(false);
-          this.error.set('No se pudo cargar la clasificación de pilotos.');
-        },
-      });
+  constructor() {
+    bindSeriesLoad((seriesId) => this.fetchStandings(seriesId), this.destroyRef);
+  }
 
-    this.f1
-      .getDrivers('latest')
-      .pipe(
-        catchError(() => of<OpenF1Driver[]>([])),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe((openf1) => this.openf1Drivers.set(openf1));
+  private fetchStandings(_seriesId: SeriesId) {
+    this.loading.set(true);
+    this.error.set(null);
+    this.raw.set([]);
+    this.openf1Drivers.set([]);
+
+    return forkJoin({
+      standings: this.f1.getDriverStandings(true),
+      open: this.f1.getDrivers('latest').pipe(catchError(() => of<OpenF1Driver[]>([]))),
+    }).pipe(
+      tap((res) => {
+        this.raw.set(res.standings);
+        this.openf1Drivers.set(res.open);
+        this.loading.set(false);
+        this.error.set(null);
+        if (this.seriesCtx.id() === 'f2') this.prefetchF2Portraits();
+      }),
+      catchError(() => {
+        this.loading.set(false);
+        this.error.set('No se pudo cargar la clasificación de pilotos.');
+        return of(null);
+      }),
+      map(() => undefined),
+    );
   }
 
   initialsFor(card: DriverCard): string {
     return initials(card.driver);
+  }
+
+  private prefetchF2Portraits(): void {
+    for (const card of buildCards(this.raw(), [])) {
+      if (!card.headshotUrl) continue;
+      const img = new Image();
+      img.src = card.headshotUrl;
+    }
   }
 }

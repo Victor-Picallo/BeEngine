@@ -3,19 +3,21 @@ import {
   Component,
   DestroyRef,
   inject,
-  OnInit,
   computed,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
+import { catchError, map, of, tap } from 'rxjs';
+import { bindSeriesLoad } from '../../core/series/bind-series-load';
+import type { SeriesId } from '../../core/series/series.types';
 import { F1LiveService } from '../f1-live/f1-live.service';
 import type { JolpikaConstructorStanding } from '../f1-live/f1-live.types';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
+import { SeriesContextService } from '../../core/series/series-context.service';
+import { SeriesAccentDirective } from '../../core/series/series-accent.directive';
 import {
-  ACCENT,
   countryCodesFromNationality,
   flagCdnUrl,
   teamColor,
@@ -64,16 +66,17 @@ function buildCards(rows: JolpikaConstructorStanding[]): ConstructorCard[] {
 @Component({
   selector: 'app-f1-constructors-page',
   standalone: true,
-  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink, ReturnNavDirective],
+  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink, ReturnNavDirective, SeriesAccentDirective],
   templateUrl: './f1-constructors.page.html',
   styleUrls: ['../calendar/f1-calendar.page.css', '../drivers/f1-drivers.page.css', './f1-constructors.page.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class F1ConstructorsPageComponent implements OnInit {
+export class F1ConstructorsPageComponent {
   private readonly f1 = inject(F1LiveService);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly accent = ACCENT;
+  readonly seriesCtx = inject(SeriesContextService);
+  readonly accent = computed(() => this.seriesCtx.config().accent);
   readonly flagImgUrl = flagCdnUrl;
   loading = signal(true);
   error = signal<string | null>(null);
@@ -113,20 +116,27 @@ export class F1ConstructorsPageComponent implements OnInit {
     return Boolean(card.constructorId?.trim());
   }
 
-  ngOnInit(): void {
-    this.f1
-      .getConstructorStandings()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (rows) => {
-          this.raw.set(rows);
-          this.loading.set(false);
-          this.error.set(null);
-        },
-        error: () => {
-          this.loading.set(false);
-          this.error.set('No se pudo cargar la clasificación de escuderías.');
-        },
-      });
+  constructor() {
+    bindSeriesLoad((seriesId) => this.fetchStandings(seriesId), this.destroyRef);
+  }
+
+  private fetchStandings(_seriesId: SeriesId) {
+    this.loading.set(true);
+    this.error.set(null);
+    this.raw.set([]);
+
+    return this.f1.getConstructorStandings(true).pipe(
+      tap((rows) => {
+        this.raw.set(rows);
+        this.loading.set(false);
+        this.error.set(null);
+      }),
+      catchError(() => {
+        this.loading.set(false);
+        this.error.set('No se pudo cargar la clasificación de escuderías.');
+        return of(null);
+      }),
+      map(() => undefined),
+    );
   }
 }

@@ -228,11 +228,11 @@ button.dp-back {
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: var(--accent, #ffd100);
+  background: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 20px rgba(255, 209, 0, .35);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .dp-champ-circle span {
@@ -280,7 +280,7 @@ button.dp-back {
   width: 3px;
   height: 20px;
   border-radius: 1px;
-  background: var(--accent, #ffd100);
+  background: var(--accent);
 }
 
 .dp-stats {
@@ -328,7 +328,7 @@ button.dp-back {
 }
 
 .dp-stat-val.dp-accent {
-  color: var(--accent, #ffd100);
+  color: var(--accent);
 }
 
 .dp-stat-sub {
@@ -602,8 +602,8 @@ button.dp-back {
 }
 
 .dp-fl {
-  background: rgba(255, 209, 0, .15);
-  border: 1px solid rgba(255, 209, 0, .45);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
   border-radius: 3px;
   padding: 1px 6px;
   font-size: 9px;
@@ -658,7 +658,7 @@ button.dp-back {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--accent, #ffd100);
+  background: var(--accent);
   flex-shrink: 0;
 }
 
@@ -716,7 +716,7 @@ button.dp-back {
 }
 
 .dp-table-career tbody tr.champ-row {
-  background: rgba(255, 209, 0, .06);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
 }
 
 .dp-pos-pill {
