@@ -28,6 +28,13 @@ export const routes: Routes = [
   },
 
   {
+    path: 'f1/clasificacion',
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('./features/standings/f1-clasificacion.page').then(m => m.F1ClasificacionPageComponent),
+  },
+
+  {
     path: 'f1/escuderias/:constructorId',
     loadComponent: () =>
       import('./features/constructors/constructor-profile/f1-constructor-profile.page').then(

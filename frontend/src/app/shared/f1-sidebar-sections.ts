@@ -8,7 +8,7 @@ export const F1_SIDEBAR_SECTION_LABELS: readonly string[] = [
   'Calendario',
   'Pilotos',
   'Escuderías',
-  'Estadísticas',
+  'Clasificación',
 ];
 
 const SECTION_PATH: Readonly<Record<string, string>> = {
@@ -19,6 +19,8 @@ const SECTION_PATH: Readonly<Record<string, string>> = {
   /** Con o sin tilde en el literal del array */
   Escuderías: '/f1/escuderias',
   Escuderias: '/f1/escuderias',
+  Clasificación: '/f1/clasificacion',
+  Clasificacion: '/f1/clasificacion',
 };
 
 /** Si no hay ruta, la sección se muestra como botón inactivo (p. ej. Noticias). */

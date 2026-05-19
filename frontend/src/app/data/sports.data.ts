@@ -69,6 +69,8 @@ export interface LastRace {
   name: string;
   date: string;
   podium: PodiumEntry[];
+  /** Slug de ruta `/f1/calendario/:slug/race` (derivado del nombre del GP). */
+  slug?: string;
   /** Foto de podio / victoria (RSS o Wikipedia). */
   imageUrl?: string | null;
   winnerName?: string;

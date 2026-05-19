@@ -3,7 +3,7 @@
     <div class="hm-card-head">
       <span class="hm-card-title">Acceso rápido</span>
     </div>
-    @for (link of quickLinks; track link.route) {
+    @for (link of quickLinks(); track link.label) {
       <a class="hm-quick-link" [routerLink]="link.route">
         <div class="hm-quick-link-text">
           <div class="hm-quick-link-title">{{ link.label }}</div>

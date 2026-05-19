@@ -1,12 +1,24 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Constructor, Driver, NewsItem, NextRace } from '../../../data/sports.data';
+import {
+  Constructor,
+  Driver,
+  LastRace,
+  NewsItem,
+  NextRace,
+} from '../../../data/sports.data';
 import { NewsImageComponent } from '../../../features/news/news-image/news-image.component';
 
 interface QuickLink {
   label: string;
   desc: string;
-  route: string;
+  route: (string | number)[];
+}
+
+function truncate(text: string, max = 52): string {
+  const t = text.trim();
+  if (t.length <= max) return t;
+  return `${t.slice(0, max - 1).trim()}…`;
 }
 
 @Component({
@@ -17,20 +29,93 @@ interface QuickLink {
   imports: [RouterLink, NewsImageComponent],
 })
 export class RightRailComponent {
-  nextRace      = input.required<NextRace>();
-  standings     = input.required<Driver[]>();
-  constructors  = input<Constructor[]>([]);
-  news          = input.required<NewsItem[]>();
-  activeCat     = input.required<string>();
-  accent        = input.required<string>();
+  nextRace = input.required<NextRace>();
+  standings = input.required<Driver[]>();
+  constructors = input<Constructor[]>([]);
+  lastRace = input.required<LastRace>();
+  news = input.required<NewsItem[]>();
+  activeCat = input.required<string>();
+  accent = input.required<string>();
   lastRaceWinner = input('—');
 
-  quickLinks: QuickLink[] = [
-    { label: 'Calendario', desc: 'Todas las rondas', route: '/f1/calendario' },
-    { label: 'Pilotos', desc: 'Fichas y stats', route: '/f1/pilotos' },
-    { label: 'Equipos', desc: 'Escuderías 2026', route: '/f1/escuderias' },
-    { label: 'Noticias', desc: 'Últimas noticias', route: '/noticias' },
-  ];
+  quickLinks = computed((): QuickLink[] => {
+    const lr = this.lastRace();
+    const leader = this.standings()[0];
+    const topTeam = this.constructors()[0];
+    const latest = this.news()[0];
+
+    const links: QuickLink[] = [];
+
+    if (lr.slug && lr.name !== '—') {
+      links.push({
+        label: 'Última carrera',
+        desc: lr.name,
+        route: ['/f1/calendario', lr.slug, 'race'],
+      });
+    } else {
+      links.push({
+        label: 'Última carrera',
+        desc: 'Calendario F1',
+        route: ['/f1/calendario'],
+      });
+    }
+
+    if (leader?.driverId) {
+      links.push({
+        label: 'Piloto líder',
+        desc: `${leader.driver} · ${leader.points} pts`,
+        route: ['/f1/pilotos', leader.driverId],
+      });
+    } else if (leader) {
+      links.push({
+        label: 'Piloto líder',
+        desc: `${leader.driver} · ${leader.points} pts`,
+        route: ['/f1/pilotos'],
+      });
+    } else {
+      links.push({
+        label: 'Piloto líder',
+        desc: 'Clasificación pilotos',
+        route: ['/f1/clasificacion'],
+      });
+    }
+
+    if (topTeam?.constructorId) {
+      links.push({
+        label: 'Equipo líder',
+        desc: `${topTeam.team} · ${topTeam.points} pts`,
+        route: ['/f1/escuderias', topTeam.constructorId],
+      });
+    } else if (topTeam) {
+      links.push({
+        label: 'Equipo líder',
+        desc: `${topTeam.team} · ${topTeam.points} pts`,
+        route: ['/f1/escuderias'],
+      });
+    } else {
+      links.push({
+        label: 'Equipo líder',
+        desc: 'Clasificación constructores',
+        route: ['/f1/clasificacion'],
+      });
+    }
+
+    if (latest?.id) {
+      links.push({
+        label: 'Última noticia',
+        desc: truncate(latest.title),
+        route: ['/noticias', latest.id],
+      });
+    } else {
+      links.push({
+        label: 'Última noticia',
+        desc: 'Feed de noticias',
+        route: ['/noticias'],
+      });
+    }
+
+    return links;
+  });
 
   quickStats = computed(() => {
     const r = this.nextRace();

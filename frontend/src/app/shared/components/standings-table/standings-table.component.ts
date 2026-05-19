@@ -12,7 +12,9 @@ import { Driver, FLAG_MAP } from '../../../data/sports.data';
 })
 export class StandingsTableComponent {
   standings = input.required<Driver[]>();
-  accent    = input.required<string>();
+  accent = input.required<string>();
+  title = input('Clasificación Pilotos');
+  showFooter = input(true);
 
   readonly flagMap = FLAG_MAP;
 }

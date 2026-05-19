@@ -31,6 +31,7 @@ import { HomeService } from './services/home.service';
 import { F1LiveService } from '../f1-live/f1-live.service';
 import { NewsService } from '../news/news.service';
 import { sessionsForRaceWeekend } from '../f1-live/f1-weekend-sessions';
+import { slugifyRace } from '../race/race-slug';
 import type {
   JolpikaCalendarRace,
   JolpikaConstructorStanding,
@@ -451,6 +452,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     }));
     return {
       name: r.raceName,
+      slug: slugifyRace({ raceName: r.raceName }),
       date: new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
               .format(new Date(r.date)),
       podium,

@@ -2,7 +2,7 @@
   <div class="hm-card-head">
     <div class="hm-card-head-left">
       <div class="hm-card-accent-bar" [style.background]="accent()"></div>
-      <span class="hm-card-title">Clasificación Pilotos</span>
+      <span class="hm-card-title">{{ title() }}</span>
     </div>
   </div>
   <table class="hm-standings-table">
@@ -31,7 +31,9 @@
       }
     </tbody>
   </table>
-  <div class="hm-card-foot">
-    <a routerLink="/f1/pilotos">Ver todos los pilotos →</a>
-  </div>
+  @if (showFooter()) {
+    <div class="hm-card-foot">
+      <a routerLink="/f1/pilotos">Ver todos los pilotos →</a>
+    </div>
+  }
 </div>
