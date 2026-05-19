@@ -3,6 +3,7 @@
  * Sin “Vídeos”. “Escuderías” va justo después de “Pilotos”.
  */
 export const F1_SIDEBAR_SECTION_LABELS: readonly string[] = [
+  'Inicio',
   'Noticias',
   'Calendario',
   'Pilotos',
@@ -11,6 +12,8 @@ export const F1_SIDEBAR_SECTION_LABELS: readonly string[] = [
 ];
 
 const SECTION_PATH: Readonly<Record<string, string>> = {
+  Inicio: '/',
+  Noticias: '/noticias',
   Calendario: '/f1/calendario',
   Pilotos: '/f1/pilotos',
   /** Con o sin tilde en el literal del array */

@@ -1,0 +1,157 @@
+<div class="fc-root nw-root">
+  <app-header></app-header>
+
+  <div class="fc-body">
+    <app-side></app-side>
+
+    <main class="fc-shell nw-shell">
+      <nav class="nw-crumb" aria-label="Miga de pan">
+        <a routerLink="/">Inicio</a>
+        <span>/</span>
+        <span>Noticias</span>
+        <span>/</span>
+        <span class="nw-crumb-accent">{{ catLabel() }}</span>
+      </nav>
+
+      <header class="nw-head" [style.--nw-accent]="accent()">
+        <span class="nw-head-bar"></span>
+        <h1>Noticias · {{ catLabel() }}</h1>
+        <span class="nw-count">
+          @if (showPager()) {
+            Página {{ page() }} de {{ totalPages() }} ·
+          }
+          {{ total() }} artículos
+        </span>
+      </header>
+
+      @if (loading()) {
+        <div class="nw-loading">Cargando noticias…</div>
+      } @else if (error(); as err) {
+        <div class="nw-empty">
+          <div class="nw-empty-title">{{ err }}</div>
+        </div>
+      } @else if (!articles().length) {
+        <div class="nw-empty">
+          <div class="nw-empty-title">Sin resultados</div>
+          <p>No hay noticias disponibles en este momento.</p>
+        </div>
+      } @else {
+        <section class="nw-grid" [style.--nw-accent]="accent()">
+          @for (a of featured(); track a.id) {
+            <a
+              class="nw-card nw-card--featured card-anim"
+              [routerLink]="['/noticias', a.id]"
+              [style.--nw-accent]="accent()"
+            >
+              <app-news-image
+                [cat]="a.cat"
+                [src]="a.imageUrl"
+                [alt]="a.title"
+                [featured]="true"
+                [height]="240"
+                [accent]="accent()"
+              />
+              <div class="nw-card-body">
+                <div class="nw-card-meta">
+                  <span
+                    class="nw-pill"
+                    [class.nw-pill--hot]="a.hot"
+                    [class.nw-pill--fe]="a.hot && a.cat === 'fe'"
+                    [class.nw-pill--motogp]="a.hot && a.cat === 'motogp'"
+                  >{{ a.tag }}</span>
+                  <span class="nw-featured-label">DESTACADO</span>
+                  <span class="nw-read">{{ a.readTime }}</span>
+                </div>
+                <div class="nw-title">{{ a.title }}</div>
+                <p class="nw-excerpt">{{ a.excerpt }}</p>
+                <div class="nw-footer">
+                  <span class="nw-avatar">{{ a.author[0] }}</span>
+                  <span class="nw-author">{{ a.author }}</span>
+                  <span class="nw-time">{{ a.time }}</span>
+                </div>
+              </div>
+            </a>
+          }
+
+          @for (a of regular(); track a.id; let i = $index) {
+            <a
+              class="nw-card card-anim"
+              [routerLink]="['/noticias', a.id]"
+              [style.animation-delay.ms]="cardDelay(i)"
+              [style.--nw-accent]="accent()"
+            >
+              <app-news-image
+                [cat]="a.cat"
+                [src]="a.imageUrl"
+                [alt]="a.title"
+                [height]="180"
+                [accent]="accent()"
+              />
+              <div class="nw-card-body">
+                <div class="nw-card-meta">
+                  <span
+                    class="nw-pill"
+                    [class.nw-pill--hot]="a.hot"
+                    [class.nw-pill--fe]="a.hot && a.cat === 'fe'"
+                    [class.nw-pill--motogp]="a.hot && a.cat === 'motogp'"
+                  >{{ a.tag }}</span>
+                  @if (a.hot) {
+                    <svg width="10" height="12" viewBox="0 0 10 12" fill="#ff6b35" aria-hidden="true">
+                      <path d="M5 11C3 11 1 9.5 1 7.5C1 5.5 3 5 3 5C3 6.5 4 7 4 7C4 5 5 2 7 1C6.5 3 7.5 4 7.5 4C8.5 3 9 2 9 2C9.5 3.5 9 5.5 8 6.5C8.5 6 9 5.5 9 5.5C9 7.5 7 11 5 11Z"/>
+                    </svg>
+                  }
+                  <span class="nw-read">{{ a.readTime }}</span>
+                </div>
+                <div class="nw-title">{{ a.title }}</div>
+                <p class="nw-excerpt">{{ a.excerpt }}</p>
+                <div class="nw-footer">
+                  <span class="nw-avatar">{{ a.author[0] }}</span>
+                  <span class="nw-author">{{ a.author }}</span>
+                  <span class="nw-time">{{ a.time }}</span>
+                </div>
+              </div>
+            </a>
+          }
+        </section>
+
+        @if (showPager()) {
+          <nav class="nw-pager" role="navigation" aria-label="Paginación de noticias" [style.--nw-accent]="accent()">
+            <button
+              type="button"
+              class="nw-pager-btn"
+              [disabled]="page() <= 1 || loading()"
+              (click)="goToPage(page() - 1)"
+            >
+              ← Anterior
+            </button>
+
+            <div class="nw-pager-pages">
+              @for (p of pageNumbers(); track p) {
+                <button
+                  type="button"
+                  class="nw-pager-num"
+                  [class.nw-pager-num--on]="p === page()"
+                  [disabled]="loading()"
+                  (click)="goToPage(p)"
+                >
+                  {{ p }}
+                </button>
+              }
+            </div>
+
+            <span class="nw-pager-info">{{ rangeLabel() }}</span>
+
+            <button
+              type="button"
+              class="nw-pager-btn"
+              [disabled]="page() >= totalPages() || loading()"
+              (click)="goToPage(page() + 1)"
+            >
+              Siguiente →
+            </button>
+          </nav>
+        }
+      }
+    </main>
+  </div>
+</div>

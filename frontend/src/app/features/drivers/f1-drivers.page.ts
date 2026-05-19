@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { catchError, forkJoin, of } from 'rxjs';
+import { catchError, of } from 'rxjs';
 import { F1LiveService } from '../f1-live/f1-live.service';
 import type { JolpikaDriverStanding, OpenF1Driver } from '../f1-live/f1-live.types';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
@@ -118,15 +118,12 @@ export class F1DriversPageComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    forkJoin({
-      standings: this.f1.getDriverStandings(),
-      openf1: this.f1.getDrivers('latest').pipe(catchError(() => of<OpenF1Driver[]>([]))),
-    })
+    this.f1
+      .getDriverStandings()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ standings, openf1 }) => {
+        next: (standings) => {
           this.raw.set(standings);
-          this.openf1Drivers.set(openf1);
           this.loading.set(false);
           this.error.set(null);
         },
@@ -135,6 +132,14 @@ export class F1DriversPageComponent implements OnInit {
           this.error.set('No se pudo cargar la clasificación de pilotos.');
         },
       });
+
+    this.f1
+      .getDrivers('latest')
+      .pipe(
+        catchError(() => of<OpenF1Driver[]>([])),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((openf1) => this.openf1Drivers.set(openf1));
   }
 
   initialsFor(card: DriverCard): string {

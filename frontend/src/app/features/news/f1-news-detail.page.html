@@ -1,0 +1,98 @@
+<div class="fc-root nw-root">
+  <app-header></app-header>
+
+  <div class="fc-body">
+    <app-side></app-side>
+
+    <main class="fc-shell">
+      @if (loading()) {
+        <div class="nw-detail nw-loading">Cargando artículo…</div>
+      } @else if (error(); as err) {
+        <div class="nw-detail nw-empty">
+          <div class="nw-empty-title">{{ err }}</div>
+          <a routerLink="/noticias" class="nw-back">← Volver a Noticias</a>
+        </div>
+      } @else if (article(); as a) {
+        <article class="nw-detail" [style.--nw-accent]="accent()">
+          <nav class="nw-crumb" aria-label="Miga de pan">
+            <a routerLink="/">Inicio</a>
+            <span>/</span>
+            <a routerLink="/noticias" [queryParams]="{ cat: a.cat }">Noticias</a>
+            <span>/</span>
+            <span class="nw-crumb-accent">{{ a.title.slice(0, 48) }}…</span>
+          </nav>
+
+          <header>
+            <div class="nw-card-meta" style="margin-bottom: 12px">
+              <span class="nw-pill nw-pill--hot">{{ a.tag }}</span>
+              <span style="font-size: 11px; color: #444">{{ catLabel() }}</span>
+            </div>
+            <h1>{{ a.title }}</h1>
+            <div class="nw-footer" style="border: none; padding-top: 0; margin-bottom: 20px">
+              <span class="nw-avatar" style="width: 32px; height: 32px; font-size: 13px">{{ a.author[0] }}</span>
+              <div>
+                <div style="color: #333; font-weight: 600; font-size: 12px">{{ a.author }}</div>
+                <div style="color: #999; font-size: 11px">{{ a.time }} · {{ a.readTime }} de lectura · {{ a.source }}</div>
+              </div>
+              <div class="nw-detail-actions">
+                <a [href]="a.url" target="_blank" rel="noopener noreferrer">Leer en {{ a.source }}</a>
+              </div>
+            </div>
+          </header>
+
+          <div style="border-radius: 8px; overflow: hidden; margin-bottom: 28px">
+            <app-news-image
+              [cat]="a.cat"
+              [src]="a.imageUrl"
+              [alt]="a.title"
+              [featured]="true"
+              [height]="320"
+              [accent]="accent()"
+            />
+          </div>
+
+          <div class="nw-detail-body">
+            <p class="nw-detail-lead">{{ a.excerpt }}</p>
+            <p>
+              Este resumen proviene de fuentes públicas (RSS). Para el artículo completo y las últimas
+              actualizaciones, abre el enlace oficial del medio.
+            </p>
+            <blockquote class="nw-quote">«{{ a.excerpt }}»</blockquote>
+            <p>
+              BeEngine agrega titulares de BBC Sport, Formula 1, Motorsport.com, Crash.net y otros feeds
+              oficiales para mantenerte al día con {{ catLabel() }}.
+            </p>
+          </div>
+
+          <div class="nw-tags-row">
+            <span>{{ a.tag }}</span>
+            <span>{{ catLabel() }}</span>
+            <span>2026</span>
+            <span>Temporada</span>
+          </div>
+
+          @if (related().length) {
+            <section class="nw-related">
+              <h2>Noticias relacionadas</h2>
+              <div class="nw-related-grid">
+                @for (r of related(); track r.id) {
+                  <a class="nw-card" [routerLink]="['/noticias', r.id]" [style.--nw-accent]="accent()">
+                    <app-news-image [cat]="r.cat" [src]="r.imageUrl" [alt]="r.title" [height]="120" [accent]="accent()" />
+                    <div class="nw-card-body" style="padding: 12px">
+                      <div class="nw-title" style="font-size: 14px; margin-bottom: 6px">{{ r.title }}</div>
+                      <span class="nw-time" style="margin: 0">{{ r.time }}</span>
+                    </div>
+                  </a>
+                }
+              </div>
+            </section>
+          }
+
+          <a routerLink="/noticias" [queryParams]="{ cat: a.cat }" class="nw-back" style="display: inline-block; margin-top: 32px">
+            ← Volver a Noticias
+          </a>
+        </article>
+      }
+    </main>
+  </div>
+</div>

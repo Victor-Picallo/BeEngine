@@ -177,6 +177,12 @@
   margin-bottom: 16px;
 }
 
+.dp-agg-loading {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--text-muted, #999);
+}
+
 .dp-facts {
   display: flex;
   flex-wrap: wrap;
@@ -400,6 +406,12 @@
 .dp-career-pager-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.dp-career.is-career-loading .dp-career-chart,
+.dp-career.is-career-loading .dp-table-wrap {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .dp-season-title {

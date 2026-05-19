@@ -160,6 +160,23 @@ export interface JolpikaDriverProfileCareerRow {
   titleWon: boolean;
 }
 
+export interface JolpikaDriverProfileAggregates {
+  championships: number;
+  stats: {
+    wins: number;
+    podiums: number;
+    poles: number;
+    fastestLaps: number;
+    races: number;
+    points: number;
+    winsCurrentSeason: number;
+  };
+  debut: string;
+  maxCareerPts: number;
+  /** Aún calculando el histórico completo en segundo plano. */
+  partial?: boolean;
+}
+
 export interface JolpikaDriverProfile {
   source: string;
   driverId: string;
@@ -184,6 +201,10 @@ export interface JolpikaDriverProfile {
   currentSeason: JolpikaDriverProfileRaceRow[];
   careerHistory: JolpikaDriverProfileCareerRow[];
   careerHistoryPagination: JolpikaCareerHistoryPagination | null;
+  aggregatesPending?: boolean;
+  /** local | live (baseline + temporada actual) | api (agregados Jolpica completos). */
+  statsSource?: 'local' | 'live' | 'api';
+  aggregatesError?: boolean;
 }
 
 export interface JolpikaConstructorStanding {
@@ -233,6 +254,19 @@ export interface JolpikaConstructorProfileCareerRow {
   titleWon?: boolean;
 }
 
+export interface JolpikaConstructorProfileAggregates {
+  stats: {
+    championships: number;
+    totalWins: number;
+    totalPodiums: number;
+    totalPoles: number;
+  };
+  bioText: string;
+  maxCareerPts: number;
+  /** Aún calculando el histórico completo en segundo plano. */
+  partial?: boolean;
+}
+
 export interface JolpikaConstructorProfile {
   source: string;
   constructorId: string;
@@ -252,6 +286,12 @@ export interface JolpikaConstructorProfile {
   careerHistory: JolpikaConstructorProfileCareerRow[];
   bioText: string;
   careerHistoryPagination: JolpikaCareerHistoryPagination | null;
+  aggregatesPending?: boolean;
+  /** local | live (baseline + 2026) | api (agregados Jolpica completos). */
+  statsSource?: 'local' | 'live' | 'api';
+  aggregatesError?: boolean;
+  /** Jolpica no devolvió filas para la página pedida (p. ej. rate limit). */
+  careerHistoryError?: boolean;
 }
 
 export interface JolpikaCalendarRace {

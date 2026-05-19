@@ -7,9 +7,26 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Location } from '@angular/common';
 import { DecimalPipe, UpperCasePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { catchError, combineLatest, distinctUntilChanged, forkJoin, map, of, switchMap } from 'rxjs';
+import {
+  catchError,
+  EMPTY,
+  expand,
+  finalize,
+  forkJoin,
+  fromEvent,
+  ignoreElements,
+  map,
+  merge,
+  Observable,
+  of,
+  switchMap,
+  takeWhile,
+  tap,
+  timer,
+} from 'rxjs';
 import { F1LiveService } from '../../f1-live/f1-live.service';
 import type {
   JolpikaDriverProfile,
@@ -93,6 +110,7 @@ export class F1DriverProfilePageComponent {
   private readonly f1 = inject(F1LiveService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly location = inject(Location);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly accent = ACCENT;
@@ -100,8 +118,13 @@ export class F1DriverProfilePageComponent {
   readonly fmtBirth = formatBirthEs;
 
   loading = signal(true);
+  careerHistoryLoading = signal(false);
   error = signal<string | null>(null);
   profile = signal<JolpikaDriverProfile | null>(null);
+
+  private lastLoadedDriverId = '';
+  private scrollRestoreY: number | null = null;
+  private careerLoadGen = 0;
   openf1 = signal<OpenF1Driver | undefined>(undefined);
   standing = signal<JolpikaDriverStanding | undefined>(undefined);
 
@@ -182,56 +205,202 @@ export class F1DriverProfilePageComponent {
 
   stepCareerPage(delta: number): void {
     const pag = this.profile()?.careerHistoryPagination;
-    if (!pag) return;
+    if (!pag || this.careerHistoryLoading()) return;
     const next = Math.min(Math.max(1, pag.page + delta), pag.totalPages);
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { careerPage: next > 1 ? next : null },
-      queryParamsHandling: 'merge',
-    });
+    if (next === pag.page) return;
+    this.loadCareerPage(next, true);
   }
 
   constructor() {
-    combineLatest([this.route.paramMap, this.route.queryParamMap])
+    fromEvent(window, 'popstate')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        const id = this.route.snapshot.paramMap.get('driverId')?.trim() ?? '';
+        if (!id || id !== this.lastLoadedDriverId || !this.profile()) return;
+        const page = this.readCareerPageFromUrl();
+        const cur = this.profile()?.careerHistoryPagination?.page ?? 1;
+        if (page === cur) return;
+        this.loadCareerPage(page, false);
+      });
+
+    this.route.paramMap
       .pipe(
-        map(([params, q]) => ({
-          id: params.get('driverId')?.trim() ?? '',
-          careerPage: Math.max(1, parseInt(q.get('careerPage') || '1', 10) || 1),
-        })),
-        distinctUntilChanged((a, b) => a.id === b.id && a.careerPage === b.careerPage),
-        switchMap(({ id, careerPage }) => {
+        map((params) => params.get('driverId')?.trim() ?? ''),
+        switchMap((id) => {
           if (!id) {
             this.loading.set(false);
             this.error.set('Piloto no indicado.');
-            return of(null);
+            return EMPTY;
           }
-          this.loading.set(true);
-          this.error.set(null);
-          return forkJoin({
-            profile: this.f1.getDriverProfile(id, careerPage).pipe(catchError(() => of(null))),
-            openf1: this.f1.getDrivers('latest').pipe(catchError(() => of<OpenF1Driver[]>([]))),
-            standings: this.f1.getDriverStandings().pipe(catchError(() => of<JolpikaDriverStanding[]>([]))),
-          });
+          this.lastLoadedDriverId = '';
+          return this.loadFullProfile(id);
         }),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe(res => {
-        if (res === null) return;
+      .subscribe();
+  }
+
+  private readCareerPageFromUrl(): number {
+    return Math.max(
+      1,
+      parseInt(this.route.snapshot.queryParamMap.get('careerPage') || '1', 10) || 1,
+    );
+  }
+
+  private syncCareerPageUrl(page: number): void {
+    const tree = this.router.createUrlTree([], {
+      relativeTo: this.route,
+      queryParams: { careerPage: page > 1 ? page : null },
+      queryParamsHandling: 'merge',
+    });
+    this.location.replaceState(this.router.serializeUrl(tree));
+  }
+
+  private restoreScroll(): void {
+    if (this.scrollRestoreY == null) return;
+    const y = this.scrollRestoreY;
+    this.scrollRestoreY = null;
+    requestAnimationFrame(() => window.scrollTo(0, y));
+  }
+
+  private loadCareerPage(page: number, updateUrl: boolean): void {
+    const id = this.lastLoadedDriverId;
+    if (!id || !this.profile()) return;
+
+    if (updateUrl) {
+      this.scrollRestoreY = window.scrollY;
+      this.syncCareerPageUrl(page);
+    }
+
+    const gen = ++this.careerLoadGen;
+    this.careerHistoryLoading.set(true);
+    this.f1
+      .getDriverProfile(id, page)
+      .pipe(
+        catchError(() => EMPTY),
+        finalize(() => {
+          if (gen !== this.careerLoadGen) return;
+          this.careerHistoryLoading.set(false);
+          this.restoreScroll();
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((profile) => {
+        if (!profile || gen !== this.careerLoadGen) return;
+        const prev = this.profile()!;
+        this.profile.set({
+          ...prev,
+          careerHistory: profile.careerHistory,
+          careerHistoryPagination: profile.careerHistoryPagination,
+        });
+      });
+  }
+
+  private loadFullProfile(id: string): Observable<void> {
+    this.syncCareerPageUrl(1);
+    const careerPage = 1;
+    this.loading.set(true);
+    this.error.set(null);
+
+    return forkJoin({
+      profile: this.f1.getDriverProfile(id, careerPage).pipe(catchError(() => of(null))),
+      openf1: this.f1.getDrivers('latest').pipe(catchError(() => of<OpenF1Driver[]>([]))),
+      standings: this.f1.getDriverStandings().pipe(catchError(() => of<JolpikaDriverStanding[]>([]))),
+    }).pipe(
+      switchMap((res) => {
         if (!res.profile) {
           this.profile.set(null);
           this.loading.set(false);
           this.error.set('No se encontró la ficha de este piloto.');
-          return;
+          return EMPTY;
         }
+
+        this.lastLoadedDriverId = res.profile.driverId;
         const p = res.profile;
         const o = matchOpenF1Driver(p, res.openf1);
-        const st = res.standings.find(s => s.driverId === p.driverId);
+        const st = res.standings.find((s) => s.driverId === p.driverId);
         this.profile.set(p);
         this.openf1.set(o);
         this.standing.set(st);
         this.loading.set(false);
         this.error.set(null);
-      });
+
+        const mergeAggregates = (agg: {
+          championships: number;
+          stats: JolpikaDriverProfile['stats'];
+          debut: string;
+          maxCareerPts: number;
+          partial?: boolean;
+        }) => {
+          const cur = this.profile();
+          if (!cur) return;
+          const pag = cur.careerHistoryPagination;
+          const stillPending = agg.partial === true;
+          const statsSource = stillPending
+            ? cur.statsSource === 'api'
+              ? 'api'
+              : 'live'
+            : 'api';
+          const nextStats = stillPending
+            ? {
+                wins: Math.max(cur.stats.wins, agg.stats.wins ?? 0),
+                podiums: Math.max(cur.stats.podiums, agg.stats.podiums ?? 0),
+                poles: Math.max(cur.stats.poles, agg.stats.poles ?? 0),
+                fastestLaps: Math.max(cur.stats.fastestLaps, agg.stats.fastestLaps ?? 0),
+                races: Math.max(cur.stats.races, agg.stats.races ?? 0),
+                points: Math.max(cur.stats.points, agg.stats.points ?? 0),
+                winsCurrentSeason:
+                  agg.stats.winsCurrentSeason ?? cur.stats.winsCurrentSeason,
+              }
+            : agg.stats;
+          this.profile.set({
+            ...cur,
+            championships: stillPending
+              ? Math.max(cur.championships, agg.championships ?? 0)
+              : agg.championships,
+            debut: agg.debut?.trim() ? agg.debut : cur.debut,
+            stats: nextStats,
+            aggregatesPending: stillPending,
+            aggregatesError: false,
+            statsSource,
+            careerHistoryPagination: pag
+              ? { ...pag, maxPts: agg.maxCareerPts ?? pag.maxPts }
+              : null,
+          });
+        };
+
+        const shouldSyncAggregates =
+          p.aggregatesPending || p.statsSource !== 'api';
+
+        if (!shouldSyncAggregates) {
+          return of(undefined);
+        }
+
+        const agg$ = this.f1.getDriverProfileAggregates(id).pipe(
+          expand((agg, i) =>
+            agg.partial && i < 40
+              ? timer(5000).pipe(switchMap(() => this.f1.getDriverProfileAggregates(id)))
+              : EMPTY,
+          ),
+          tap((agg) => mergeAggregates(agg)),
+          takeWhile((agg) => agg.partial === true, true),
+          catchError(() => {
+            const cur = this.profile();
+            if (cur && !cur.championships && !cur.stats.wins) {
+              this.profile.set({
+                ...cur,
+                aggregatesPending: false,
+                aggregatesError: true,
+              });
+            }
+            return EMPTY;
+          }),
+          ignoreElements(),
+        );
+
+        return merge(of(undefined), agg$).pipe(map(() => undefined));
+      }),
+    );
   }
 
   imgError(ev: Event): void {

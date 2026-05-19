@@ -6,6 +6,12 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
+/* Mismo hover que .fc-card:hover del calendario (la regla anterior lo pisaba por especificidad). */
+.fc-constructors .fc-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
 /* Líder constructores: mismo acento que pilotos (.fc-card.next en calendario), sin que lo pise la regla anterior. */
 .fc-constructors .fc-card.next {
   border-color: var(--accent, #ffd100);

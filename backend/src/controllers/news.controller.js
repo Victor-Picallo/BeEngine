@@ -1,10 +1,50 @@
-import { getNewsByCategory } from '../services/news.service.js';
+import {
+  getNewsByCategory,
+  getNewsArticles,
+  getNewsArticleById,
+} from '../services/news.service.js';
+import { NEWS_TAGS } from '../data/newsFeeds.config.js';
 import { success, error } from '../utils/response.js';
 import { HTTP_STATUS } from '../constants/http.js';
 
-export const getNews = (req, res) => {
-  const { category } = req.params;
-  const items = getNewsByCategory(category);
-  if (!items) return error(res, 'Category not found', HTTP_STATUS.NOT_FOUND);
-  success(res, { category, total: items.length, items });
+const NEWS_CACHE = 'public, max-age=60, stale-while-revalidate=300';
+
+export const getNews = async (req, res) => {
+  try {
+    const { category } = req.params;
+    const items = await getNewsByCategory(category);
+    if (!items) return error(res, 'Category not found', HTTP_STATUS.NOT_FOUND);
+    success(res, { category, total: items.length, items }, 200, {
+      'Cache-Control': NEWS_CACHE,
+    });
+  } catch (err) {
+    error(res, err.message);
+  }
+};
+
+export const getNewsFeed = async (req, res) => {
+  try {
+    const { category } = req.params;
+    const tag = String(req.query.tag ?? 'Todos');
+    const limit = req.query.limit;
+    const offset = req.query.offset;
+    const data = await getNewsArticles(category, { tag, limit, offset });
+    success(res, data, 200, { 'Cache-Control': NEWS_CACHE });
+  } catch (err) {
+    error(res, err.message);
+  }
+};
+
+export const getNewsArticle = async (req, res) => {
+  try {
+    const article = await getNewsArticleById(req.params.articleId);
+    if (!article) return error(res, 'Article not found', HTTP_STATUS.NOT_FOUND);
+    success(res, article, 200, { 'Cache-Control': NEWS_CACHE });
+  } catch (err) {
+    error(res, err.message);
+  }
+};
+
+export const getNewsMeta = (_req, res) => {
+  success(res, { tags: NEWS_TAGS });
 };

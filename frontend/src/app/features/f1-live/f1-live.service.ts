@@ -1,11 +1,13 @@
 import { inject, Injectable } from '@angular/core';
-import { map, Observable } from 'rxjs';
+import { map, Observable, shareReplay } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import {
   JolpikaCalendarRace,
   JolpikaConstructorProfile,
+  JolpikaConstructorProfileAggregates,
   JolpikaConstructorStanding,
   JolpikaDriverProfile,
+  JolpikaDriverProfileAggregates,
   JolpikaDriverStanding,
   JolpikaLastRace,
   JolpikaRaceResult,
@@ -34,6 +36,9 @@ const sessionQuery = (sessionKey?: number | 'latest' | null): string => {
 @Injectable({ providedIn: 'root' })
 export class F1LiveService {
   private readonly api = inject(ApiService);
+  /** Evita repetir GET al volver de una ficha. */
+  private constructorStandings$?: Observable<JolpikaConstructorStanding[]>;
+  private driverStandings$?: Observable<JolpikaDriverStanding[]>;
 
   getSessions(): Observable<OpenF1Session[]> {
     return this.api.get<OpenF1Session[]>('/f1/openf1/sessions');
@@ -77,10 +82,17 @@ export class F1LiveService {
     return this.api.get<OpenF1Location[]>(`${base}&session_key=${encodeURIComponent(String(sessionKey))}`);
   }
 
-  getDriverStandings(): Observable<JolpikaDriverStanding[]> {
-    return this.api
-      .get<SourceWrapped<JolpikaDriverStanding>>('/f1/jolpica/driver-standings')
-      .pipe(map(res => res.items ?? []));
+  getDriverStandings(forceRefresh = false): Observable<JolpikaDriverStanding[]> {
+    if (forceRefresh) this.driverStandings$ = undefined;
+    if (!this.driverStandings$) {
+      this.driverStandings$ = this.api
+        .get<SourceWrapped<JolpikaDriverStanding>>('/f1/jolpica/driver-standings')
+        .pipe(
+          map((res) => res.items ?? []),
+          shareReplay({ bufferSize: 1, refCount: false }),
+        );
+    }
+    return this.driverStandings$;
   }
 
   getDriverProfile(driverId: string, careerPage = 1): Observable<JolpikaDriverProfile> {
@@ -90,10 +102,24 @@ export class F1LiveService {
     return this.api.get<JolpikaDriverProfile>(`/f1/jolpica/drivers/${id}/profile${q}`);
   }
 
-  getConstructorStandings(): Observable<JolpikaConstructorStanding[]> {
-    return this.api
-      .get<SourceWrapped<JolpikaConstructorStanding>>('/f1/jolpica/constructor-standings')
-      .pipe(map(res => res.items ?? []));
+  getDriverProfileAggregates(driverId: string): Observable<JolpikaDriverProfileAggregates> {
+    const id = encodeURIComponent(driverId.trim());
+    return this.api.get<JolpikaDriverProfileAggregates>(
+      `/f1/jolpica/drivers/${id}/profile/aggregates`,
+    );
+  }
+
+  getConstructorStandings(forceRefresh = false): Observable<JolpikaConstructorStanding[]> {
+    if (forceRefresh) this.constructorStandings$ = undefined;
+    if (!this.constructorStandings$) {
+      this.constructorStandings$ = this.api
+        .get<SourceWrapped<JolpikaConstructorStanding>>('/f1/jolpica/constructor-standings')
+        .pipe(
+          map((res) => res.items ?? []),
+          shareReplay({ bufferSize: 1, refCount: false }),
+        );
+    }
+    return this.constructorStandings$;
   }
 
   getConstructorProfile(constructorId: string, careerPage = 1): Observable<JolpikaConstructorProfile> {
@@ -101,6 +127,15 @@ export class F1LiveService {
     const p = Math.max(1, careerPage);
     const q = p > 1 ? `?careerPage=${p}` : '';
     return this.api.get<JolpikaConstructorProfile>(`/f1/jolpica/constructors/${id}/profile${q}`);
+  }
+
+  getConstructorProfileAggregates(
+    constructorId: string,
+  ): Observable<JolpikaConstructorProfileAggregates> {
+    const id = encodeURIComponent(constructorId.trim());
+    return this.api.get<JolpikaConstructorProfileAggregates>(
+      `/f1/jolpica/constructors/${id}/profile/aggregates`,
+    );
   }
 
   getCalendar(): Observable<JolpikaCalendarRace[]> {

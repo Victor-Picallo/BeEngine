@@ -20,7 +20,9 @@ export const TEAM_COLORS: Record<string, string> = {
   'kick sauber': '#52E252',
   sauber: '#52E252',
   audi: '#E5002B',
+  'audi revolut f1 team': '#E5002B',
   'cadillac f1 team': '#C0C0C0',
+  cadillac: '#C0C0C0',
 };
 
 const NATIONALITY_TO_CC: Record<string, string> = {

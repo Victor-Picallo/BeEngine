@@ -9,7 +9,7 @@ const cache = new Map();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** Evita ráfagas que disparen 429; subir demasiado poco no ayuda, bajar bloquea el perfil. */
-const MAX_CONCURRENT_FETCHES = 12;
+const MAX_CONCURRENT_FETCHES = 8;
 let jolpicaActiveFetches = 0;
 const jolpicaFetchQueue = [];
 

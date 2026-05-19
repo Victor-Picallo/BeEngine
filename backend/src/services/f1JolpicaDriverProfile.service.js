@@ -1,10 +1,28 @@
 import { jolpicaClient } from '../external/jolpica/jolpica.client.js';
-import { paginateCareerHistoryByRecentPage } from '../utils/careerPagination.js';
+import { CAREER_HISTORY_PAGE_SIZE, paginateCareerHistoryByRecentPage } from '../utils/careerPagination.js';
+import {
+  getDriverHistoricalStats,
+  mergeDriverHistoricalWithLive,
+} from '../data/f1DriverHistoricalStats.js';
 
 /** Driver profile hits Jolpica many times; allow a bit more than the global default. */
 const PROFILE_JOLPICA = { timeoutMs: 8_000 };
 /** Parallel driverStandings fetches (per season). Keep moderate to reduce 429s. */
 const STANDINGS_POOL = 4;
+const PROFILE_STANDINGS_POOL = 5;
+const DRIVER_HIST_SPAN = Math.max(
+  30,
+  parseInt(process.env.DRIVER_PROFILE_HIST_SPAN || '76', 10),
+);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const DRIVER_AGGREGATE_CACHE_MS = Math.max(
+  60_000,
+  parseInt(process.env.DRIVER_AGGREGATE_CACHE_MS || String(4 * 60 * 60 * 1000), 10),
+);
+const driverAggregateCache = new Map();
+const driverAggregateInflight = new Map();
+let driverAggregateGlobalChain = Promise.resolve();
 
 const GP_SHORT_ES = {
   'Bahrain Grand Prix': 'Bahréin',
@@ -218,7 +236,209 @@ function debutLabel(allRaces, driverId) {
   return '—';
 }
 
-export const getDriverProfile = async (rawDriverId, opts = {}) => {
+function driverYearSlots(seasonYear, span) {
+  const slots = [];
+  for (let y = seasonYear; y >= seasonYear - span; y -= 1) slots.push(y);
+  return slots;
+}
+
+function yearsSliceForCareerPage(seasonYear, span, careerPage) {
+  const slots = driverYearSlots(seasonYear, span);
+  const n = slots.length;
+  const pageSize = CAREER_HISTORY_PAGE_SIZE;
+  const totalPages = Math.max(1, Math.ceil(n / pageSize));
+  const p = Math.min(Math.max(1, careerPage), totalPages);
+  const start = (p - 1) * pageSize;
+  const end = Math.min(start + pageSize, n);
+  return { years: slots.slice(start, end), totalYears: n, totalPages, page: p, pageSize };
+}
+
+async function fetchCurrentDriverStanding(driverId) {
+  try {
+    const raw = await jolpicaClient.get('/current/driverStandings.json', PROFILE_JOLPICA);
+    const list = raw?.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings ?? [];
+    const ds = list.find((d) => d.Driver?.driverId === driverId);
+    if (!ds) return null;
+    return {
+      pos: parseInt(ds.position, 10),
+      points: parseFloat(ds.points),
+      wins: parseInt(ds.wins ?? '0', 10),
+      team: ds.Constructors?.[0]?.name ?? 'Unknown',
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchCurrentSeasonResultRows(driverId, seasonYear) {
+  try {
+    const raw = await jolpicaClient.get(
+      `/current/drivers/${driverId}/results.json`,
+      PROFILE_JOLPICA,
+    );
+    const races = raw?.MRData?.RaceTable?.Races ?? [];
+    return races
+      .map((r) => parseResultRow(r, driverId))
+      .filter(Boolean)
+      .sort((a, b) => a.round - b.round);
+  } catch {
+    return [];
+  }
+}
+
+function buildCareerRowFromStanding(year, standingResult, calendarYear, officialCurrentRounds) {
+  const { ds, standingsRound } = standingResult;
+  if (!ds) return null;
+  const pos = parseInt(ds.position, 10);
+  const wins = parseInt(ds.wins ?? '0', 10);
+  const pts = parseFloat(ds.points ?? '0');
+  const totalRounds = year === calendarYear && officialCurrentRounds > 0 ? officialCurrentRounds : 0;
+  const seasonComplete =
+    year < calendarYear ||
+    (year === calendarYear && totalRounds > 0 && standingsRound >= totalRounds);
+  const titleWon = Number.isFinite(pos) && pos === 1 && seasonComplete;
+
+  return {
+    year,
+    team: ds.Constructors?.[0]?.name ?? '—',
+    races: 0,
+    wins: Number.isFinite(wins) ? wins : 0,
+    podiums: 0,
+    poles: 0,
+    pts: Number.isFinite(pts) ? pts : 0,
+    pos: Number.isFinite(pos) && pos > 0 ? pos : null,
+    seasonComplete,
+    titleWon,
+  };
+}
+
+function writeDriverAggregateCache(driverId, payload, partial = false) {
+  driverAggregateCache.set(driverId, { ts: Date.now(), partial, ...payload });
+}
+
+function scheduleDriverAggregatePrefetch(driverId) {
+  const hit = driverAggregateCache.get(driverId);
+  if (hit && Date.now() - hit.ts < DRIVER_AGGREGATE_CACHE_MS && !hit.partial) return;
+  if (driverAggregateInflight.has(driverId)) return;
+
+  driverAggregateGlobalChain = driverAggregateGlobalChain
+    .then(() => sleep(500))
+    .then(() => startDriverAggregateJob(driverId))
+    .catch(() => {});
+}
+
+function startDriverAggregateJob(driverId) {
+  const hit = driverAggregateCache.get(driverId);
+  if (hit && Date.now() - hit.ts < DRIVER_AGGREGATE_CACHE_MS && !hit.partial) {
+    return Promise.resolve({
+      stats: hit.stats,
+      championships: hit.championships,
+      debut: hit.debut,
+      maxCareerPts: hit.maxCareerPts,
+      partial: false,
+    });
+  }
+
+  let inflight = driverAggregateInflight.get(driverId);
+  if (inflight) return inflight;
+
+  inflight = driverAggregateGlobalChain
+    .then(() => buildFullDriverProfileFromJolpica(driverId, 1))
+    .then((profile) => {
+      const maxCareerPts = profile.careerHistoryPagination?.maxPts
+        ?? (profile.careerHistory.length
+          ? Math.max(1, ...profile.careerHistory.map((r) => r.pts))
+          : 1);
+      const payload = {
+        stats: profile.stats,
+        championships: profile.championships,
+        debut: profile.debut,
+        maxCareerPts,
+      };
+      writeDriverAggregateCache(driverId, payload, false);
+      driverAggregateInflight.delete(driverId);
+      return { ...payload, partial: false };
+    })
+    .catch((err) => {
+      driverAggregateInflight.delete(driverId);
+      const partial = driverAggregateCache.get(driverId);
+      if (partial?.stats) {
+        return {
+          stats: partial.stats,
+          championships: partial.championships,
+          debut: partial.debut,
+          maxCareerPts: partial.maxCareerPts,
+          partial: true,
+        };
+      }
+      throw err;
+    });
+
+  driverAggregateInflight.set(driverId, inflight);
+  driverAggregateGlobalChain = inflight.catch(() => {});
+  return inflight;
+}
+
+const DRIVER_AGGREGATES_HTTP_WAIT_MS = Math.max(
+  5_000,
+  parseInt(process.env.DRIVER_AGGREGATES_WAIT_MS || '22000', 10),
+);
+
+async function buildQuickLiveDriverAggregate(driverId) {
+  const historical = getDriverHistoricalStats(driverId);
+  if (!historical) return null;
+
+  const [{ season }, standing] = await Promise.all([
+    fetchCurrentSeasonMeta(),
+    fetchCurrentDriverStanding(driverId),
+  ]);
+
+  const merged = mergeDriverHistoricalWithLive(historical, { standing, seasonYear: season });
+  const hit = driverAggregateCache.get(driverId);
+
+  return {
+    stats: merged.stats,
+    championships: merged.championships,
+    debut: hit?.debut ?? historical.debut,
+    maxCareerPts: hit?.maxCareerPts ?? merged.maxCareerPts,
+    partial: true,
+  };
+}
+
+export async function getDriverProfileAggregates(rawDriverId) {
+  const driverId = sanitizeDriverId(rawDriverId);
+
+  const hit = driverAggregateCache.get(driverId);
+  if (hit && Date.now() - hit.ts < DRIVER_AGGREGATE_CACHE_MS && !hit.partial) {
+    return {
+      stats: hit.stats,
+      championships: hit.championships,
+      debut: hit.debut,
+      maxCareerPts: hit.maxCareerPts,
+      partial: false,
+    };
+  }
+
+  if (!driverAggregateInflight.has(driverId)) {
+    scheduleDriverAggregatePrefetch(driverId);
+  }
+
+  const quick = await buildQuickLiveDriverAggregate(driverId);
+  if (quick) {
+    const raced = await Promise.race([
+      driverAggregateInflight.get(driverId) ?? startDriverAggregateJob(driverId),
+      sleep(DRIVER_AGGREGATES_HTTP_WAIT_MS).then(() => null),
+    ]);
+    if (raced && !raced.partial) return raced;
+    return quick;
+  }
+
+  const job = driverAggregateInflight.get(driverId) ?? startDriverAggregateJob(driverId);
+  return job;
+}
+
+/** Cálculo completo vía Jolpica (pesado; resultados de toda la carrera). */
+async function buildFullDriverProfileFromJolpica(rawDriverId, opts = {}) {
   const careerPage = Math.max(1, parseInt(String(opts.careerPage ?? '1'), 10) || 1);
   const driverId = sanitizeDriverId(rawDriverId);
   /** Calendar year (UTC): seasons strictly before this are treated as final in Ergast. */
@@ -368,5 +588,142 @@ export const getDriverProfile = async (rawDriverId, opts = {}) => {
     currentSeason: currentSeasonRows,
     careerHistory: careerHistoryPage,
     careerHistoryPagination,
+  };
+}
+
+/**
+ * Ficha rápida: stats históricos locales + temporada actual; agregados completos en background.
+ */
+export const getDriverProfile = async (rawDriverId, opts = {}) => {
+  const careerPage = Math.max(1, parseInt(String(opts.careerPage ?? '1'), 10) || 1);
+  const driverId = sanitizeDriverId(rawDriverId);
+  const calendarYear = new Date().getUTCFullYear();
+
+  const driverRaw = await jolpicaClient
+    .get(`/drivers/${driverId}.json`, PROFILE_JOLPICA)
+    .catch(() => null);
+  const d0 = driverRaw?.MRData?.DriverTable?.Drivers?.[0];
+  if (!d0) {
+    const err = new Error('Driver not found');
+    err.code = 'NOT_FOUND';
+    throw err;
+  }
+
+  const currentMeta = await fetchCurrentSeasonMeta();
+  const f1SeasonYear = currentMeta.season;
+  const slice = yearsSliceForCareerPage(f1SeasonYear, DRIVER_HIST_SPAN, careerPage);
+
+  const [standing, currentSeasonRows, standingsList] = await Promise.all([
+    fetchCurrentDriverStanding(driverId),
+    fetchCurrentSeasonResultRows(driverId, f1SeasonYear),
+    mapPool(slice.years, PROFILE_STANDINGS_POOL, (year) =>
+      fetchStandingForYear(year, driverId),
+    ),
+  ]);
+
+  const careerHistory = slice.years
+    .map((year, idx) =>
+      buildCareerRowFromStanding(
+        year,
+        standingsList[idx],
+        calendarYear,
+        currentMeta.rounds,
+      ),
+    )
+    .filter(Boolean);
+
+  const maxPtsPage = careerHistory.length
+    ? Math.max(1, ...careerHistory.map((r) => r.pts))
+    : 1;
+
+  let careerHistoryPagination = null;
+  if (slice.totalYears > CAREER_HISTORY_PAGE_SIZE) {
+    careerHistoryPagination = {
+      page: slice.page,
+      pageSize: slice.pageSize,
+      totalYears: slice.totalYears,
+      totalPages: slice.totalPages,
+      maxPts: maxPtsPage,
+    };
+  }
+
+  const historical = getDriverHistoricalStats(driverId);
+  const agg = driverAggregateCache.get(driverId);
+  const aggFresh = agg && Date.now() - agg.ts < DRIVER_AGGREGATE_CACHE_MS && !agg.partial;
+  const currentYearRow = careerHistory.find((r) => r.year === f1SeasonYear) ?? null;
+
+  let championships;
+  let stats;
+  let debut;
+  let aggregatesPending = false;
+  let statsSource = 'local';
+
+  if (aggFresh) {
+    championships = agg.championships;
+    stats = agg.stats;
+    debut = agg.debut;
+    statsSource = 'api';
+    if (careerHistoryPagination) {
+      careerHistoryPagination = { ...careerHistoryPagination, maxPts: agg.maxCareerPts };
+    }
+  } else if (historical) {
+    const merged = mergeDriverHistoricalWithLive(historical, {
+      standing,
+      seasonYear: f1SeasonYear,
+      currentYearRow,
+    });
+    championships = merged.championships;
+    stats = merged.stats;
+    debut = historical.debut;
+    statsSource = standing ? 'live' : 'local';
+    aggregatesPending = true;
+    if (careerHistoryPagination) {
+      careerHistoryPagination = {
+        ...careerHistoryPagination,
+        maxPts: historical.maxCareerPts,
+      };
+    } else {
+      careerHistoryPagination = null;
+    }
+    scheduleDriverAggregatePrefetch(driverId);
+  } else {
+    aggregatesPending = true;
+    championships = 0;
+    stats = {
+      wins: 0,
+      podiums: 0,
+      poles: 0,
+      fastestLaps: 0,
+      races: 0,
+      points: 0,
+      winsCurrentSeason: standing?.wins ?? 0,
+    };
+    debut = '—';
+    scheduleDriverAggregatePrefetch(driverId);
+  }
+
+  const permanentNumber =
+    d0.permanentNumber != null && d0.permanentNumber !== ''
+      ? parseInt(String(d0.permanentNumber), 10)
+      : null;
+
+  return {
+    source: 'external',
+    driverId: d0.driverId,
+    givenName: d0.givenName,
+    familyName: d0.familyName,
+    code: d0.code ?? '',
+    number: Number.isFinite(permanentNumber) ? permanentNumber : null,
+    dateOfBirth: d0.dateOfBirth ?? null,
+    nationality: d0.nationality ?? '',
+    championships,
+    debut,
+    currentSeasonYear: f1SeasonYear,
+    stats,
+    currentSeason: currentSeasonRows,
+    careerHistory,
+    careerHistoryPagination,
+    aggregatesPending,
+    statsSource,
   };
 };

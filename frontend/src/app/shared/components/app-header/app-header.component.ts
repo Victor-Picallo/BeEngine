@@ -49,10 +49,15 @@ export class AppHeaderComponent implements OnInit {
 
   onCatChange(id: string): void {
     this.activeCat.set(id);
-    // Other categories don't have implemented pages yet — return to home where
-    // the category-aware dashboard lives.
+    const url = this.router.url.split('?')[0];
+    if (url.startsWith('/noticias')) {
+      this.router.navigate(['/noticias'], {
+        queryParams: { cat: id, page: null },
+      });
+      return;
+    }
     if (id !== 'f1') {
-      this.router.navigate(['/']);
+      this.router.navigate(['/noticias'], { queryParams: { cat: id, page: null } });
     }
   }
 }

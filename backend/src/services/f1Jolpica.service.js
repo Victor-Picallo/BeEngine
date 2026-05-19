@@ -1,61 +1,15 @@
 import { jolpicaClient } from '../external/jolpica/jolpica.client.js';
 import f1Mock from '../data/f1.data.js';
-
-const normName = (s) =>
-  String(s ?? '')
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .trim();
+import {
+  getConstructorStandingsResponse,
+  warmConstructorStandingsCache,
+} from './f1ConstructorStandingsStore.js';
+import {
+  getDriverStandingsResponse,
+  warmDriverStandingsCache,
+} from './f1DriverStandingsStore.js';
 
 // ── Normalizers ───────────────────────────────────────────
-
-const normalizeCurrentSeasonDrivers = (raw) => {
-  const drivers = raw?.MRData?.DriverTable?.Drivers ?? [];
-  return drivers.map((d) => ({
-    driverId: d.driverId,
-    fullName: `${d.givenName} ${d.familyName}`.trim(),
-    code:     (d.code ?? '').trim().toUpperCase(),
-  }));
-};
-
-const enrichStandingsDriverIds = (rows, seasonDrivers) => {
-  if (!seasonDrivers.length) return rows;
-  return rows.map((row) => {
-    const id = (row.driverId ?? '').trim();
-    if (id && id !== 'unknown') return row;
-    const jn = normName(row.driver);
-    const byName = seasonDrivers.find((s) => normName(s.fullName) === jn);
-    if (byName?.driverId) return { ...row, driverId: byName.driverId };
-    return row;
-  });
-};
-
-const normalizeDriverStandings = (raw) => {
-  const list = raw?.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings ?? [];
-  return list.map((ds) => ({
-    pos:         parseInt(ds.position),
-    driver:      `${ds.Driver.givenName} ${ds.Driver.familyName}`,
-    driverId:    ds.Driver?.driverId ?? '',
-    team:        ds.Constructors?.[0]?.name ?? 'Unknown',
-    points:      parseFloat(ds.points),
-    wins:        parseInt(ds.wins),
-    nationality: ds.Driver.nationality,
-  }));
-};
-
-const normalizeConstructorStandings = (raw) => {
-  const list = raw?.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings ?? [];
-  return list.map((cs) => ({
-    pos:            parseInt(cs.position),
-    team:           cs.Constructor.name,
-    constructorId: cs.Constructor.constructorId ?? '',
-    points:         parseFloat(cs.points),
-    wins:           parseInt(cs.wins),
-    nationality:    cs.Constructor.nationality,
-  }));
-};
 
 const normalizeCalendar = (raw) => {
   const races = raw?.MRData?.RaceTable?.Races ?? [];
@@ -165,31 +119,13 @@ const fallbackCalendar = () => {
 
 // ── Public service ────────────────────────────────────────
 
-export const getDriverStandings = async () => {
-  try {
-    const [rawStand, rawSeasonDrivers] = await Promise.all([
-      jolpicaClient.get('/current/driverStandings.json'),
-      jolpicaClient.get('/current/drivers.json').catch(() => null),
-    ]);
-    let items = normalizeDriverStandings(rawStand);
-    if (rawSeasonDrivers) {
-      const season = normalizeCurrentSeasonDrivers(rawSeasonDrivers);
-      items = enrichStandingsDriverIds(items, season);
-    }
-    return { source: 'external', items };
-  } catch {
-    return { source: 'mock', items: fallbackDriverStandings() };
-  }
-};
+/** Listado de pilotos: grid local al instante; puntos vía caché Jolpica en segundo plano. */
+export const getDriverStandings = async () => getDriverStandingsResponse();
 
-export const getConstructorStandings = async () => {
-  try {
-    const raw = await jolpicaClient.get('/current/constructorStandings.json');
-    return { source: 'external', items: normalizeConstructorStandings(raw) };
-  } catch {
-    return { source: 'mock', items: fallbackConstructorStandings() };
-  }
-};
+/** Listado de escuderías: grid local al instante; puntos vía caché Jolpica en segundo plano. */
+export const getConstructorStandings = async () => getConstructorStandingsResponse();
+
+export { warmConstructorStandingsCache, warmDriverStandingsCache };
 
 export const getCalendar = async () => {
   try {

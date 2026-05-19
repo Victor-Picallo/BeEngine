@@ -65,5 +65,17 @@ export const routes: Routes = [
   // Back-compat: old English path
   { path: 'f1/calendar', redirectTo: 'f1/calendario', pathMatch: 'full' },
 
+  {
+    path: 'noticias',
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('./features/news/f1-news.page').then(m => m.F1NewsPageComponent),
+  },
+  {
+    path: 'noticias/:articleId',
+    loadComponent: () =>
+      import('./features/news/f1-news-detail.page').then(m => m.F1NewsDetailPageComponent),
+  },
+
   { path: '**', redirectTo: '' },
 ];

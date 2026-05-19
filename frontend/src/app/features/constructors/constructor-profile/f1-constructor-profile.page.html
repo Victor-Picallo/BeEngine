@@ -107,6 +107,15 @@
             </div>
           </div>
 
+          @if (p.aggregatesPending) {
+            <p class="cp-agg-loading">
+              @if (p.statsSource === 'live') {
+                Sincronizando con Jolpica (temporada {{ p.currentSeasonYear }})…
+              } @else {
+                Actualizando resumen histórico…
+              }
+            </p>
+          }
           @if (p.stats.championships > 0) {
             <div class="cp-champ-banner">
               <span class="cp-champ-pill">{{ p.stats.championships }}×</span>
@@ -123,13 +132,30 @@
           <div class="cp-stat-grid">
             <div class="cp-stat-card">
               <div class="cp-stat-label">Títulos constructores</div>
-              <div class="cp-stat-val" [class.cp-accent]="p.stats.championships > 0">
-                {{ p.stats.championships }}
+              <div
+                class="cp-stat-val"
+                [class.cp-accent]="p.stats.championships > 0"
+              >
+                @if (p.aggregatesPending && !p.stats.championships) {
+                  …
+                } @else if (p.aggregatesError && !p.stats.championships) {
+                  —
+                } @else {
+                  {{ p.stats.championships }}
+                }
               </div>
             </div>
             <div class="cp-stat-card">
               <div class="cp-stat-label">Victorias (hist.)</div>
-              <div class="cp-stat-val" [style.color]="teamHue()">{{ p.stats.totalWins }}</div>
+              <div class="cp-stat-val" [style.color]="teamHue()">
+                @if (p.aggregatesPending && !p.stats.totalWins) {
+                  …
+                } @else if (p.aggregatesError && !p.stats.totalWins) {
+                  —
+                } @else {
+                  {{ p.stats.totalWins }}
+                }
+              </div>
             </div>
             <div class="cp-stat-card">
               <div class="cp-stat-label">Pilotos</div>
@@ -144,6 +170,12 @@
             <h2>Sobre el equipo</h2>
           </div>
           <p class="cp-bio-text">{{ p.bioText }}</p>
+          @if (p.source === 'manual') {
+            <p class="cp-manual-note">
+              Ficha curada en BeEngine: Jolpica/Ergast aún no expone el recurso
+              <code>/constructors/{{ p.constructorId }}</code>.
+            </p>
+          }
         </section>
 
         @if (p.currentSeason.length) {
@@ -194,8 +226,8 @@
           </section>
         }
 
-        @if (p.careerHistory.length || (p.careerHistoryPagination && p.careerHistoryPagination.totalYears > 0)) {
-          <section class="dp-career">
+        @if (p.careerHistory.length) {
+          <section class="dp-career" [class.is-career-loading]="careerHistoryLoading()">
             <div class="dp-season-card">
               <div class="dp-season-head">
                 <div class="dp-season-title">
@@ -210,13 +242,18 @@
                 </div>
                 @if (p.careerHistoryPagination; as pag) {
                   <div class="dp-career-pager" role="navigation" aria-label="Paginación del historial">
-                    <button type="button" class="dp-career-pager-btn" [disabled]="pag.page <= 1" (click)="stepCareerPage(-1)">
+                    <button
+                      type="button"
+                      class="dp-career-pager-btn"
+                      [disabled]="pag.page <= 1 || careerHistoryLoading()"
+                      (click)="stepCareerPage(-1)"
+                    >
                       ← Más recientes
                     </button>
                     <button
                       type="button"
                       class="dp-career-pager-btn"
-                      [disabled]="pag.page >= pag.totalPages"
+                      [disabled]="pag.page >= pag.totalPages || careerHistoryLoading()"
                       (click)="stepCareerPage(1)"
                     >
                       Más antiguos →
@@ -296,6 +333,28 @@
                   </tbody>
                 </table>
               </div>
+            </div>
+          </section>
+        } @else if (p.careerHistoryPagination?.totalYears || p.careerHistoryError) {
+          <section class="dp-career dp-career-empty">
+            <div class="dp-season-card">
+              <div class="dp-season-head">
+                <div class="dp-season-title">
+                  <span class="dp-section-bar" [style.background]="teamHue()"></span>
+                  <h2>Historial de carrera</h2>
+                </div>
+              </div>
+              <p class="dp-career-empty-msg">
+                No se pudieron cargar las temporadas de esta página. Suele deberse a un límite temporal de la API.
+              </p>
+              <button
+                type="button"
+                class="dp-career-pager-btn"
+                [disabled]="careerHistoryLoading()"
+                (click)="retryCareerHistory()"
+              >
+                Reintentar
+              </button>
             </div>
           </section>
         }
