@@ -1,0 +1,164 @@
+.hm-race-card {
+  background: #fff;
+  border: 1.5px solid #e8e7e2;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+.hm-race-head {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--rc-accent, #ffd100) 7%, #fff), #fff);
+  border-bottom: 1px solid color-mix(in srgb, var(--rc-accent, #ffd100) 13%, transparent);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+
+.hm-race-head::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--rc-accent, #ffd100), color-mix(in srgb, var(--rc-accent, #ffd100) 27%, transparent), transparent);
+}
+
+.hm-race-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+  color: var(--rc-accent, #ffd100);
+}
+
+.hm-race-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  color: #111;
+  line-height: 1.1;
+}
+
+.hm-race-loc {
+  font-size: 11px;
+  color: #bbb;
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hm-countdown {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.hm-countdown-sep {
+  color: #bbb;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.hm-countdown-box {
+  text-align: center;
+}
+
+.hm-countdown-val {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  line-height: 1;
+  color: #111;
+  min-width: 32px;
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--rc-accent, #ffd100) 27%, transparent);
+  border-radius: 4px;
+  padding: 3px 6px;
+  letter-spacing: 1px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.hm-countdown-lbl {
+  font-size: 8px;
+  color: #bbb;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+.hm-race-body {
+  padding: 10px 16px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.hm-circuit-wrap {
+  width: 124px;
+  height: 76px;
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 6px;
+  flex-shrink: 0;
+  padding: 6px;
+  overflow: hidden;
+}
+
+.hm-sessions {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.hm-session {
+  background: #f5f5f2;
+  border: 1px solid #e8e7e2;
+  border-radius: 4px;
+  padding: 4px 10px;
+  text-align: center;
+  min-width: 64px;
+}
+
+.hm-session--race {
+  background: var(--rc-accent, #ffd100);
+  border-color: var(--rc-accent, #ffd100);
+}
+
+.hm-session-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: #888;
+}
+
+.hm-session--race .hm-session-name {
+  color: #000;
+}
+
+.hm-session-date {
+  font-size: 10px;
+  color: #bbb;
+}
+
+.hm-session--race .hm-session-date {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.hm-session-time {
+  font-size: 11px;
+  font-weight: 600;
+  color: #555;
+}
+
+.hm-session--race .hm-session-time {
+  color: #000;
+}

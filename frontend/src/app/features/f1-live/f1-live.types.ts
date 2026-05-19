@@ -307,7 +307,9 @@ export interface JolpikaCalendarRace {
 export interface JolpikaLastRaceResult {
   position: number;
   driver: string;
+  driverId?: string | null;
   team: string;
+  constructorId?: string | null;
   grid: number;
   laps: number;
   status: string;
@@ -322,6 +324,8 @@ export interface JolpikaLastRace {
   circuitName: string;
   date: string;
   results: JolpikaLastRaceResult[];
+  /** Imagen de victoria/podio del GP (RSS, solo si coincide con la carrera). */
+  imageUrl?: string | null;
 }
 
 export type JolpikaRaceResult = JolpikaLastRace;

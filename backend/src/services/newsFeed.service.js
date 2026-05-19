@@ -74,7 +74,7 @@ async function fetchXml(url) {
   }
 }
 
-async function fetchOgImage(url) {
+export async function fetchOgImage(url) {
   const key = url.slice(0, 200);
   if (ogImageCache.has(key)) return ogImageCache.get(key);
 

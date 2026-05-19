@@ -36,10 +36,10 @@
           <p>No hay noticias disponibles en este momento.</p>
         </div>
       } @else {
-        <section class="nw-grid" [style.--nw-accent]="accent()">
-          @for (a of featured(); track a.id) {
+        <div class="nw-feed" [style.--nw-accent]="accent()">
+          @for (a of hero(); track a.id) {
             <a
-              class="nw-card nw-card--featured card-anim"
+              class="nw-card nw-card--hero card-anim"
               [routerLink]="['/noticias', a.id]"
               [style.--nw-accent]="accent()"
             >
@@ -47,8 +47,7 @@
                 [cat]="a.cat"
                 [src]="a.imageUrl"
                 [alt]="a.title"
-                [featured]="true"
-                [height]="240"
+                [height]="320"
                 [accent]="accent()"
               />
               <div class="nw-card-body">
@@ -59,7 +58,9 @@
                     [class.nw-pill--fe]="a.hot && a.cat === 'fe'"
                     [class.nw-pill--motogp]="a.hot && a.cat === 'motogp'"
                   >{{ a.tag }}</span>
-                  <span class="nw-featured-label">DESTACADO</span>
+                  @if (a.featured) {
+                    <span class="nw-featured-label">DESTACADO</span>
+                  }
                   <span class="nw-read">{{ a.readTime }}</span>
                 </div>
                 <div class="nw-title">{{ a.title }}</div>
@@ -73,6 +74,8 @@
             </a>
           }
 
+          @if (regular().length) {
+          <section class="nw-grid">
           @for (a of regular(); track a.id; let i = $index) {
             <a
               class="nw-card card-anim"
@@ -112,7 +115,9 @@
               </div>
             </a>
           }
-        </section>
+          </section>
+          }
+        </div>
 
         @if (showPager()) {
           <nav class="nw-pager" role="navigation" aria-label="Paginación de noticias" [style.--nw-accent]="accent()">

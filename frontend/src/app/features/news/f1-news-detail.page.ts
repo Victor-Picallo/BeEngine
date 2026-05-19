@@ -12,6 +12,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, of, switchMap } from 'rxjs';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
+import { BackNavigationService } from '../../core/services/back-navigation.service';
 import { NewsService } from './news.service';
 import { NewsImageComponent } from './news-image/news-image.component';
 import { NEWS_PAGE_CATEGORIES, type NewsArticle } from './news.types';
@@ -27,6 +28,7 @@ import { NEWS_PAGE_CATEGORIES, type NewsArticle } from './news.types';
 export class F1NewsDetailPageComponent implements OnInit {
   private readonly news = inject(NewsService);
   private readonly route = inject(ActivatedRoute);
+  private readonly backNav = inject(BackNavigationService);
   private readonly destroyRef = inject(DestroyRef);
 
   loading = signal(true);
@@ -43,6 +45,10 @@ export class F1NewsDetailPageComponent implements OnInit {
     const cat = this.article()?.cat ?? 'f1';
     return NEWS_PAGE_CATEGORIES.find(c => c.id === cat)?.label ?? 'Formula 1';
   });
+
+  goBack(): void {
+    this.backNav.goBack('/noticias');
+  }
 
   ngOnInit(): void {
     this.route.paramMap

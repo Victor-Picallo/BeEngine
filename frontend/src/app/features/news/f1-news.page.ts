@@ -51,12 +51,20 @@ export class F1NewsPageComponent implements OnInit {
 
   showPager = computed(() => this.totalPages() > 1);
 
-  featured = computed(() => (this.page() === 1 ? this.articles().filter(a => a.featured) : []));
-  regular = computed(() =>
-    this.page() === 1
-      ? this.articles().filter(a => !a.featured)
-      : this.articles(),
-  );
+  /** Página 1: artículo(s) destacados o, si no hay, el primero en ancho completo. */
+  hero = computed(() => {
+    if (this.page() !== 1) return [];
+    const list = this.articles();
+    const flagged = list.filter(a => a.featured);
+    if (flagged.length) return flagged;
+    return list.length ? [list[0]] : [];
+  });
+
+  regular = computed(() => {
+    if (this.page() !== 1) return this.articles();
+    const heroIds = new Set(this.hero().map(a => a.id));
+    return this.articles().filter(a => !heroIds.has(a.id));
+  });
 
   pageNumbers = computed(() =>
     Array.from({ length: this.totalPages() }, (_, i) => i + 1),

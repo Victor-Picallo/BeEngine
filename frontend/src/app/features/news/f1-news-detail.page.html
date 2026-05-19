@@ -10,7 +10,7 @@
       } @else if (error(); as err) {
         <div class="nw-detail nw-empty">
           <div class="nw-empty-title">{{ err }}</div>
-          <a routerLink="/noticias" class="nw-back">← Volver a Noticias</a>
+          <button type="button" class="nw-back" (click)="goBack()">← Volver</button>
         </div>
       } @else if (article(); as a) {
         <article class="nw-detail" [style.--nw-accent]="accent()">
@@ -88,9 +88,9 @@
             </section>
           }
 
-          <a routerLink="/noticias" [queryParams]="{ cat: a.cat }" class="nw-back" style="display: inline-block; margin-top: 32px">
-            ← Volver a Noticias
-          </a>
+          <button type="button" class="nw-back" style="display: inline-block; margin-top: 32px" (click)="goBack()">
+            ← Volver
+          </button>
         </article>
       }
     </main>

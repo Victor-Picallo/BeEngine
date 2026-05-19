@@ -1,0 +1,492 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: #f2f1ee;
+  color: #111;
+  font-family: 'Barlow', sans-serif;
+  font-size: 14px;
+}
+
+.hm-loading,
+.hm-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+  text-align: center;
+  color: #888;
+}
+
+.hm-error {
+  color: #c0392b;
+  max-width: 360px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.hm-layout {
+  display: flex;
+}
+
+.hm-main {
+  flex: 1;
+  padding: 16px;
+  min-width: 0;
+}
+
+.hm-cat-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--hm-accent, #ffd100) 16%, transparent);
+}
+
+.hm-cat-bar {
+  width: 4px;
+  height: 22px;
+  border-radius: 2px;
+  background: var(--hm-accent, #ffd100);
+}
+
+.hm-cat-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 900;
+  font-size: 22px;
+  color: #111;
+  letter-spacing: 0.5px;
+  margin: 0;
+  line-height: 1;
+}
+
+.hm-season-badge {
+  margin-left: auto;
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: color-mix(in srgb, var(--hm-accent, #ffd100) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--hm-accent, #ffd100) 20%, transparent);
+  color: var(--hm-accent, #ffd100);
+}
+
+.hm-season-progress {
+  background: #fff;
+  border: 1.5px solid #e8e7e2;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.hm-season-progress-meta {
+  flex-shrink: 0;
+}
+
+.hm-season-progress-label {
+  font-size: 9px;
+  color: #bbb;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.hm-season-progress-rounds {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 900;
+  font-size: 28px;
+  color: #111;
+  line-height: 1;
+}
+
+.hm-season-progress-rounds span {
+  font-size: 14px;
+  color: #bbb;
+  font-weight: 400;
+}
+
+.hm-season-progress-sub {
+  font-size: 10px;
+  color: #bbb;
+}
+
+.hm-season-progress-body {
+  flex: 1;
+}
+
+.hm-season-progress-top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 10px;
+  color: #aaa;
+}
+
+.hm-season-progress-pct {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  color: #111;
+}
+
+.hm-season-progress-bar {
+  height: 5px;
+  background: #f0f0ea;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.hm-season-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--hm-accent, #ffd100), color-mix(in srgb, var(--hm-accent, #ffd100) 55%, transparent));
+}
+
+.hm-season-dots {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.hm-season-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #e0e0da;
+}
+
+.hm-season-dot--done {
+  background: #111;
+}
+
+.hm-season-dot--next {
+  background: var(--hm-accent, #ffd100);
+}
+
+.hm-season-calendar-btn {
+  flex-shrink: 0;
+  background: #111;
+  color: #fff;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+
+.hm-season-calendar-btn:hover {
+  opacity: 0.85;
+}
+
+.hm-featured {
+  display: block;
+  background: #fff;
+  border: 1.5px solid #e8e7e2;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.hm-featured:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--hm-accent, #ffd100) 40%, #e8e7e2);
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--hm-accent, #ffd100) 10%, transparent);
+}
+
+.hm-featured-body {
+  padding: 16px 18px;
+}
+
+.hm-featured-meta {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.hm-featured-tag {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 2px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.hm-featured-hot {
+  font-size: 9px;
+  color: #ff6b35;
+  font-weight: 700;
+}
+
+.hm-featured-time {
+  margin-left: auto;
+  font-size: 10px;
+  color: #bbb;
+}
+
+.hm-featured-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 26px;
+  color: #111;
+  line-height: 1.15;
+  text-wrap: pretty;
+}
+
+.hm-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+  align-items: stretch;
+}
+
+.hm-grid-2-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 100%;
+}
+
+.hm-last-race-card {
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.hm-constructors-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+  min-height: 0;
+}
+
+.hm-constructors-foot {
+  margin-top: auto;
+  padding: 8px 14px;
+  border-top: 1px solid #f0efe9;
+}
+
+.hm-constructors-foot a {
+  font-size: 11px;
+  color: #888;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.hm-constructors-foot a:hover {
+  color: #111;
+}
+
+.hm-live-banner {
+  border-radius: 8px;
+  padding: 7px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hm-live-link {
+  background: rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 3px 12px;
+  font-size: 12px;
+  color: #1a1a1a;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #fff;
+  animation: hm-pulse 1.5s infinite;
+}
+
+@keyframes hm-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+.hm-card {
+  background: #fff;
+  border: 1.5px solid #e8e7e2;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.hm-card-head {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f0efe9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hm-card-head-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hm-card-accent-bar {
+  width: 3px;
+  height: 14px;
+  border-radius: 1px;
+}
+
+.hm-card-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: #111;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.hm-card-link {
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  color: #888;
+}
+
+.hm-podium {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px;
+  flex-shrink: 0;
+}
+
+.hm-podium-slot {
+  flex: 1;
+  background: #fafaf8;
+  border: 1px solid #f0efe9;
+  border-radius: 8px;
+  padding: 10px 8px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hm-podium-slot--p1 {
+  border-color: #c8963e33;
+}
+
+.hm-podium-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.hm-podium-driver {
+  font-size: 12px;
+  font-weight: 700;
+  color: #111;
+  line-height: 1.2;
+  margin-top: 4px;
+}
+
+.hm-podium-team {
+  font-size: 10px;
+  color: #bbb;
+  margin-top: 2px;
+}
+
+.hm-podium-time {
+  font-size: 10px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.hm-cta-btn {
+  display: block;
+  width: calc(100% - 28px);
+  margin: 0 14px 10px;
+  padding: 7px;
+  background: #f5f5f2;
+  border: 1px solid #e8e7e2;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #888;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+
+.hm-constructor-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px 8px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.hm-constructor-row:first-of-type {
+  padding-top: 8px;
+}
+
+.hm-constructor-pos {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  color: #ccc;
+  width: 14px;
+}
+
+.hm-constructor-bar-track {
+  height: 3px;
+  background: #f0f0ea;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 3px;
+}
+
+.hm-constructor-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+
+.hm-live-text {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.hm-live-dismiss {
+  background: none;
+  border: none;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.5);
+}

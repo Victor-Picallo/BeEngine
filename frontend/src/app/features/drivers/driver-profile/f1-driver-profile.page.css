@@ -4,6 +4,15 @@
   padding: 0 20px 40px;
 }
 
+button.dp-back {
+  font: inherit;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
 .dp-back {
   display: inline-block;
   margin: 12px 0 16px;

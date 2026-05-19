@@ -3,11 +3,20 @@ import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core
 @Component({
   selector: 'app-news-image',
   standalone: true,
+  host: {
+    '[class.nw-host-stretch]': 'stretch()',
+  },
   template: `
-    <div class="nw-img" [class.nw-img--featured]="featured()" [style.height.px]="height()">
+    <div
+      class="nw-img"
+      [class.nw-img--featured]="featured()"
+      [class.nw-img--natural]="featured() && !stretch()"
+      [class.nw-img--stretch]="stretch()"
+      [style.height.px]="featured() && !stretch() ? null : height()">
       @if (src() && !imgFailed()) {
         <img
           class="nw-img-photo"
+          [class.nw-img-photo--featured]="featured() && !stretch()"
           [src]="src()!"
           [alt]="alt()"
           loading="lazy"
@@ -73,6 +82,34 @@ import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core
       .nw-img--featured {
         border-radius: 8px 8px 0 0;
       }
+      .nw-img--natural {
+        height: auto;
+        min-height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0d0d0d;
+      }
+      :host(.nw-host-stretch) {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+        flex-direction: column;
+      }
+      .nw-img--stretch {
+        flex: 1;
+        min-height: 280px;
+        height: 100% !important;
+      }
+      .nw-img--stretch .nw-img-photo {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        max-height: none;
+        object-fit: cover;
+        object-position: center top;
+      }
       .nw-img-photo {
         position: absolute;
         inset: 0;
@@ -81,6 +118,15 @@ import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core
         object-fit: cover;
         object-position: center;
         display: block;
+      }
+      .nw-img-photo--featured {
+        position: relative;
+        inset: auto;
+        width: 100%;
+        height: auto;
+        max-height: min(420px, 55vh);
+        object-fit: contain;
+        object-position: center;
       }
       .nw-img-placeholder {
         position: absolute;
@@ -125,6 +171,8 @@ export class NewsImageComponent {
   readonly src = input<string | null>(null);
   readonly alt = input('');
   readonly featured = input(false);
+  /** Rellena la altura del contenedor (grid destacado en /noticias). */
+  readonly stretch = input(false);
   readonly height = input(180);
   readonly accent = input('#FFD100');
 

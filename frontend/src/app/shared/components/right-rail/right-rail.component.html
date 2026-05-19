@@ -1,44 +1,66 @@
-<aside style="width: 220px; flex-shrink: 0; padding: 14px 12px; border-left: 1px solid #e5e5e7; display: flex; flex-direction: column; gap: 12px; position: sticky; top: 50px; height: calc(100vh - 50px); overflow-y: auto; background: #fafafa;">
-
-  <!-- Quick Stats -->
-  <div style="background: #ffffff; border: 1px solid #e5e5e7; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.03);">
-    <div style="padding: 10px 12px; border-bottom: 1px solid #e5e5e7;">
-      <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; color: #1a1a1a; text-transform: uppercase; letter-spacing: 1px;">Stats rápidas</span>
+<aside class="hm-rail">
+  <div class="hm-card">
+    <div class="hm-card-head">
+      <span class="hm-card-title">Acceso rápido</span>
     </div>
-    <div style="padding: 8px 12px; display: flex; flex-direction: column; gap: 8px;">
+    @for (link of quickLinks; track link.route) {
+      <a class="hm-quick-link" [routerLink]="link.route">
+        <div class="hm-quick-link-text">
+          <div class="hm-quick-link-title">{{ link.label }}</div>
+          <div class="hm-quick-link-desc">{{ link.desc }}</div>
+        </div>
+        <span class="hm-quick-chevron">›</span>
+      </a>
+    }
+  </div>
+
+  <div class="hm-card">
+    <div class="hm-card-head">
+      <div class="hm-card-head-row">
+        <div class="hm-card-accent-bar" [style.background]="accent()"></div>
+        <span class="hm-card-title">Stats rápidas</span>
+      </div>
+    </div>
+    <div class="hm-stats-body">
       @for (s of quickStats(); track s.label) {
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
-          <span style="font-size: 11px; color: #888; line-height: 1.3;">{{ s.label }}</span>
-          <span style="font-size: 12px; font-weight: 700; color: #1a1a1a; text-align: right; white-space: nowrap;">{{ s.val }}</span>
+        <div class="hm-stat-row">
+          <span class="hm-stat-label">{{ s.label }}</span>
+          <span class="hm-stat-val">{{ s.val }}</span>
         </div>
       }
     </div>
   </div>
 
-  <!-- Trending -->
-  <div style="background: #ffffff; border: 1px solid #e5e5e7; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.03);">
-    <div style="padding: 10px 12px; border-bottom: 1px solid #e5e5e7;">
-      <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; color: #1a1a1a; text-transform: uppercase; letter-spacing: 1px;">Trending</span>
+  <div class="hm-card">
+    <div class="hm-card-head">
+      <div class="hm-card-head-row">
+        <div class="hm-card-accent-bar" style="background: #ff6b35"></div>
+        <span class="hm-card-title">Trending</span>
+      </div>
     </div>
-    <div style="padding: 4px 0;">
-      @if (!trendingNews().length) {
-        <div style="padding: 18px 12px; text-align: center;">
-          <div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 11px; color: #888; letter-spacing: 1px; text-transform: uppercase;">Próximamente</div>
+    @if (!trendingNews().length) {
+      <p class="hm-news-empty" style="padding: 18px 14px; text-align: center; color: #aaa; font-size: 11px;">Sin noticias</p>
+    }
+    @for (n of trendingNews(); track n.id ?? n.title; let i = $index) {
+      <a
+        class="hm-trend-row"
+        [routerLink]="n.id ? ['/noticias', n.id] : '/noticias'"
+        [style.border-bottom]="i < trendingNews().length - 1 ? '1px solid #f5f5f2' : 'none'">
+        <div class="hm-trend-thumb">
+          <app-news-image [cat]="n.cat ?? 'f1'" [src]="n.imageUrl ?? null" [alt]="n.title" [height]="40" [accent]="accent()" />
         </div>
-      }
-      @for (n of trendingNews(); track n.title; let i = $index) {
-        <div
-          class="trending-item"
-          [ngStyle]="{'border-bottom': i < 2 ? '1px solid #f0f0f2' : 'none'}"
-          style="padding: 7px 12px; display: flex; gap: 8px; cursor: pointer;">
-          <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 18px; color: #d5d5d8; min-width: 20px;">{{ i + 1 }}</span>
-          <div>
-            <div style="font-size: 11px; color: #444; line-height: 1.3;">{{ n.title }}</div>
-            <div style="font-size: 10px; color: #aaa; margin-top: 2px;">{{ n.time }}</div>
+        <div style="flex: 1; min-width: 0">
+          <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px">
+            <span class="hm-trend-rank">{{ i + 1 }}</span>
+            <span class="hm-news-tag" [style]="{ color: accent() === '#FFD100' ? '#C8963E' : accent(), background: accent() + '14', fontSize: '9px', padding: '1px 5px', borderRadius: '2px', fontWeight: '700', textTransform: 'uppercase' }">{{ n.tag }}</span>
           </div>
+          <div class="hm-trend-title">{{ n.title }}</div>
+          <div class="hm-trend-time">{{ n.time }}</div>
         </div>
-      }
+      </a>
+    }
+    <div class="hm-card-foot-center">
+      <a routerLink="/noticias">Ver más noticias →</a>
     </div>
   </div>
-
 </aside>

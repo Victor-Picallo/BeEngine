@@ -29,6 +29,7 @@ import {
 } from '../../data/sports.data';
 import { HomeService } from './services/home.service';
 import { F1LiveService } from '../f1-live/f1-live.service';
+import { NewsService } from '../news/news.service';
 import { sessionsForRaceWeekend } from '../f1-live/f1-weekend-sessions';
 import type {
   JolpikaCalendarRace,
@@ -43,8 +44,8 @@ import { RaceCardComponent } from '../../shared/components/race-card/race-card.c
 import { StandingsTableComponent } from '../../shared/components/standings-table/standings-table.component';
 import { NewsListComponent } from '../../shared/components/news-list/news-list.component';
 import { RightRailComponent } from '../../shared/components/right-rail/right-rail.component';
+import { NewsImageComponent } from '../news/news-image/news-image.component';
 import { F1_SIDEBAR_SECTION_LABELS } from '../../shared/f1-sidebar-sections';
-
 // ── Team color & nationality lookups ──────────────────────────────────────
 const TEAM_COLORS: Record<string, string> = {
   'mercedes':           '#27F4D2',
@@ -102,6 +103,7 @@ const lastNameInitial = (full: string): string => {
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
+  styleUrl: './home.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     NgStyle,
@@ -112,11 +114,13 @@ const lastNameInitial = (full: string): string => {
     StandingsTableComponent,
     NewsListComponent,
     RightRailComponent,
+    NewsImageComponent,
   ],
 })
 export class HomeComponent implements OnInit, OnDestroy {
   private readonly homeService = inject(HomeService);
   private readonly f1          = inject(F1LiveService);
+  private readonly newsService = inject(NewsService);
   private readonly destroyRef  = inject(DestroyRef);
 
   readonly flagMap         = FLAG_MAP;
@@ -135,7 +139,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private teamStands    = signal<JolpikaConstructorStanding[]>([]);
   private lastRaceRaw   = signal<JolpikaLastRace | null>(null);
   private sessionsRaw   = signal<OpenF1Session[]>([]);
-
+  private newsRaw       = signal<NewsItem[]>([]);
   // ── Derived ──
   currentCat = computed(
     () => this.categories().find(c => c.id === this.activeCat()) ?? this.categories()[0],
@@ -189,8 +193,28 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.lastRaceRaw() !== null,
   );
 
+  featuredNews = computed(() => this.data().news[0] ?? null);
+
+  seasonRoundsDone = computed(() => Math.max(0, this.data().nextRace.round - 1));
+  seasonProgressPct = computed(() => {
+    const total = this.data().nextRace.totalRounds || 1;
+    return Math.round((this.seasonRoundsDone() / total) * 100);
+  });
+
+  seasonDotIndices = computed(() =>
+    Array.from({ length: this.data().nextRace.totalRounds }, (_, i) => i),
+  );
+
+  lastRaceWinner = computed(
+    () => this.data().lastRace.podium[0]?.driver ?? '—',
+  );
+
   currentFavorites = computed((): Favorite[] =>
-    this.data().standings.slice(0, 2).map(d => ({ name: d.driver, sub: d.team })),
+    this.data().standings.slice(0, 2).map(d => ({
+      name: d.driver,
+      sub: d.team,
+      driverId: d.driverId,
+    })),
   );
 
   maxConstructorPoints = computed(() => {
@@ -224,7 +248,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       });
 
     this.loadAll();
-    this.startTickers();
+    this.startIntervals();
   }
 
   ngOnDestroy(): void {
@@ -250,6 +274,9 @@ export class HomeComponent implements OnInit, OnDestroy {
       teamStands:   this.f1.getConstructorStandings().pipe(catchError(() => of([] as JolpikaConstructorStanding[]))),
       lastRace:     this.f1.getLastRace().pipe(catchError(() => of(null as JolpikaLastRace | null))),
       sessions:     this.f1.getSessions().pipe(catchError(() => of([] as OpenF1Session[]))),
+      news:         this.newsService.getFeed('f1', 'Todos', 6, 0).pipe(
+        catchError(() => of({ items: [], total: 0, category: 'f1', tag: 'Todos', page: 1, pageSize: 6, totalPages: 1 })),
+      ),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -259,6 +286,17 @@ export class HomeComponent implements OnInit, OnDestroy {
           this.teamStands.set(r.teamStands);
           this.lastRaceRaw.set(r.lastRace);
           this.sessionsRaw.set(r.sessions);
+          this.newsRaw.set(
+            r.news.items.map(a => ({
+              id: a.id,
+              tag: a.tag,
+              title: a.title,
+              time: a.time,
+              hot: a.hot,
+              imageUrl: a.imageUrl,
+              cat: a.cat,
+            })),
+          );
           this.loading.set(false);
         },
         error: () => {
@@ -268,7 +306,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       });
   }
 
-  private startTickers(): void {
+  private startIntervals(): void {
     // Countdown — every second toward next race kickoff
     const updateCountdown = () => {
       const race = this.nextRaceRaw();
@@ -319,6 +357,24 @@ export class HomeComponent implements OnInit, OnDestroy {
       .subscribe({ next: r => this.lastRaceRaw.set(r), error: () => {} });
     this.f1.getSessions().pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ next: s => this.sessionsRaw.set(s), error: () => {} });
+    this.newsService
+      .getFeed('f1', 'Todos', 6, 0)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res =>
+          this.newsRaw.set(
+            res.items.map(a => ({
+              id: a.id,
+              tag: a.tag,
+              title: a.title,
+              time: a.time,
+              hot: a.hot,
+              imageUrl: a.imageUrl,
+              cat: a.cat,
+            })),
+          ),
+        error: () => {},
+      });
   }
 
   dismissBanner(): void { this.bannerDismissed.set(true); }
@@ -367,6 +423,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       points: d.points,
       nationality: NATIONALITY_TO_CC[d.nationality] ?? d.nationality?.slice(0, 2).toUpperCase() ?? '',
       teamColor: teamColor(d.team),
+      driverId: d.driverId?.trim() || undefined,
     }));
   }
 
@@ -376,6 +433,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       team: t.team,
       points: t.points,
       color: teamColor(t.team),
+      constructorId: t.constructorId?.trim() || undefined,
     }));
   }
 
@@ -400,8 +458,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   private buildNews(): NewsItem[] {
-    // Real news feed not yet implemented — the highlighted news will land in
-    // the featured slot once the noticias section ships.
-    return [];
+    return this.newsRaw();
   }
 }

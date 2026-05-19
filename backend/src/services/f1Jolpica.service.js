@@ -8,6 +8,7 @@ import {
   getDriverStandingsResponse,
   warmDriverStandingsCache,
 } from './f1DriverStandingsStore.js';
+import { resolveLastRaceImageUrl } from './lastRaceImage.service.js';
 
 // ── Normalizers ───────────────────────────────────────────
 
@@ -33,14 +34,16 @@ const normalizeLastRace = (raw) => {
     circuitName: race.Circuit.circuitName,
     date:        race.date,
     results:     (race.Results ?? []).map((r) => ({
-      position: parseInt(r.position),
-      driver:   `${r.Driver.givenName} ${r.Driver.familyName}`,
-      team:     r.Constructor.name,
-      grid:     parseInt(r.grid),
-      laps:     parseInt(r.laps),
-      status:   r.status,
-      points:   parseFloat(r.points),
-      time:     r.Time?.time ?? null,
+      position:      parseInt(r.position),
+      driver:        `${r.Driver.givenName} ${r.Driver.familyName}`,
+      driverId:      r.Driver?.driverId ?? null,
+      team:          r.Constructor.name,
+      constructorId: r.Constructor?.constructorId ?? null,
+      grid:          parseInt(r.grid),
+      laps:          parseInt(r.laps),
+      status:        r.status,
+      points:        parseFloat(r.points),
+      time:          r.Time?.time ?? null,
     })),
   };
 };
@@ -54,14 +57,16 @@ const normalizeRaceResults = (raw) => {
     circuitName: race.Circuit.circuitName,
     date:        race.date,
     results:     (race.Results ?? []).map((r) => ({
-      position: parseInt(r.position),
-      driver:   `${r.Driver.givenName} ${r.Driver.familyName}`,
-      team:     r.Constructor.name,
-      grid:     parseInt(r.grid),
-      laps:     parseInt(r.laps),
-      status:   r.status,
-      points:   parseFloat(r.points),
-      time:     r.Time?.time ?? null,
+      position:      parseInt(r.position),
+      driver:        `${r.Driver.givenName} ${r.Driver.familyName}`,
+      driverId:      r.Driver?.driverId ?? null,
+      team:          r.Constructor.name,
+      constructorId: r.Constructor?.constructorId ?? null,
+      grid:          parseInt(r.grid),
+      laps:          parseInt(r.laps),
+      status:        r.status,
+      points:        parseFloat(r.points),
+      time:          r.Time?.time ?? null,
     })),
   };
 };
@@ -140,7 +145,13 @@ export const getLastRace = async () => {
   const raw = await jolpicaClient.get('/current/last/results.json');
   const data = normalizeLastRace(raw);
   if (!data) throw new Error('No last race data available');
-  return { source: 'external', ...data };
+  let imageUrl = null;
+  try {
+    imageUrl = await resolveLastRaceImageUrl(data);
+  } catch {
+    /* imagen opcional */
+  }
+  return { source: 'external', ...data, imageUrl };
 };
 
 export const getRaceResultsByRound = async (round) => {

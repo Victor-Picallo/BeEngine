@@ -5,7 +5,7 @@
     <app-side></app-side>
 
     <main class="fc-shell dp-shell">
-      <a routerLink="/f1/pilotos" class="dp-back">← Pilotos</a>
+      <button type="button" class="dp-back" (click)="goBack()">← Volver</button>
 
       @if (loading()) {
         <div class="dp-skeleton-hero"></div>

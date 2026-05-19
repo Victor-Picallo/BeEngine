@@ -44,6 +44,8 @@ export interface Driver {
   points: number;
   nationality: string;
   teamColor: string;
+  /** Jolpica/Ergast id para ficha en /f1/pilotos/:driverId */
+  driverId?: string;
 }
 
 export interface Constructor {
@@ -51,6 +53,8 @@ export interface Constructor {
   team: string;
   points: number;
   color: string;
+  /** Jolpica id o slug BeEngine (audi, cadillac…) para /f1/escuderias/:constructorId */
+  constructorId?: string;
 }
 
 export interface PodiumEntry {
@@ -65,6 +69,9 @@ export interface LastRace {
   name: string;
   date: string;
   podium: PodiumEntry[];
+  /** Foto de podio / victoria (RSS o Wikipedia). */
+  imageUrl?: string | null;
+  winnerName?: string;
 }
 
 export interface NewsItem {
@@ -72,6 +79,9 @@ export interface NewsItem {
   title: string;
   time: string;
   hot?: boolean;
+  id?: string;
+  imageUrl?: string | null;
+  cat?: string;
 }
 
 export interface CategoryData {
@@ -92,6 +102,7 @@ export interface CountdownTime {
 export interface Favorite {
   name: string;
   sub: string;
+  driverId?: string;
 }
 
 export function padTwo(n: number): string {

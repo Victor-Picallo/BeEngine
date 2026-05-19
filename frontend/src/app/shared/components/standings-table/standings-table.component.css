@@ -1,1 +1,83 @@
-.driver-row:hover { background: #f0f0f2 !important; }
+:host {
+  display: block;
+  height: 100%;
+}
+
+.hm-card {
+  background: #fff;
+  border: 1.5px solid #e8e7e2;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.hm-card-head {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f0efe9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hm-card-head-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hm-card-accent-bar {
+  width: 3px;
+  height: 14px;
+  border-radius: 1px;
+}
+
+.hm-card-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: #111;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.hm-standings-table {
+  flex: 1;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.driver-row {
+  transition: background 0.1s;
+}
+
+.driver-row--link {
+  cursor: pointer;
+}
+
+.driver-row:hover {
+  background: #f8f7f2 !important;
+}
+
+.driver-row--link:hover .driver-name {
+  color: #000;
+}
+
+.hm-card-foot {
+  padding: 8px 14px;
+  border-top: 1px solid #f0efe9;
+}
+
+.hm-card-foot a {
+  font-size: 11px;
+  font-weight: 600;
+  color: #888;
+  text-decoration: none;
+}
+
+.hm-card-foot a:hover {
+  color: #111;
+}

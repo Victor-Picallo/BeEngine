@@ -1,1 +1,174 @@
-.trending-item:hover { background: #f0f0f2; }
+.hm-rail {
+  width: 228px;
+  flex-shrink: 0;
+  padding: 16px 12px;
+  border-left: 1px solid #e8e7e2;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: sticky;
+  top: 50px;
+  height: calc(100vh - 50px);
+  overflow-y: auto;
+  background: #f8f7f4;
+}
+
+.hm-card {
+  background: #fff;
+  border: 1.5px solid #e8e7e2;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.hm-card-head {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f0efe9;
+}
+
+.hm-card-head-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hm-card-accent-bar {
+  width: 3px;
+  height: 14px;
+  border-radius: 1px;
+}
+
+.hm-card-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: #111;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.hm-quick-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  text-decoration: none;
+  color: inherit;
+  border-bottom: 1px solid #f5f5f2;
+  transition: background 0.1s;
+}
+
+.hm-quick-link:last-child {
+  border-bottom: none;
+}
+
+.hm-quick-link:hover {
+  background: #fafaf8;
+}
+
+.hm-quick-link-text {
+  flex: 1;
+}
+
+.hm-quick-link-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111;
+}
+
+.hm-quick-link-desc {
+  font-size: 10px;
+  color: #bbb;
+}
+
+.hm-quick-chevron {
+  font-size: 14px;
+  color: #ccc;
+}
+
+.hm-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 0;
+}
+
+.hm-stat-label {
+  font-size: 11px;
+  color: #bbb;
+  line-height: 1.3;
+}
+
+.hm-stat-val {
+  font-size: 12px;
+  font-weight: 700;
+  color: #111;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.hm-stats-body {
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hm-trend-row {
+  display: flex;
+  gap: 10px;
+  padding: 10px 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.1s;
+}
+
+.hm-trend-row:hover {
+  background: #fafaf8;
+}
+
+.hm-trend-thumb {
+  width: 52px;
+  height: 40px;
+  border-radius: 5px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.hm-trend-rank {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  color: #ddd;
+}
+
+.hm-trend-title {
+  font-size: 11px;
+  color: #333;
+  line-height: 1.3;
+  font-weight: 500;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hm-trend-time {
+  font-size: 10px;
+  color: #bbb;
+  margin-top: 2px;
+}
+
+.hm-card-foot-center {
+  padding: 8px 14px;
+  border-top: 1px solid #f0efe9;
+  text-align: center;
+}
+
+.hm-card-foot-center a {
+  font-size: 11px;
+  color: #888;
+  font-weight: 600;
+  text-decoration: none;
+}

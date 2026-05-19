@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { NgStyle } from '@angular/common';
 import { CountdownTime, NextRace, padTwo } from '../../../data/sports.data';
+import { HomeCircuitPreviewComponent } from '../home-circuit-preview/home-circuit-preview.component';
 
 @Component({
   selector: 'app-race-card',
   templateUrl: './race-card.component.html',
+  styleUrl: './race-card.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgStyle],
+  imports: [HomeCircuitPreviewComponent],
 })
 export class RaceCardComponent {
   nextRace  = input.required<NextRace>();

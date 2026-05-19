@@ -27,6 +27,7 @@ import {
   tap,
   timer,
 } from 'rxjs';
+import { BackNavigationService } from '../../../core/services/back-navigation.service';
 import { F1LiveService } from '../../f1-live/f1-live.service';
 import type {
   JolpikaDriverProfile,
@@ -111,6 +112,7 @@ export class F1DriverProfilePageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
+  private readonly backNav = inject(BackNavigationService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly accent = ACCENT;
@@ -245,6 +247,10 @@ export class F1DriverProfilePageComponent {
       1,
       parseInt(this.route.snapshot.queryParamMap.get('careerPage') || '1', 10) || 1,
     );
+  }
+
+  goBack(): void {
+    this.backNav.goBack('/f1/pilotos');
   }
 
   private syncCareerPageUrl(page: number): void {

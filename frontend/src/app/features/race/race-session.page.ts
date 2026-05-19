@@ -6,6 +6,7 @@ import { NgClass } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { interval, map } from 'rxjs';
+import { BackNavigationService } from '../../core/services/back-navigation.service';
 import { F1LiveService } from '../f1-live/f1-live.service';
 import { sessionsForRaceWeekend } from '../f1-live/f1-weekend-sessions';
 import { findOfficialCircuit, projectCircuitCoords } from '../calendar/official-circuits';
@@ -99,6 +100,7 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
   private readonly service    = inject(F1LiveService);
   private readonly route      = inject(ActivatedRoute);
   private readonly router     = inject(Router);
+  private readonly backNav    = inject(BackNavigationService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly zone       = inject(NgZone);
 
@@ -122,6 +124,10 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
   });
   readonly SESSION_ORDER = SESSION_ORDER;
   readonly SESSION_CONFIGS = SESSION_CONFIGS;
+
+  goBack(): void {
+    this.backNav.goBack('/f1/calendario');
+  }
 
   // ── Data signals ──
   loading           = signal(true);
