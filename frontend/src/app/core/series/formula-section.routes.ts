@@ -5,6 +5,11 @@ import { FormulaShellComponent } from './formula-shell.component';
 /** Páginas compartidas F1 / F2 / F3 (misma UI, serie vía URL). */
 export const FORMULA_SECTION_ROUTES: Routes = [
   {
+    path: 'calendario/:race/race',
+    loadComponent: () =>
+      import('../../features/race/feeder-race.page').then((m) => m.FeederRacePageComponent),
+  },
+  {
     path: 'calendario',
     pathMatch: 'full',
     loadComponent: () =>
@@ -42,11 +47,26 @@ export const FORMULA_SECTION_ROUTES: Routes = [
         (m) => m.F1DriverProfilePageComponent,
       ),
   },
+  {
+    path: 'noticias',
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('../../features/news/f1-news.page').then((m) => m.F1NewsPageComponent),
+  },
+  {
+    path: 'noticias/:articleId',
+    loadComponent: () =>
+      import('../../features/news/f1-news-detail.page').then((m) => m.F1NewsDetailPageComponent),
+  },
 ];
 
 /** Home + secciones para una serie (f2, f3). F1 usa `/` como inicio. */
 export function formulaSeriesChildRoutes(): Routes {
-  return [{ path: '', pathMatch: 'full', component: HomeComponent }, ...FORMULA_SECTION_ROUTES];
+  return [
+    { path: '', pathMatch: 'full', component: HomeComponent },
+    ...FORMULA_SECTION_ROUTES,
+    { path: '**', redirectTo: '' },
+  ];
 }
 
 export const FORMULA_SERIES_PARENT_ROUTE = {

@@ -176,7 +176,7 @@
                 <div class="cl-row-photo">
                   <div
                     class="cl-photo-wrap"
-                    [class.cl-photo-wrap--f2]="seriesCtx.id() === 'f2'"
+                    [class.cl-photo-wrap--feeder]="seriesCtx.id() === 'f2' || seriesCtx.id() === 'f3'"
                     [style.--cl-team]="d.teamColor"
                   >
                     <div class="cl-photo-fallback" [attr.aria-hidden]="d.headshotUrl ? 'true' : null">
@@ -185,7 +185,7 @@
                     @if (d.headshotUrl) {
                       <img
                         class="cl-photo-img"
-                        [class.cl-photo-img--f2]="seriesCtx.id() === 'f2'"
+                        [class.cl-photo-img--feeder]="seriesCtx.id() === 'f2' || seriesCtx.id() === 'f3'"
                         [src]="d.headshotUrl"
                         [alt]="d.name"
                         loading="lazy"
@@ -292,7 +292,7 @@
         <footer class="cl-foot">
           <span>BeEngine · Clasificación {{ seriesCtx.config().short }} 2026</span>
           <nav class="cl-foot-nav">
-            <a routerLink="/">← Home</a>
+            <a [routerLink]="seriesCtx.homePath()">← Home</a>
             <a [routerLink]="seriesCtx.urlPath('calendario')">Calendario</a>
             <a [routerLink]="seriesCtx.urlPath('pilotos')">Pilotos</a>
             <a [routerLink]="seriesCtx.urlPath('escuderias')">Equipos</a>

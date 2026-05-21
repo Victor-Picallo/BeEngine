@@ -1,53 +1,58 @@
-@if (loading()) {
-  <p class="hm-loading">Cargando datos…</p>
-} @else if (error()) {
-  <p class="hm-error">{{ error() }}</p>
-} @else {
-  <div
-    [style.--hm-accent]="accent()"
-    [style.--accent]="accent()"
-    [style.--cl-accent]="accent()"
-    [style.--accent-fg]="accentFg()">
-    <app-topbar
-      [categories]="categories()"
-      [activeCat]="activeCat()"
-      [accent]="accent()"
-      (catChange)="setCat($event)">
-    </app-topbar>
+<div
+  [style.--hm-accent]="accent()"
+  [style.--accent]="accent()"
+  [style.--cl-accent]="accent()"
+  [style.--accent-fg]="accentFg()">
+  <app-topbar
+    [categories]="categories"
+    [activeCat]="topbarActiveCat()"
+    [accent]="accent()"
+    [homeLink]="seriesCtx.homePath()"
+    (catChange)="setCat($event)">
+  </app-topbar>
 
-    @if (liveBannerVisible() && liveBannerData(); as live) {
-      <div
-        class="hm-live-banner"
-        [ngStyle]="{'background': 'linear-gradient(90deg, ' + accent() + 'f0, ' + accent() + 'a0)'}">
-        <div style="display: flex; align-items: center; gap: 8px">
-          <div class="pulse-dot"></div>
-          <span class="hm-live-text" [style.color]="accentFg()">
-            EN VIVO · {{ live.sessionLabel }} — {{ live.raceName }}
-          </span>
-          <span [style.color]="accentFg() === '#000' ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.8)'" style="font-size: 12px">
-            {{ live.circuitName }}
-          </span>
-        </div>
-        <div style="display: flex; gap: 8px; align-items: center">
-          @if (seriesCtx.config().features.livePage) {
-            <a routerLink="/f1/live" class="hm-live-link">Ver Live →</a>
-          }
-          <button type="button" class="hm-live-dismiss" (click)="dismissBanner()">✕</button>
-        </div>
+  @if (liveBannerVisible() && liveBannerData(); as live) {
+    <div
+      class="hm-live-banner"
+      [ngStyle]="{'background': 'linear-gradient(90deg, ' + accent() + 'f0, ' + accent() + 'a0)'}">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <div class="pulse-dot"></div>
+        <span class="hm-live-text" [style.color]="accentFg()">
+          EN VIVO · {{ live.sessionLabel }} — {{ live.raceName }}
+        </span>
+        <span [style.color]="accentFg() === '#000' ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.8)'" style="font-size: 12px">
+          {{ live.circuitName }}
+        </span>
       </div>
-    }
+      <div style="display: flex; gap: 8px; align-items: center">
+        @if (seriesCtx.config().features.livePage) {
+          <a routerLink="/f1/live" class="hm-live-link">Ver Live →</a>
+        }
+        <button type="button" class="hm-live-dismiss" (click)="dismissBanner()">✕</button>
+      </div>
+    </div>
+  }
 
-    <div class="hm-layout">
-      <app-sidebar
-        [categories]="sidebarCategories()"
-        [activeCat]="activeCat()"
-        [accent]="accent()"
-        [favorites]="currentFavorites()"
-        [sections]="sidebarSections"
-        (catChange)="setCat($event)">
-      </app-sidebar>
+  <div class="hm-layout">
+    <app-sidebar
+      [categories]="sidebarCategories()"
+      [activeCat]="sidebarActiveCat()"
+      [accent]="accent()"
+      [favorites]="currentFavorites()"
+      [sections]="sidebarSections"
+      (catChange)="setCat($event)">
+    </app-sidebar>
 
-      <main class="hm-main">
+    @if (showMainLoading()) {
+      <main class="hm-main hm-main--loading">
+        <p>Cargando datos…</p>
+      </main>
+    } @else if (error(); as err) {
+      <main class="hm-main hm-main--loading">
+        <p class="hm-error">{{ err }}</p>
+      </main>
+    } @else {
+      <main class="hm-main" [class.hm-main--refreshing]="refreshing()">
         <header class="hm-cat-header">
           <div class="hm-cat-bar"></div>
           <h1 class="hm-cat-title">{{ currentCat().label }}</h1>
@@ -85,7 +90,7 @@
         @if (featuredNews(); as featured) {
           <a
             class="hm-featured"
-            [routerLink]="featured.id ? ['/noticias', featured.id] : '/noticias'"
+            [routerLink]="featured.id ? seriesLink('noticias', featured.id) : seriesLink('noticias')"
             appReturnNav>
             <app-news-image
               [cat]="featured.cat ?? 'f1'"
@@ -140,7 +145,9 @@
                     </div>
                   }
                 </div>
-                <a [routerLink]="seriesUrl('calendario')" class="hm-cta-btn">Ver resultados completos →</a>
+                <a
+                  [routerLink]="data().lastRace.slug ? seriesLink('calendario', data().lastRace.slug!, 'race') : seriesLink('calendario')"
+                  class="hm-cta-btn">Ver resultados completos →</a>
               }
             </div>
 
@@ -188,10 +195,10 @@
         [constructors]="data().constructors"
         [lastRace]="data().lastRace"
         [news]="data().news"
-        [activeCat]="activeCat()"
+        [activeCat]="sidebarActiveCat()"
         [accent]="accent()"
         [lastRaceWinner]="lastRaceWinner()">
       </app-right-rail>
-    </div>
+    }
   </div>
-}
+</div>

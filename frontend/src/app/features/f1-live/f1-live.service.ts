@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { map, Observable, of, shareReplay } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
+import { SERIES_CONFIG } from '../../core/series/series.config';
 import { SeriesContextService } from '../../core/series/series-context.service';
 import type { SeriesId } from '../../core/series/series.types';
 import {
@@ -43,22 +44,26 @@ export class F1LiveService {
   private constructorStandingsCache = new Map<SeriesId, Observable<JolpikaConstructorStanding[]>>();
   private driverStandingsCache = new Map<SeriesId, Observable<JolpikaDriverStanding[]>>();
 
-  private prefix(): string {
-    return this.series.apiPrefix();
+  private seriesId(explicit?: SeriesId): SeriesId {
+    return explicit ?? this.series.id();
   }
 
-  private openF1Enabled(): boolean {
-    return this.series.config().features.openF1;
+  private prefix(explicit?: SeriesId): string {
+    return `/${this.seriesId(explicit)}`;
   }
 
-  getSessions(): Observable<OpenF1Session[]> {
-    if (!this.openF1Enabled()) return of([]);
-    return this.api.get<OpenF1Session[]>(`${this.prefix()}/openf1/sessions`);
+  private openF1Enabled(explicit?: SeriesId): boolean {
+    return SERIES_CONFIG[this.seriesId(explicit)].features.openF1;
   }
 
-  getDrivers(sessionKey?: number | 'latest' | null): Observable<OpenF1Driver[]> {
-    if (!this.openF1Enabled()) return of([]);
-    return this.api.get<OpenF1Driver[]>(`${this.prefix()}/openf1/drivers${sessionQuery(sessionKey)}`);
+  getSessions(seriesId?: SeriesId): Observable<OpenF1Session[]> {
+    if (!this.openF1Enabled(seriesId)) return of([]);
+    return this.api.get<OpenF1Session[]>(`${this.prefix(seriesId)}/openf1/sessions`);
+  }
+
+  getDrivers(sessionKey?: number | 'latest' | null, seriesId?: SeriesId): Observable<OpenF1Driver[]> {
+    if (!this.openF1Enabled(seriesId)) return of([]);
+    return this.api.get<OpenF1Driver[]>(`${this.prefix(seriesId)}/openf1/drivers${sessionQuery(sessionKey)}`);
   }
 
   getPositions(sessionKey?: number | 'latest' | null): Observable<OpenF1Position[]> {
@@ -103,12 +108,12 @@ export class F1LiveService {
     return this.api.get<OpenF1Location[]>(`${base}&session_key=${encodeURIComponent(String(sessionKey))}`);
   }
 
-  getDriverStandings(forceRefresh = false): Observable<JolpikaDriverStanding[]> {
-    const sid = this.series.id();
+  getDriverStandings(forceRefresh = false, seriesId?: SeriesId): Observable<JolpikaDriverStanding[]> {
+    const sid = this.seriesId(seriesId);
     if (forceRefresh) this.driverStandingsCache.delete(sid);
     if (!this.driverStandingsCache.has(sid)) {
       const obs = this.api
-        .get<SourceWrapped<JolpikaDriverStanding>>(`${this.prefix()}/jolpica/driver-standings`)
+        .get<SourceWrapped<JolpikaDriverStanding>>(`${this.prefix(sid)}/jolpica/driver-standings`)
         .pipe(
           map((res) => res.items ?? []),
           shareReplay({ bufferSize: 1, refCount: false }),
@@ -132,12 +137,12 @@ export class F1LiveService {
     );
   }
 
-  getConstructorStandings(forceRefresh = false): Observable<JolpikaConstructorStanding[]> {
-    const sid = this.series.id();
+  getConstructorStandings(forceRefresh = false, seriesId?: SeriesId): Observable<JolpikaConstructorStanding[]> {
+    const sid = this.seriesId(seriesId);
     if (forceRefresh) this.constructorStandingsCache.delete(sid);
     if (!this.constructorStandingsCache.has(sid)) {
       const obs = this.api
-        .get<SourceWrapped<JolpikaConstructorStanding>>(`${this.prefix()}/jolpica/constructor-standings`)
+        .get<SourceWrapped<JolpikaConstructorStanding>>(`${this.prefix(sid)}/jolpica/constructor-standings`)
         .pipe(
           map((res) => res.items ?? []),
           shareReplay({ bufferSize: 1, refCount: false }),
@@ -163,17 +168,17 @@ export class F1LiveService {
     );
   }
 
-  getCalendar(): Observable<JolpikaCalendarRace[]> {
+  getCalendar(seriesId?: SeriesId): Observable<JolpikaCalendarRace[]> {
     return this.api
-      .get<SourceWrapped<JolpikaCalendarRace>>(`${this.prefix()}/jolpica/calendar`)
+      .get<SourceWrapped<JolpikaCalendarRace>>(`${this.prefix(seriesId)}/jolpica/calendar`)
       .pipe(map((res) => res.items ?? []));
   }
 
-  getLastRace(): Observable<JolpikaLastRace> {
-    return this.api.get<JolpikaLastRace>(`${this.prefix()}/jolpica/last-race`);
+  getLastRace(seriesId?: SeriesId): Observable<JolpikaLastRace> {
+    return this.api.get<JolpikaLastRace>(`${this.prefix(seriesId)}/jolpica/last-race`);
   }
 
-  getRaceResults(round: number): Observable<JolpikaRaceResult> {
-    return this.api.get<JolpikaRaceResult>(`${this.prefix()}/jolpica/results/${round}`);
+  getRaceResults(round: number, seriesId?: SeriesId): Observable<JolpikaRaceResult> {
+    return this.api.get<JolpikaRaceResult>(`${this.prefix(seriesId)}/jolpica/results/${round}`);
   }
 }

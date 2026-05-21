@@ -9,7 +9,8 @@ import {
 import { RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
 import { catchError, forkJoin, map, of, switchMap, tap } from 'rxjs';
-import { bindSeriesLoad } from '../../core/series/bind-series-load';
+import { bindSeriesLoad, isSeriesStillActive } from '../../core/series/bind-series-load';
+import { isFeederSeries } from '../../core/series/series.config';
 import type { SeriesId } from '../../core/series/series.types';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
@@ -64,12 +65,15 @@ export class F1ClasificacionPageComponent {
 
   driverRows = computed(() =>
     buildDriverRows(this.driverStands(), this.openf1(), this.races(), {
-      headshotSize: this.seriesCtx.id() === 'f2' ? 'large' : 'card',
+      headshotSize: isFeederSeries(this.seriesCtx.id()) ? 'large' : 'card',
+      seriesId: this.seriesCtx.id(),
     }),
   );
 
   constructorRows = computed(() =>
-    buildConstructorRows(this.teamStands(), this.driverStands()),
+    buildConstructorRows(this.teamStands(), this.driverStands(), {
+      seriesId: this.seriesCtx.id(),
+    }),
   );
 
   leader = computed(() => this.driverRows()[0] ?? null);
@@ -88,20 +92,20 @@ export class F1ClasificacionPageComponent {
     bindSeriesLoad((seriesId) => this.fetchStandings(seriesId), this.destroyRef);
   }
 
-  private fetchStandings(_seriesId: SeriesId) {
+  private fetchStandings(seriesId: SeriesId) {
     this.loading.set(true);
     this.error.set(null);
 
     return forkJoin({
-      drivers: this.f1.getDriverStandings(true).pipe(
+      drivers: this.f1.getDriverStandings(true, seriesId).pipe(
         catchError(() => of([] as JolpikaDriverStanding[])),
       ),
-      teams: this.f1.getConstructorStandings(true).pipe(
+      teams: this.f1.getConstructorStandings(true, seriesId).pipe(
         catchError(() => of([] as JolpikaConstructorStanding[])),
       ),
-      calendar: this.f1.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
-      openf1: this.f1.getDrivers('latest').pipe(catchError(() => of([] as OpenF1Driver[]))),
-      lastRace: this.f1.getLastRace().pipe(catchError(() => of(null as JolpikaLastRace | null))),
+      calendar: this.f1.getCalendar(seriesId).pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
+      openf1: this.f1.getDrivers('latest', seriesId).pipe(catchError(() => of([] as OpenF1Driver[]))),
+      lastRace: this.f1.getLastRace(seriesId).pipe(catchError(() => of(null as JolpikaLastRace | null))),
     }).pipe(
       switchMap((base) => {
         const rounds = base.lastRace?.round
@@ -112,7 +116,9 @@ export class F1ClasificacionPageComponent {
         }
         return forkJoin(
           rounds.map((r) =>
-            this.f1.getRaceResults(r).pipe(catchError(() => of(null as JolpikaRaceResult | null))),
+            this.f1
+              .getRaceResults(r, seriesId)
+              .pipe(catchError(() => of(null as JolpikaRaceResult | null))),
           ),
         ).pipe(
           map((mapResults) => ({
@@ -122,6 +128,7 @@ export class F1ClasificacionPageComponent {
         );
       }),
       tap((res) => {
+        if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return;
         this.driverStands.set(res.drivers);
         this.teamStands.set(res.teams);
         this.calendar.set(res.calendar);
@@ -132,6 +139,7 @@ export class F1ClasificacionPageComponent {
         this.error.set(null);
       }),
       catchError(() => {
+        if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return of(null);
         this.error.set('No se pudo cargar la clasificación.');
         this.loading.set(false);
         return of(null);
@@ -181,8 +189,9 @@ export class F1ClasificacionPageComponent {
   imgError(ev: Event, row?: ClDriverRow): void {
     const el = ev.target;
     if (!(el instanceof HTMLImageElement)) return;
-    if (row && this.seriesCtx.id() === 'f2' && !el.dataset['f2Retry']) {
-      const raw = resolveDriverHeadshotRawUrl(row.driverId);
+    const sid = this.seriesCtx.id();
+    if (row && isFeederSeries(sid) && !el.dataset['f2Retry']) {
+      const raw = resolveDriverHeadshotRawUrl(row.driverId, sid);
       if (raw) {
         el.dataset['f2Retry'] = '1';
         el.src = raw;
@@ -195,6 +204,11 @@ export class F1ClasificacionPageComponent {
   photoLoaded(ev: Event): void {
     const el = ev.target;
     if (!(el instanceof HTMLImageElement)) return;
+    this.markPhotoLoaded(el);
+  }
+
+  /** Imágenes en caché del navegador no disparan `load`; marcar igualmente. */
+  markPhotoLoaded(el: HTMLImageElement): void {
     el.closest('.cl-photo-wrap')?.classList.add('cl-photo-loaded');
   }
 

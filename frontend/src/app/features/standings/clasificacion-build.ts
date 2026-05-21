@@ -6,6 +6,7 @@ import type {
   JolpikaRaceResult,
   OpenF1Driver,
 } from '../f1-live/f1-live.types';
+import type { SeriesId } from '../../core/series/series.types';
 import {
   countryCodesForDriver,
   flagCdnUrl,
@@ -208,7 +209,7 @@ export function buildDriverRows(
   standings: JolpikaDriverStanding[],
   openf1: OpenF1Driver[],
   races: JolpikaRaceResult[],
-  options?: { headshotSize?: 'card' | 'large' },
+  options?: { headshotSize?: 'card' | 'large'; seriesId?: SeriesId },
 ): ClDriverRow[] {
   if (!standings.length) return [];
 
@@ -253,6 +254,7 @@ export function buildDriverRows(
       change: prevRanks ? prevRank - curRank : 0,
       headshotUrl: resolveDriverHeadshotUrl(id, s.driver, o?.headshotUrl, {
         size: options?.headshotSize ?? 'card',
+        seriesId: options?.seriesId,
       }),
       cumPts: cum.length ? cum : [s.points],
       barPct: leaderPts > 0 ? (s.points / leaderPts) * 100 : 0,
@@ -263,6 +265,7 @@ export function buildDriverRows(
 export function buildConstructorRows(
   standings: JolpikaConstructorStanding[],
   driverStandings: JolpikaDriverStanding[],
+  options?: { seriesId?: SeriesId },
 ): ClConstructorRow[] {
   if (!standings.length) return [];
   const maxPts = standings[0]?.points ?? 1;
@@ -278,9 +281,10 @@ export function buildConstructorRows(
   return standings.map(c => {
     const key = normalize(c.team);
     const constructorId = c.constructorId?.trim() || null;
-    const carImageUrl = constructorId ? f1TeamCarImageUrl(constructorId) : null;
+    const sid = options?.seriesId;
+    const carImageUrl = constructorId ? f1TeamCarImageUrl(constructorId, sid) : null;
     const logoImageUrl =
-      constructorId && !carImageUrl ? f1TeamShowcaseImageUrl(constructorId) : null;
+      constructorId && !carImageUrl ? f1TeamShowcaseImageUrl(constructorId, sid) : null;
 
     return {
       pos: c.pos,

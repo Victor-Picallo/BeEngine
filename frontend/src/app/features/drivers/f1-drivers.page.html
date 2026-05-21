@@ -58,7 +58,7 @@
 
                     <div
                       class="fd-photo-wrap"
-                      [class.fd-photo-wrap--f2]="seriesCtx.id() === 'f2'"
+                      [class.fd-photo-wrap--feeder]="seriesCtx.id() === 'f2' || seriesCtx.id() === 'f3'"
                     >
                       <div
                         class="fd-photo-fallback"
@@ -70,10 +70,10 @@
                       @if (card.headshotUrl) {
                         <img
                           class="fd-headshot"
-                          [class.fd-headshot--f2]="seriesCtx.id() === 'f2'"
+                          [class.fd-headshot--feeder]="seriesCtx.id() === 'f2' || seriesCtx.id() === 'f3'"
                           [src]="card.headshotUrl"
                           [alt]="card.driver"
-                          [loading]="seriesCtx.id() === 'f2' || card.pos <= 6 ? 'eager' : 'lazy'"
+                          [loading]="seriesCtx.id() === 'f2' || seriesCtx.id() === 'f3' || card.pos <= 6 ? 'eager' : 'lazy'"
                           (load)="photoLoaded($event)"
                           (error)="imgError($event, card)"
                         />
@@ -137,7 +137,7 @@
 
                   <div
                     class="fd-photo-wrap"
-                    [class.fd-photo-wrap--f2]="seriesCtx.id() === 'f2'"
+                    [class.fd-photo-wrap--feeder]="seriesCtx.id() === 'f2' || seriesCtx.id() === 'f3'"
                   >
                     <div
                       class="fd-photo-fallback"
@@ -149,10 +149,10 @@
                     @if (card.headshotUrl) {
                       <img
                         class="fd-headshot"
-                        [class.fd-headshot--f2]="seriesCtx.id() === 'f2'"
+                        [class.fd-headshot--feeder]="seriesCtx.id() === 'f2' || seriesCtx.id() === 'f3'"
                         [src]="card.headshotUrl"
                         [alt]="card.driver"
-                        [loading]="seriesCtx.id() === 'f2' || card.pos <= 6 ? 'eager' : 'lazy'"
+                        [loading]="seriesCtx.id() === 'f2' || seriesCtx.id() === 'f3' || card.pos <= 6 ? 'eager' : 'lazy'"
                         (load)="photoLoaded($event)"
                         (error)="imgError($event, card)"
                       />

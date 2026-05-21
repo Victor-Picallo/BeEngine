@@ -109,9 +109,13 @@ export class F1ConstructorProfilePageComponent {
 
   teamHue = computed(() => teamColor(this.profile()?.name ?? ''));
 
-  logoUrl = computed(() => f1TeamShowcaseImageUrl(this.profile()?.constructorId ?? ''));
+  logoUrl = computed(() =>
+    f1TeamShowcaseImageUrl(this.profile()?.constructorId ?? '', this.seriesCtx.id()),
+  );
 
-  carUrl = computed(() => f1TeamCarImageUrl(this.profile()?.constructorId ?? ''));
+  carUrl = computed(() =>
+    f1TeamCarImageUrl(this.profile()?.constructorId ?? '', this.seriesCtx.id()),
+  );
 
   maxCumPts = computed(() => {
     const rows = this.profile()?.currentSeason ?? [];
@@ -135,7 +139,9 @@ export class F1ConstructorProfilePageComponent {
 
   driverHeadshot = (d: JolpikaConstructorProfileDriver): string => {
     const o = matchOpenF1Driver(d, this.openf1Drivers());
-    return resolveDriverHeadshotUrl(d.driverId, `${d.givenName} ${d.familyName}`, o?.headshotUrl);
+    return resolveDriverHeadshotUrl(d.driverId, `${d.givenName} ${d.familyName}`, o?.headshotUrl, {
+      seriesId: this.seriesCtx.id(),
+    });
   };
 
   country2ForDriver(d: JolpikaConstructorProfileDriver): string {

@@ -6,6 +6,7 @@ import newsRoutes       from './news.routes.js';
 import calendarRoutes   from './calendar.routes.js';
 import f1Routes         from './f1.routes.js';
 import f2Routes         from './f2.routes.js';
+import f3Routes         from './f3.routes.js';
 
 const router = Router();
 
@@ -15,6 +16,9 @@ router.use('/home',       homeRoutes);
 router.use('/news',       newsRoutes);
 router.use('/calendar',   calendarRoutes);
 router.use('/f1',         f1Routes);
+/** Compat: clientes que aún llaman `/api/jolpica/*` en lugar de `/api/f1/jolpica/*`. */
+router.use('/jolpica',    f1Routes);
 router.use('/f2',         f2Routes);
+router.use('/f3',         f3Routes);
 
 export default router;

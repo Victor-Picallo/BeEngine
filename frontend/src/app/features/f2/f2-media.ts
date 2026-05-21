@@ -5,13 +5,13 @@
 
 const F2_CLOUD = 'https://res.cloudinary.com/prod-f2f3/image/upload';
 
-/** Tarjetas: carga rápida, busto completo (sin g_face ni background removal). */
+/** Tarjetas: recorte 3:4 centrado en el piloto (rellena el marco sin bandas vacías). */
 const portraitCard = (versionPath: string): string =>
-  `${F2_CLOUD}/c_limit,w_520,h_720,q_auto:good,f_auto/${versionPath}`;
+  `${F2_CLOUD}/c_fill,w_400,h_530,g_auto:subject,q_auto:good,f_auto/${versionPath}`;
 
-/** Perfil / clasificación: un poco más de resolución. */
+/** Perfil / clasificación. */
 const portraitLarge = (versionPath: string): string =>
-  `${F2_CLOUD}/c_limit,w_640,h_880,q_auto:good,f_auto/${versionPath}`;
+  `${F2_CLOUD}/c_fill,w_520,h_700,g_auto:subject,q_auto:good,f_auto/${versionPath}`;
 
 /** Fallback sin transformación (por si falla la URL optimizada). */
 const portraitRaw = (versionPath: string): string =>

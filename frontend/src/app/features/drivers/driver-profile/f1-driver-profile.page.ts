@@ -40,6 +40,7 @@ import type {
 } from '../../f1-live/f1-live.types';
 import { AppHeaderComponent } from '../../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../../shared/components/app-sidebar/app-sidebar.component';
+import { isFeederSeries } from '../../../core/series/series.config';
 import { SeriesContextService } from '../../../core/series/series-context.service';
 import { SeriesAccentDirective } from '../../../core/series/series-accent.directive';
 import {
@@ -157,7 +158,8 @@ export class F1DriverProfilePageComponent {
     const p = this.profile();
     const full = p ? `${p.givenName} ${p.familyName}`.trim() : '';
     return resolveDriverHeadshotUrl(p?.driverId ?? '', full, this.openf1()?.headshotUrl, {
-      size: this.seriesCtx.id() === 'f2' ? 'large' : 'card',
+      size: isFeederSeries(this.seriesCtx.id()) ? 'large' : 'card',
+      seriesId: this.seriesCtx.id(),
     });
   });
 
@@ -435,8 +437,9 @@ export class F1DriverProfilePageComponent {
   imgError(ev: Event): void {
     const el = ev.target;
     if (!(el instanceof HTMLImageElement)) return;
-    if (this.seriesCtx.id() === 'f2' && !el.dataset['f2Retry'] && el.classList.contains('dp-headshot')) {
-      const raw = resolveDriverHeadshotRawUrl(this.profile()?.driverId ?? '');
+    const sid = this.seriesCtx.id();
+    if (isFeederSeries(sid) && !el.dataset['f2Retry'] && el.classList.contains('dp-headshot')) {
+      const raw = resolveDriverHeadshotRawUrl(this.profile()?.driverId ?? '', sid);
       if (raw) {
         el.dataset['f2Retry'] = '1';
         el.src = raw;

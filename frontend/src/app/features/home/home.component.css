@@ -7,22 +7,27 @@
   font-size: 14px;
 }
 
-.hm-loading,
-.hm-error {
+.hm-main--loading {
   display: flex;
+  flex: 1;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  min-height: 60vh;
   padding: 20px;
   text-align: center;
   color: #888;
 }
 
-.hm-error {
+.hm-main--loading .hm-error {
   color: #c0392b;
   max-width: 360px;
-  margin: 0 auto;
   line-height: 1.6;
+}
+
+.hm-main--refreshing {
+  opacity: 0.72;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
 }
 
 .hm-layout {

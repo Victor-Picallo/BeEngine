@@ -5,6 +5,12 @@ export interface Category {
   accent: string;
 }
 
+/** Pestañas del header global: solo Formula 1 y MotoGP. */
+export const HEADER_CATEGORIES: Category[] = [
+  { id: 'f1', label: 'Formula 1', short: 'F1', accent: '#FFD100' },
+  { id: 'motogp', label: 'MotoGP', short: 'MotoGP', accent: '#0052CC' },
+];
+
 // Series shown inside the sidebar's "Categorías" section, keyed by the
 // top-level topbar category. The first entry is the parent series.
 export const SUB_CATEGORIES: Record<string, Category[]> = {

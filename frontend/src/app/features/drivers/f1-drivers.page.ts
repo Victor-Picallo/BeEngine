@@ -9,7 +9,8 @@ import {
 import { RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
 import { catchError, forkJoin, map, of, tap } from 'rxjs';
-import { bindSeriesLoad } from '../../core/series/bind-series-load';
+import { bindSeriesLoad, isSeriesStillActive } from '../../core/series/bind-series-load';
+import { isFeederSeries } from '../../core/series/series.config';
 import type { SeriesId } from '../../core/series/series.types';
 import { F1LiveService } from '../f1-live/f1-live.service';
 import type { JolpikaDriverStanding, OpenF1Driver } from '../f1-live/f1-live.types';
@@ -66,10 +67,16 @@ function matchOpenF1Driver(
   });
 }
 
-function buildCards(rows: JolpikaDriverStanding[], open: OpenF1Driver[]): DriverCard[] {
+function buildCards(
+  rows: JolpikaDriverStanding[],
+  open: OpenF1Driver[],
+  seriesId: SeriesId,
+): DriverCard[] {
   return rows.map(j => {
     const o = matchOpenF1Driver(j, open);
-    const url = resolveDriverHeadshotUrl(j.driverId ?? '', j.driver, o?.headshotUrl);
+    const url = resolveDriverHeadshotUrl(j.driverId ?? '', j.driver, o?.headshotUrl, {
+      seriesId,
+    });
     const { alpha2, alpha3 } = countryCodesForDriver(j, o);
     return {
       pos: j.pos,
@@ -106,7 +113,7 @@ export class F1DriversPageComponent {
   private raw = signal<JolpikaDriverStanding[]>([]);
   private openf1Drivers = signal<OpenF1Driver[]>([]);
 
-  cards = computed(() => buildCards(this.raw(), this.openf1Drivers()));
+  cards = computed(() => buildCards(this.raw(), this.openf1Drivers(), this.seriesCtx.id()));
 
   cardDelay(index: number): number {
     return (index % 6) * 50;
@@ -115,8 +122,9 @@ export class F1DriversPageComponent {
   imgError(ev: Event, card?: DriverCard): void {
     const el = ev.target;
     if (!(el instanceof HTMLImageElement)) return;
-    if (card && this.seriesCtx.id() === 'f2' && !el.dataset['f2Retry']) {
-      const raw = resolveDriverHeadshotRawUrl(card.driverId);
+    const sid = this.seriesCtx.id();
+    if (card && isFeederSeries(sid) && !el.dataset['f2Retry']) {
+      const raw = resolveDriverHeadshotRawUrl(card.driverId, sid);
       if (raw) {
         el.dataset['f2Retry'] = '1';
         el.src = raw;
@@ -140,24 +148,26 @@ export class F1DriversPageComponent {
     bindSeriesLoad((seriesId) => this.fetchStandings(seriesId), this.destroyRef);
   }
 
-  private fetchStandings(_seriesId: SeriesId) {
+  private fetchStandings(seriesId: SeriesId) {
     this.loading.set(true);
     this.error.set(null);
     this.raw.set([]);
     this.openf1Drivers.set([]);
 
     return forkJoin({
-      standings: this.f1.getDriverStandings(true),
-      open: this.f1.getDrivers('latest').pipe(catchError(() => of<OpenF1Driver[]>([]))),
+      standings: this.f1.getDriverStandings(true, seriesId),
+      open: this.f1.getDrivers('latest', seriesId).pipe(catchError(() => of<OpenF1Driver[]>([]))),
     }).pipe(
       tap((res) => {
+        if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return;
         this.raw.set(res.standings);
         this.openf1Drivers.set(res.open);
         this.loading.set(false);
         this.error.set(null);
-        if (this.seriesCtx.id() === 'f2') this.prefetchF2Portraits();
+        if (isFeederSeries(seriesId)) this.prefetchFeederPortraits(seriesId);
       }),
       catchError(() => {
+        if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return of(null);
         this.loading.set(false);
         this.error.set('No se pudo cargar la clasificación de pilotos.');
         return of(null);
@@ -170,8 +180,8 @@ export class F1DriversPageComponent {
     return initials(card.driver);
   }
 
-  private prefetchF2Portraits(): void {
-    for (const card of buildCards(this.raw(), [])) {
+  private prefetchFeederPortraits(seriesId: SeriesId): void {
+    for (const card of buildCards(this.raw(), [], seriesId)) {
       if (!card.headshotUrl) continue;
       const img = new Image();
       img.src = card.headshotUrl;

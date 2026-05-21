@@ -9,7 +9,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
 import { catchError, map, of, tap } from 'rxjs';
-import { bindSeriesLoad } from '../../core/series/bind-series-load';
+import { bindSeriesLoad, isSeriesStillActive } from '../../core/series/bind-series-load';
 import type { SeriesId } from '../../core/series/series.types';
 import { F1LiveService } from '../f1-live/f1-live.service';
 import type { JolpikaConstructorStanding } from '../f1-live/f1-live.types';
@@ -45,7 +45,7 @@ function initialsForTeam(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function buildCards(rows: JolpikaConstructorStanding[]): ConstructorCard[] {
+function buildCards(rows: JolpikaConstructorStanding[], seriesId: SeriesId): ConstructorCard[] {
   return rows.map((r) => {
     const { alpha2, alpha3 } = countryCodesFromNationality(r.nationality);
     return {
@@ -58,7 +58,7 @@ function buildCards(rows: JolpikaConstructorStanding[]): ConstructorCard[] {
       countryCode2: alpha2,
       countryCode3: alpha3,
       teamColor: teamColor(r.team),
-      imageUrl: f1TeamShowcaseImageUrl(r.constructorId ?? ''),
+      imageUrl: f1TeamShowcaseImageUrl(r.constructorId ?? '', seriesId),
     };
   });
 }
@@ -84,7 +84,7 @@ export class F1ConstructorsPageComponent {
   /** Logos que no cargan → volvemos al bloque de iniciales. */
   readonly failedTeamImg = signal<Set<string>>(new Set());
 
-  cards = computed(() => buildCards(this.raw()));
+  cards = computed(() => buildCards(this.raw(), this.seriesCtx.id()));
 
   cardDelay(index: number): number {
     return (index % 6) * 50;
@@ -120,18 +120,20 @@ export class F1ConstructorsPageComponent {
     bindSeriesLoad((seriesId) => this.fetchStandings(seriesId), this.destroyRef);
   }
 
-  private fetchStandings(_seriesId: SeriesId) {
+  private fetchStandings(seriesId: SeriesId) {
     this.loading.set(true);
     this.error.set(null);
     this.raw.set([]);
 
-    return this.f1.getConstructorStandings(true).pipe(
+    return this.f1.getConstructorStandings(true, seriesId).pipe(
       tap((rows) => {
+        if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return;
         this.raw.set(rows);
         this.loading.set(false);
         this.error.set(null);
       }),
       catchError(() => {
+        if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return of(null);
         this.loading.set(false);
         this.error.set('No se pudo cargar la clasificación de escuderías.');
         return of(null);

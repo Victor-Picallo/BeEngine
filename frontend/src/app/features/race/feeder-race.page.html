@@ -1,0 +1,133 @@
+<div class="fc-root fr-root">
+  <app-header></app-header>
+
+  <div class="fc-body">
+    <app-side></app-side>
+
+    <main class="fc-shell">
+      <nav class="fr-crumb" aria-label="Miga de pan">
+        <button type="button" class="fr-back" (click)="goBack()">← {{ backLabel() }}</button>
+        <span>/</span>
+        <a [routerLink]="seriesCtx.path('calendario')">Calendario</a>
+      </nav>
+
+      @if (loading()) {
+        <div class="fr-loading">Cargando carrera…</div>
+      } @else if (error(); as err) {
+        <div class="fr-empty">
+          <h1>Carrera no disponible</h1>
+          <p>{{ err }}</p>
+          <a [routerLink]="seriesCtx.path('calendario')" class="fr-cta">Volver al calendario</a>
+        </div>
+      } @else if (currentRace(); as race) {
+        <header class="fr-hero" [style.--fr-accent]="accent()">
+          <div class="fr-hero-circuit">
+            <div class="fc-grid-pattern"></div>
+            <div class="fr-circuit-svg-wrap">
+              <svg class="fc-circuit-svg" [attr.viewBox]="circuitSvg().viewBox" role="img"
+                   [attr.aria-label]="race.circuitName" preserveAspectRatio="xMidYMid meet">
+                <path class="fc-circuit-glow" [attr.d]="circuitSvg().circuitPath"></path>
+                <path class="fc-circuit-asphalt" [attr.d]="circuitSvg().circuitPath"></path>
+                <path class="fc-circuit-line" [attr.d]="circuitSvg().circuitPath"></path>
+                <circle class="fc-start-outer" [attr.cx]="circuitSvg().startX" [attr.cy]="circuitSvg().startY" r="5.5"></circle>
+                <circle class="fc-start-inner" [attr.cx]="circuitSvg().startX" [attr.cy]="circuitSvg().startY" r="2.8"></circle>
+              </svg>
+            </div>
+            <div class="fc-round">R{{ race.round }}</div>
+          </div>
+
+          <div class="fr-hero-body">
+            <div class="fr-status" [class.fr-status--done]="isPast()" [class.fr-status--next]="!isPast()">
+              {{ isPast() ? 'CARRERA FINALIZADA' : 'PRÓXIMA CARRERA' }}
+            </div>
+            <h1>{{ raceResult()?.raceName ?? race.raceName }}</h1>
+            <p class="fr-meta">
+              {{ race.circuitName }} · {{ race.locality }}, {{ race.country }}
+            </p>
+            <p class="fr-date">{{ dateLabel() }}</p>
+          </div>
+        </header>
+
+        @if (!isPast()) {
+          <section class="fr-upcoming">
+            <p>Esta ronda aún no se ha disputado. Vuelve cuando termine el fin de semana para ver el podio y la clasificación completa.</p>
+            <a [routerLink]="seriesCtx.path('calendario')" class="fr-cta">Ver calendario</a>
+          </section>
+        } @else if (!raceResult()) {
+          <section class="fr-upcoming">
+            <p>Resultados en sincronización.</p>
+          </section>
+        } @else {
+          @if (podium().length) {
+            <section class="fr-podium-section">
+              <h2>Podio</h2>
+              <div class="fr-podium">
+                @for (p of podium(); track p.position) {
+                  <div class="fr-podium-slot" [class.fr-podium-slot--p1]="p.position === 1">
+                    <span class="fr-pos" [style.color]="positionColor(p.position)">{{ positionLabel(p.position) }}</span>
+                    @if (driverLink(p.driverId); as link) {
+                      <a [routerLink]="link" appReturnNav class="fr-podium-driver">{{ p.driver }}</a>
+                    } @else {
+                      <span class="fr-podium-driver">{{ p.driver }}</span>
+                    }
+                    <span class="fr-podium-team">{{ p.team }}</span>
+                    <span class="fr-team-bar" [style.background]="p.teamColor"></span>
+                    @if (p.time) {
+                      <span class="fr-podium-time">{{ p.time }}</span>
+                    }
+                  </div>
+                }
+              </div>
+            </section>
+          }
+
+          <section class="fr-results">
+            <h2>Clasificación · Feature Race</h2>
+            <div class="fr-table-wrap">
+              <table class="fr-table">
+                <thead>
+                  <tr>
+                    <th>Pos</th>
+                    <th>Piloto</th>
+                    <th>Equipo</th>
+                    <th>Salida</th>
+                    <th>Vueltas</th>
+                    <th>Tiempo / Gap</th>
+                    <th>Pts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (r of resultRows(); track r.position) {
+                    <tr [class.fr-row-top3]="r.position <= 3">
+                      <td class="fr-td-pos" [style.color]="positionColor(r.position)">{{ r.position }}</td>
+                      <td>
+                        @if (driverLink(r.driverId); as link) {
+                          <a [routerLink]="link" appReturnNav class="fr-driver-link">{{ r.driver }}</a>
+                        } @else {
+                          {{ r.driver }}
+                        }
+                      </td>
+                      <td>
+                        <span class="fr-team-bar-inline" [style.background]="r.teamColor"></span>
+                        {{ r.team }}
+                      </td>
+                      <td>P{{ r.grid }}</td>
+                      <td>{{ r.laps }}</td>
+                      <td class="fr-mono">{{ r.time ?? r.status }}</td>
+                      <td class="fr-pts">{{ r.points }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <footer class="fc-footer">
+            <a [routerLink]="seriesCtx.path('clasificacion')">Clasificación temporada →</a>
+            <a [routerLink]="seriesCtx.path('calendario')">Calendario →</a>
+          </footer>
+        }
+      }
+    </main>
+  </div>
+</div>

@@ -62,7 +62,7 @@ export class RightRailComponent {
         links.push({
           label: 'Última carrera',
           desc: lr.name,
-          route: p('clasificacion'),
+          route: p('calendario', lr.slug, 'race'),
         });
       }
     } else {
@@ -117,18 +117,26 @@ export class RightRailComponent {
       links.push({
         label: 'Última noticia',
         desc: truncate(latest.title),
-        route: ['/noticias', latest.id],
+        route: p('noticias', latest.id),
       });
     } else {
       links.push({
         label: 'Última noticia',
         desc: 'Feed de noticias',
-        route: ['/noticias'],
+        route: p('noticias'),
       });
     }
 
     return links;
   });
+
+  newsListLink(): (string | number)[] {
+    return this.series.path('noticias');
+  }
+
+  newsArticleLink(id: string): (string | number)[] {
+    return this.series.path('noticias', id);
+  }
 
   quickStats = computed(() => {
     const r = this.nextRace();

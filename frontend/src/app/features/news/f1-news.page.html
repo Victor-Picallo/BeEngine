@@ -6,7 +6,7 @@
 
     <main class="fc-shell nw-shell">
       <nav class="nw-crumb" aria-label="Miga de pan">
-        <a routerLink="/">Inicio</a>
+        <a [routerLink]="seriesCtx.homePath()">Inicio</a>
         <span>/</span>
         <span>Noticias</span>
         <span>/</span>
@@ -40,7 +40,7 @@
           @for (a of hero(); track a.id) {
             <a
               class="nw-card nw-card--hero card-anim"
-              [routerLink]="['/noticias', a.id]"
+              [routerLink]="articleLink(a.id)"
               appReturnNav
               [style.--nw-accent]="accent()"
             >
@@ -80,7 +80,7 @@
           @for (a of regular(); track a.id; let i = $index) {
             <a
               class="nw-card card-anim"
-              [routerLink]="['/noticias', a.id]"
+              [routerLink]="articleLink(a.id)"
               appReturnNav
               [style.animation-delay.ms]="cardDelay(i)"
               [style.--nw-accent]="accent()"

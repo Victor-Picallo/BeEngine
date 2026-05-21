@@ -14,7 +14,7 @@ export type SeriesSectionLabel = (typeof SERIES_SECTION_LABELS)[number];
 
 const SECTION_PATHS: Record<SeriesSectionLabel, (prefix: string, home: string) => string | null> = {
   Inicio: (_p, home) => home,
-  Noticias: () => '/noticias',
+  Noticias: (p) => `${p}/noticias`,
   Calendario: (p) => `${p}/calendario`,
   Pilotos: (p) => `${p}/pilotos`,
   Escuderías: (p) => `${p}/escuderias`,

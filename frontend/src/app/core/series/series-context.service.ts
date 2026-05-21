@@ -33,12 +33,13 @@ export class SeriesContextService {
     this.id.set(id);
   }
 
-  /** Segmentos para `routerLink`, p. ej. `['f2', 'pilotos', id]`. */
+  /** Segmentos absolutos para `routerLink` / `navigate`, p. ej. `['/f2', 'pilotos', id]`. */
   path(...segments: string[]): (string | number)[] {
     if (this.id() === 'f1') {
-      return segments.length ? ['f1', ...segments] : ['/'];
+      return segments.length ? ['/f1', ...segments] : ['/'];
     }
-    return segments.length ? [this.id(), ...segments] : [this.id()];
+    const root = `/${this.id()}`;
+    return segments.length ? [root, ...segments] : [root];
   }
 
   /** Ruta URL absoluta, p. ej. `/f2/pilotos`. */

@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { NgStyle } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../../core/directives/return-nav.directive';
+import { SeriesContextService } from '../../../core/series/series-context.service';
 import { NewsItem } from '../../../data/sports.data';
 import { NewsImageComponent } from '../../../features/news/news-image/news-image.component';
 
@@ -13,6 +14,8 @@ import { NewsImageComponent } from '../../../features/news/news-image/news-image
   imports: [NgStyle, RouterLink, ReturnNavDirective, NewsImageComponent],
 })
 export class NewsListComponent {
+  private readonly seriesCtx = inject(SeriesContextService);
+
   news    = input.required<NewsItem[]>();
   accent  = input.required<string>();
   /** Máximo de filas (p. ej. home como muestra). */
@@ -27,4 +30,10 @@ export class NewsListComponent {
   });
 
   thumbHeight = computed(() => (this.compact() ? 40 : 50));
+
+  newsListLink = computed(() => this.seriesCtx.path('noticias'));
+
+  articleLink(id?: string): (string | number)[] {
+    return id ? this.seriesCtx.path('noticias', id) : this.newsListLink();
+  }
 }

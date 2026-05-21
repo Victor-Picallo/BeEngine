@@ -32,6 +32,14 @@ export const routes: Routes = [
 
   { path: 'f1/calendar', redirectTo: 'f1/calendario', pathMatch: 'full' },
 
+  // Rutas F1 antiguas (sin prefijo /f1)
+  { path: 'pilotos', redirectTo: 'f1/pilotos', pathMatch: 'full' },
+  { path: 'pilotos/:driverId', redirectTo: 'f1/pilotos/:driverId' },
+  { path: 'calendario', redirectTo: 'f1/calendario', pathMatch: 'full' },
+  { path: 'escuderias', redirectTo: 'f1/escuderias', pathMatch: 'full' },
+  { path: 'escuderias/:constructorId', redirectTo: 'f1/escuderias/:constructorId' },
+  { path: 'clasificacion', redirectTo: 'f1/clasificacion', pathMatch: 'full' },
+
   // F2 / F3 — home en `/f2`, `/f3` + mismas secciones
   { path: 'f2', ...FORMULA_SERIES_PARENT_ROUTE },
   { path: 'f3', ...FORMULA_SERIES_PARENT_ROUTE },

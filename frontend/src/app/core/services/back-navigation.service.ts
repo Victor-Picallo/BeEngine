@@ -63,9 +63,23 @@ export class BackNavigationService {
     if (path === '/f1/pilotos' || path === '/f2/pilotos' || path === '/f3/pilotos') return 'Pilotos';
     if (path === '/f1/escuderias' || path === '/f2/escuderias' || path === '/f3/escuderias') return 'Escuderías';
     if (path === '/f2' || path === '/f3') return 'Inicio';
+    if (/\/f[23]\/calendario\/[^/]+\/race/.test(path) || /\/f1\/calendario\/[^/]+\//.test(path)) {
+      return 'Carrera';
+    }
     if (path.startsWith('/f2/calendario') || path.startsWith('/f3/calendario')) return 'Calendario';
     if (path.startsWith('/f1/calendario')) return 'Calendario';
-    if (path.startsWith('/noticias')) return 'Noticias';
+    if (
+      path === '/noticias' ||
+      path.startsWith('/noticias/') ||
+      path === '/f1/noticias' ||
+      path.startsWith('/f1/noticias/') ||
+      path === '/f2/noticias' ||
+      path.startsWith('/f2/noticias/') ||
+      path === '/f3/noticias' ||
+      path.startsWith('/f3/noticias/')
+    ) {
+      return 'Noticias';
+    }
     if (path.startsWith('/f1/live')) return 'En vivo';
     return 'Volver';
   }

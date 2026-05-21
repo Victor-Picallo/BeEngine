@@ -1,5 +1,7 @@
+import type { SeriesId } from '../../core/series/series.types';
 import type { JolpikaDriverStanding, OpenF1Driver } from '../f1-live/f1-live.types';
 import { f2DriverHeadshotRawUrl, f2DriverHeadshotUrl } from '../f2/f2-media';
+import { f3DriverHeadshotRawUrl, f3DriverHeadshotUrl } from '../f3/f3-media';
 
 export const ACCENT = '#FFD100';
 
@@ -74,6 +76,12 @@ const NATIONALITY_TO_CC: Record<string, string> = {
   'South African': 'ZA',
   Bulgarian: 'BG',
   Paraguayan: 'PY',
+  Polish: 'PL',
+  Norwegian: 'NO',
+  Colombian: 'CO',
+  'South Korean': 'KR',
+  'Sri Lankan': 'LK',
+  Singaporean: 'SG',
 };
 
 /** ISO 3166-1 alpha-2 → alpha-3 (F1 grid + extras). */
@@ -197,10 +205,16 @@ export function resolveDriverHeadshotUrl(
   driverId: string,
   driverFullName: string | undefined,
   openF1HeadshotUrl: string | undefined | null,
-  options?: { size?: 'card' | 'large' },
+  options?: { size?: 'card' | 'large'; seriesId?: SeriesId },
 ): string {
-  const f2 = f2DriverHeadshotUrl(driverId, options?.size ?? 'card');
-  if (f2) return f2;
+  if (options?.seriesId === 'f2') {
+    const f2 = f2DriverHeadshotUrl(driverId, options?.size ?? 'card');
+    if (f2) return f2;
+  }
+  if (options?.seriesId === 'f3') {
+    const f3 = f3DriverHeadshotUrl(driverId, options?.size ?? 'card');
+    if (f3) return f3;
+  }
 
   const official = f1OfficialHeadshotWhenOpenF1Missing(driverId, driverFullName);
   if (official) return official;
@@ -208,8 +222,10 @@ export function resolveDriverHeadshotUrl(
   return raw ? hiResF1HeadshotUrl(raw) : '';
 }
 
-export function resolveDriverHeadshotRawUrl(driverId: string): string {
-  return f2DriverHeadshotRawUrl(driverId) ?? '';
+export function resolveDriverHeadshotRawUrl(driverId: string, seriesId?: SeriesId): string {
+  if (seriesId === 'f3') return f3DriverHeadshotRawUrl(driverId) ?? '';
+  if (seriesId === 'f2') return f2DriverHeadshotRawUrl(driverId) ?? '';
+  return '';
 }
 
 export function flagCdnUrl(alpha2: string): string {

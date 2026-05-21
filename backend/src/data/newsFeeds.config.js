@@ -15,6 +15,10 @@ export const NEWS_FEEDS_BY_CATEGORY = {
     { url: 'https://www.motorsport.com/rss/fia-f2/news/', source: 'Motorsport.com' },
     { url: 'https://www.crash.net/rss/f1', source: 'Crash.net', linkIncludes: '/f2/' },
   ],
+  f3: [
+    { url: 'https://www.motorsport.com/rss/fia-f3/news/', source: 'Motorsport.com' },
+    { url: 'https://www.crash.net/rss/f1', source: 'Crash.net', linkIncludes: '/f3/' },
+  ],
   motogp: [
     { url: 'https://www.crash.net/rss/motogp', source: 'Crash.net', linkIncludes: '/motogp/' },
     { url: 'https://www.motorsport.com/rss/category/motogp/', source: 'Motorsport.com' },

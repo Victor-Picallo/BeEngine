@@ -5,6 +5,14 @@ import { distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { SeriesContextService } from './series-context.service';
 import type { SeriesId } from './series.types';
 
+/** Evita aplicar respuestas de una serie si el usuario ya cambió de F1↔F2. */
+export function isSeriesStillActive(
+  expected: SeriesId,
+  current: () => SeriesId,
+): boolean {
+  return current() === expected;
+}
+
 /**
  * Ejecuta `load` cada vez que cambia la serie (F1↔F2).
  * Debe llamarse desde constructor o campo de clase (contexto de inyección).

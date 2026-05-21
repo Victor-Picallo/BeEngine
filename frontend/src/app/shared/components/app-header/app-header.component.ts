@@ -2,31 +2,16 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  DestroyRef,
   inject,
-  OnInit,
-  signal,
 } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, map, startWith } from 'rxjs/operators';
 import { TopbarComponent } from '../topbar/topbar.component';
-import { HomeService } from '../../../features/home/services/home.service';
-import type { Category } from '../../../data/sports.data';
+import { HEADER_CATEGORIES } from '../../../data/sports.data';
 import { SeriesContextService } from '../../../core/series/series-context.service';
-import { FORMULA_SERIES_IDS, homePathForSeries, SERIES_CONFIG } from '../../../core/series/series.config';
+import { homePathForSeries, newsPathForSeries } from '../../../core/series/series.config';
 import { isFormulaAppRoute } from '../../../core/series/formula-route';
-import type { SeriesId } from '../../../core/series/series.types';
-
-const FALLBACK_CATEGORIES: Category[] = [
-  { id: 'f1', label: 'Formula 1', short: 'F1', accent: '#FFD100' },
-  { id: 'motogp', label: 'MotoGP', short: 'MotoGP', accent: '#FFD100' },
-];
-
-const FORMULA_HEADER_CATEGORIES: Category[] = FORMULA_SERIES_IDS.map((id) => {
-  const c = SERIES_CONFIG[id];
-  return { id: c.id, label: c.label, short: c.short, accent: c.accent };
-});
 
 @Component({
   selector: 'app-header',
@@ -37,19 +22,15 @@ const FORMULA_HEADER_CATEGORIES: Category[] = FORMULA_SERIES_IDS.map((id) => {
       [categories]="displayCategories()"
       [activeCat]="activeCat()"
       [accent]="accent()"
+      [homeLink]="seriesCtx.homePath()"
       (catChange)="onCatChange($event)">
     </app-topbar>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppHeaderComponent implements OnInit {
-  private readonly homeService = inject(HomeService);
-  private readonly destroyRef = inject(DestroyRef);
+export class AppHeaderComponent {
   private readonly router = inject(Router);
-  private readonly seriesCtx = inject(SeriesContextService);
-
-  private readonly globalCategories = signal<Category[]>(FALLBACK_CATEGORIES);
-  private readonly newsActiveCat = signal('f1');
+  readonly seriesCtx = inject(SeriesContextService);
 
   private readonly urlPath = toSignal(
     this.router.events.pipe(
@@ -62,49 +43,33 @@ export class AppHeaderComponent implements OnInit {
 
   readonly inFormulaApp = computed(() => isFormulaAppRoute(this.urlPath()));
 
-  readonly displayCategories = computed(() =>
-    this.inFormulaApp() ? FORMULA_HEADER_CATEGORIES : this.globalCategories(),
-  );
+  readonly displayCategories = computed(() => HEADER_CATEGORIES);
 
-  readonly activeCat = computed(() =>
-    this.inFormulaApp() ? this.seriesCtx.id() : this.newsActiveCat(),
-  );
-
-  readonly accent = computed(() => {
-    const cat = this.displayCategories().find((c) => c.id === this.activeCat());
-    return cat?.accent ?? this.seriesCtx.config().accent;
+  readonly activeCat = computed(() => {
+    if (this.inFormulaApp()) return 'f1';
+    const path = this.urlPath();
+    if (path.startsWith('/noticias')) {
+      const q = new URLSearchParams(this.router.url.split('?')[1] ?? '');
+      return q.get('cat') === 'motogp' ? 'motogp' : 'f1';
+    }
+    return 'f1';
   });
 
-  ngOnInit(): void {
-    this.homeService
-      .getCategories()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (cats) => {
-          if (cats?.length) this.globalCategories.set(cats);
-        },
-        error: () => {},
-      });
-  }
+  readonly accent = computed(() => {
+    const cat = HEADER_CATEGORIES.find((c) => c.id === this.activeCat());
+    return cat?.accent ?? '#FFD100';
+  });
 
   onCatChange(id: string): void {
-    if (this.inFormulaApp()) {
-      const sid = id as SeriesId;
-      if (sid === this.seriesCtx.id()) return;
-      void this.router.navigateByUrl(homePathForSeries(sid));
+    if (id === 'motogp') {
+      void this.router.navigate(['/noticias'], { queryParams: { cat: 'motogp', page: null } });
       return;
     }
-
-    this.newsActiveCat.set(id);
-    const url = this.urlPath();
-    if (url.startsWith('/noticias')) {
-      void this.router.navigate(['/noticias'], {
-        queryParams: { cat: id, page: null },
-      });
+    if (id === 'f1') {
+      const url = this.urlPath();
+      const dest = url.includes('/noticias') ? newsPathForSeries('f1') : homePathForSeries('f1');
+      void this.router.navigateByUrl(dest);
       return;
-    }
-    if (id !== 'f1') {
-      void this.router.navigate(['/noticias'], { queryParams: { cat: id, page: null } });
     }
   }
 }

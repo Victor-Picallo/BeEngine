@@ -23,7 +23,7 @@
             <div class="dp-photo-col">
               <div
                 class="dp-photo-wrap"
-                [class.dp-photo-wrap--f2]="seriesCtx.id() === 'f2'"
+                [class.dp-photo-wrap--feeder]="seriesCtx.id() === 'f2' || seriesCtx.id() === 'f3'"
               >
                 <div class="dp-photo-fallback" [style.--dp-team]="teamHue()">
                   <span class="dp-photo-initials">{{ p.code }}</span>
@@ -31,7 +31,7 @@
                 @if (headshotUrl()) {
                   <img
                     class="dp-headshot"
-                    [class.dp-headshot--f2]="seriesCtx.id() === 'f2'"
+                    [class.dp-headshot--feeder]="seriesCtx.id() === 'f2' || seriesCtx.id() === 'f3'"
                     [src]="headshotUrl()"
                     [alt]="p.givenName + ' ' + p.familyName"
                     loading="eager"
@@ -381,7 +381,7 @@
         <footer class="fc-footer dp-footer">
           <span>BeEngine · Ficha piloto · Datos Jolpica / OpenF1</span>
           <div class="fc-footer-links">
-            <a routerLink="/">← Home</a>
+            <a [routerLink]="seriesCtx.homePath()">← Home</a>
             <a [routerLink]="seriesCtx.urlPath('calendario')">Calendario →</a>
           </div>
         </footer>

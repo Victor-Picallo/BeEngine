@@ -15,9 +15,9 @@
       } @else if (article(); as a) {
         <article class="nw-detail" [style.--nw-accent]="accent()">
           <nav class="nw-crumb" aria-label="Miga de pan">
-            <a routerLink="/">Inicio</a>
+            <a [routerLink]="seriesCtx.homePath()">Inicio</a>
             <span>/</span>
-            <a routerLink="/noticias" [queryParams]="{ cat: a.cat }">Noticias</a>
+            <a [routerLink]="newsListLink()">Noticias</a>
             <span>/</span>
             <span class="nw-crumb-accent">{{ a.title.slice(0, 48) }}…</span>
           </nav>
@@ -76,7 +76,7 @@
               <h2>Noticias relacionadas</h2>
               <div class="nw-related-grid">
                 @for (r of related(); track r.id) {
-                  <a class="nw-card" [routerLink]="['/noticias', r.id]" appReturnNav [style.--nw-accent]="accent()">
+                  <a class="nw-card" [routerLink]="articleLink(r.id)" appReturnNav [style.--nw-accent]="accent()">
                     <app-news-image [cat]="r.cat" [src]="r.imageUrl" [alt]="r.title" [height]="120" [accent]="accent()" />
                     <div class="nw-card-body" style="padding: 12px">
                       <div class="nw-title" style="font-size: 14px; margin-bottom: 6px">{{ r.title }}</div>

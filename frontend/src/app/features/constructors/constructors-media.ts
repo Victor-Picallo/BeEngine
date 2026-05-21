@@ -1,4 +1,6 @@
+import type { SeriesId } from '../../core/series/series.types';
 import { f2TeamCarImageUrl, f2TeamLogoUrl } from '../f2/f2-media';
+import { f3TeamCarImageUrl, f3TeamLogoUrl } from '../f3/f3-media';
 
 /**
  * Jolpica/Ergast no incluyen URL de monoplaza ni render del coche.
@@ -36,11 +38,17 @@ const LOGO_SLUG_OVERRIDE: Record<string, string> = {
 /**
  * URL de imagen oficial de escudería (logo F1.com), o `null` si no hay asset conocido.
  */
-export function f1TeamShowcaseImageUrl(constructorId: string): string | null {
+export function f1TeamShowcaseImageUrl(constructorId: string, seriesId?: SeriesId): string | null {
   const id = (constructorId || '').trim().toLowerCase();
   if (!id) return null;
-  const f2 = f2TeamLogoUrl(id);
-  if (f2) return f2;
+  if (seriesId === 'f2') {
+    const f2 = f2TeamLogoUrl(id);
+    if (f2) return f2;
+  }
+  if (seriesId === 'f3') {
+    const f3 = f3TeamLogoUrl(id);
+    if (f3) return f3;
+  }
   if (CONSTRUCTOR_LOGO_URL[id]) return CONSTRUCTOR_LOGO_URL[id];
 
   const slug = LOGO_SLUG_OVERRIDE[id] ?? encodeURIComponent(id.replace(/_/g, ' '));
@@ -70,11 +78,17 @@ const CAR_2026: Record<string, { folder: string; fileBase: string }> = {
   cadillac: { folder: 'cadillac', fileBase: '2026cadillac' },
 };
 
-export function f1TeamCarImageUrl(constructorId: string): string | null {
+export function f1TeamCarImageUrl(constructorId: string, seriesId?: SeriesId): string | null {
   const id = (constructorId || '').trim().toLowerCase();
   if (!id) return null;
-  const f2 = f2TeamCarImageUrl(id);
-  if (f2) return f2;
+  if (seriesId === 'f2') {
+    const f2 = f2TeamCarImageUrl(id);
+    if (f2) return f2;
+  }
+  if (seriesId === 'f3') {
+    const f3 = f3TeamCarImageUrl(id);
+    if (f3) return f3;
+  }
   const m = CAR_2026[id];
   if (!m) return null;
   return `${CAR_CLOUD}/v1740000001/common/f1/2026/${m.folder}/${m.fileBase}carright.webp`;

@@ -192,7 +192,7 @@
         <footer class="fc-footer">
           <span>BeEngine · Escuderías {{ seriesCtx.config().short }} 2026</span>
           <div class="fc-footer-links">
-            <a routerLink="/">← Home</a>
+            <a [routerLink]="seriesCtx.homePath()">← Home</a>
             <a [routerLink]="seriesCtx.urlPath('pilotos')">Pilotos →</a>
             <a [routerLink]="seriesCtx.urlPath('calendario')">Calendario →</a>
           </div>

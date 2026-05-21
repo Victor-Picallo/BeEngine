@@ -3,11 +3,11 @@ import {
   getConstructorStandings,
   getDriversForConstructor,
   getRaceResultsByRound,
-} from './f2Data.service.js';
-import { F2_CALENDAR_2026, F2_LAST_COMPLETED_ROUND } from '../../data/f2/f2Calendar2026.js';
+} from './f3Data.service.js';
+import { F3_CALENDAR_2026, F3_LAST_COMPLETED_ROUND } from '../../data/f3/f3Calendar2026.js';
 
 const gpLabel = (round) => {
-  const race = F2_CALENDAR_2026.find((c) => c.round === round);
+  const race = F3_CALENDAR_2026.find((c) => c.round === round);
   return race ? race.raceName.replace(/ Grand Prix$/i, '') : `Ronda ${round}`;
 };
 
@@ -20,7 +20,7 @@ export const getConstructorProfile = async (constructorId, _careerPage = 1) => {
   const drivers = getDriversForConstructor(constructorId);
 
   const currentSeason = [];
-  for (let r = 1; r <= F2_LAST_COMPLETED_ROUND; r += 1) {
+  for (let r = 1; r <= F3_LAST_COMPLETED_ROUND; r += 1) {
     let pts = 0;
     let bestPos = 99;
     for (const d of drivers) {
@@ -46,7 +46,7 @@ export const getConstructorProfile = async (constructorId, _careerPage = 1) => {
   }
 
   return {
-    source: 'beengine-f2',
+    source: 'beengine-f3',
     constructorId: grid.constructorId,
     name: grid.team,
     nationality: grid.nationality,
@@ -56,7 +56,7 @@ export const getConstructorProfile = async (constructorId, _careerPage = 1) => {
       wins: row?.wins ?? 0,
       podiums: 0,
       poles: 0,
-      races: F2_LAST_COMPLETED_ROUND,
+      races: F3_LAST_COMPLETED_ROUND,
       points: row?.points ?? 0,
     },
     drivers: drivers.map((d) => ({
@@ -70,7 +70,7 @@ export const getConstructorProfile = async (constructorId, _careerPage = 1) => {
       {
         year: 2026,
         team: grid.team,
-        races: F2_LAST_COMPLETED_ROUND,
+        races: F3_LAST_COMPLETED_ROUND,
         wins: row?.wins ?? 0,
         podiums: 0,
         poles: 0,

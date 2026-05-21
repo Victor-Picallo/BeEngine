@@ -14,9 +14,14 @@ import { catchError, of, switchMap } from 'rxjs';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
 import { BackNavigationService } from '../../core/services/back-navigation.service';
+import { newsPathForSeries } from '../../core/series/series.config';
+import { SeriesContextService } from '../../core/series/series-context.service';
+import type { SeriesId } from '../../core/series/series.types';
 import { NewsService } from './news.service';
 import { NewsImageComponent } from './news-image/news-image.component';
 import { NEWS_PAGE_CATEGORIES, type NewsArticle } from './news.types';
+
+const FORMULA_NEWS_IDS = new Set<string>(['f1', 'f2', 'f3']);
 
 @Component({
   selector: 'app-f1-news-detail-page',
@@ -31,9 +36,22 @@ export class F1NewsDetailPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly backNav = inject(BackNavigationService);
   private readonly destroyRef = inject(DestroyRef);
+  readonly seriesCtx = inject(SeriesContextService);
 
   returnUrl = signal<string | null>(null);
-  backLabel = computed(() => this.backNav.labelFor(this.returnUrl(), '/noticias'));
+
+  newsListFallback = computed(() => {
+    const art = this.article();
+    const cat = art?.cat ?? this.seriesCtx.id();
+    if (FORMULA_NEWS_IDS.has(cat)) {
+      return newsPathForSeries(cat as SeriesId);
+    }
+    return `/noticias?cat=${cat}`;
+  });
+
+  backLabel = computed(() =>
+    this.backNav.labelFor(this.returnUrl(), this.newsListFallback()),
+  );
 
   loading = signal(true);
   error = signal<string | null>(null);
@@ -51,7 +69,24 @@ export class F1NewsDetailPageComponent implements OnInit {
   });
 
   goBack(): void {
-    this.backNav.goBack('/noticias', this.returnUrl());
+    this.backNav.goBack(this.newsListFallback(), this.returnUrl());
+  }
+
+  articleLink(id: string): (string | number)[] {
+    const cat = this.article()?.cat;
+    if (cat && FORMULA_NEWS_IDS.has(cat)) {
+      return cat === 'f1' ? ['/f1', 'noticias', id] : [`/${cat}`, 'noticias', id];
+    }
+    return ['/noticias', id];
+  }
+
+  newsListLink(): string | (string | number)[] {
+    const art = this.article();
+    const cat = art?.cat;
+    if (cat && FORMULA_NEWS_IDS.has(cat)) {
+      return newsPathForSeries(cat as SeriesId);
+    }
+    return ['/noticias'];
   }
 
   ngOnInit(): void {

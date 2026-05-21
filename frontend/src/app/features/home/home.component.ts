@@ -16,6 +16,7 @@ import { NavigationEnd } from '@angular/router';
 import {
   Category,
   CategoryData,
+  HEADER_CATEGORIES,
   CountdownTime,
   Driver,
   Constructor,
@@ -28,6 +29,7 @@ import {
   Session,
 } from '../../data/sports.data';
 import { HomeService } from './services/home.service';
+import { HomeSeriesCacheService, type HomeSeriesSnapshot } from './services/home-series-cache.service';
 import { F1LiveService } from '../f1-live/f1-live.service';
 import { NewsService } from '../news/news.service';
 import { sessionsForRaceWeekend } from '../f1-live/f1-weekend-sessions';
@@ -126,6 +128,7 @@ const lastNameInitial = (full: string): string => {
 })
 export class HomeComponent implements OnInit, OnDestroy {
   private readonly homeService = inject(HomeService);
+  private readonly seriesCache = inject(HomeSeriesCacheService);
   private readonly f1          = inject(F1LiveService);
   private readonly newsService = inject(NewsService);
   private readonly destroyRef  = inject(DestroyRef);
@@ -135,8 +138,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   readonly flagMap         = FLAG_MAP;
   readonly sidebarSections = [...SERIES_SECTION_LABELS];
 
-  categories        = signal<Category[]>([]);
+  readonly categories = HEADER_CATEGORIES;
   loading           = signal(true);
+  refreshing        = signal(false);
   error             = signal<string | null>(null);
   countdown         = signal<CountdownTime>({ d: 0, h: 0, m: 0, s: 0 });
   now               = signal(new Date());
@@ -149,7 +153,11 @@ export class HomeComponent implements OnInit, OnDestroy {
   private sessionsRaw   = signal<OpenF1Session[]>([]);
   private newsRaw       = signal<NewsItem[]>([]);
   // ── Derived ──
-  activeCat = computed(() => this.seriesCtx.id());
+  /** Pestaña activa del header (solo F1 / MotoGP). */
+  topbarActiveCat = computed(() => 'f1');
+
+  /** Serie activa en el sidebar (F1 / F2 / F3). */
+  sidebarActiveCat = computed(() => this.seriesCtx.id());
 
   currentCat = computed(() => {
     const cfg = this.seriesCtx.config();
@@ -212,6 +220,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.lastRaceRaw() !== null,
   );
 
+  /** Solo bloquea el contenido central; el header y sidebar siguen visibles. */
+  showMainLoading = computed(() => this.loading() && !this.hasData());
+
   featuredNews = computed(() => this.data().news[0] ?? null);
 
   seasonRoundsDone = computed(() => Math.max(0, this.data().nextRace.round - 1));
@@ -259,14 +270,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   private loadedSeries: SeriesId | null = null;
 
   ngOnInit(): void {
-    this.homeService
-      .getCategories()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: cats => this.categories.set(cats),
-        error: () => {},
-      });
-
     this.ensureSeriesData();
     this.router.events
       .pipe(
@@ -292,7 +295,12 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   setCat(id: string): void {
+    if (id === 'motogp') {
+      void this.router.navigate(['/noticias'], { queryParams: { cat: 'motogp', page: null } });
+      return;
+    }
     const seriesId = id as SeriesId;
+    if (seriesId !== 'f1' && seriesId !== 'f2' && seriesId !== 'f3') return;
     if (seriesId === this.seriesCtx.id()) return;
     void this.router.navigateByUrl(homePathForSeries(seriesId));
   }
@@ -306,44 +314,95 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   // ── Loaders ─────────────────────────────────────────────────────────────
+  private applySnapshot(snapshot: HomeSeriesSnapshot): void {
+    this.calendarRaces.set(snapshot.calendar);
+    this.driverStands.set(snapshot.driverStands);
+    this.teamStands.set(snapshot.teamStands);
+    this.lastRaceRaw.set(snapshot.lastRace);
+    this.sessionsRaw.set(snapshot.sessions);
+    this.newsRaw.set(snapshot.news);
+  }
+
+  private clearSeriesSignals(): void {
+    this.calendarRaces.set([]);
+    this.driverStands.set([]);
+    this.teamStands.set([]);
+    this.lastRaceRaw.set(null);
+    this.sessionsRaw.set([]);
+    this.newsRaw.set([]);
+  }
+
+  private snapshotFromResponse(
+    r: {
+      calendar: JolpikaCalendarRace[];
+      driverStands: JolpikaDriverStanding[];
+      teamStands: JolpikaConstructorStanding[];
+      lastRace: JolpikaLastRace | null;
+      sessions: OpenF1Session[];
+      news: { items: Array<{ id?: string; tag: string; title: string; time: string; hot?: boolean; imageUrl?: string | null; cat?: string }> };
+    },
+  ): HomeSeriesSnapshot {
+    return {
+      calendar: r.calendar,
+      driverStands: r.driverStands,
+      teamStands: r.teamStands,
+      lastRace: r.lastRace,
+      sessions: r.sessions,
+      news: r.news.items.map(a => ({
+        id: a.id,
+        tag: a.tag,
+        title: a.title,
+        time: a.time,
+        hot: a.hot,
+        imageUrl: a.imageUrl,
+        cat: a.cat,
+      })),
+    };
+  }
+
   private loadAll(): void {
-    this.loading.set(true);
+    const seriesId = this.seriesCtx.id();
+    const cached = this.seriesCache.get(seriesId);
+
     this.error.set(null);
 
+    if (cached) {
+      this.applySnapshot(cached);
+      this.loading.set(false);
+      this.refreshing.set(true);
+    } else {
+      this.clearSeriesSignals();
+      this.loading.set(true);
+      this.refreshing.set(false);
+    }
+
     forkJoin({
-      calendar:     this.f1.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
-      driverStands: this.f1.getDriverStandings().pipe(catchError(() => of([] as JolpikaDriverStanding[]))),
-      teamStands:   this.f1.getConstructorStandings().pipe(catchError(() => of([] as JolpikaConstructorStanding[]))),
-      lastRace:     this.f1.getLastRace().pipe(catchError(() => of(null as JolpikaLastRace | null))),
-      sessions:     this.f1.getSessions().pipe(catchError(() => of([] as OpenF1Session[]))),
-      news:         this.newsService.getFeed('f1', 'Todos', 6, 0).pipe(
-        catchError(() => of({ items: [], total: 0, category: 'f1', tag: 'Todos', page: 1, pageSize: 6, totalPages: 1 })),
+      calendar:     this.f1.getCalendar(seriesId).pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
+      driverStands: this.f1.getDriverStandings(false, seriesId).pipe(catchError(() => of([] as JolpikaDriverStanding[]))),
+      teamStands:   this.f1.getConstructorStandings(false, seriesId).pipe(catchError(() => of([] as JolpikaConstructorStanding[]))),
+      lastRace:     this.f1.getLastRace(seriesId).pipe(catchError(() => of(null as JolpikaLastRace | null))),
+      sessions:     this.f1.getSessions(seriesId).pipe(catchError(() => of([] as OpenF1Session[]))),
+      news:         this.newsService.getFeed(seriesId, 'Todos', 6, 0).pipe(
+        catchError(() => of({ items: [], total: 0, category: seriesId, tag: 'Todos', page: 1, pageSize: 6, totalPages: 1 })),
       ),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: r => {
-          this.calendarRaces.set(r.calendar);
-          this.driverStands.set(r.driverStands);
-          this.teamStands.set(r.teamStands);
-          this.lastRaceRaw.set(r.lastRace);
-          this.sessionsRaw.set(r.sessions);
-          this.newsRaw.set(
-            r.news.items.map(a => ({
-              id: a.id,
-              tag: a.tag,
-              title: a.title,
-              time: a.time,
-              hot: a.hot,
-              imageUrl: a.imageUrl,
-              cat: a.cat,
-            })),
-          );
+          if (this.seriesCtx.id() !== seriesId) return;
+          const snapshot = this.snapshotFromResponse(r);
+          this.seriesCache.set(seriesId, snapshot);
+          this.applySnapshot(snapshot);
           this.loading.set(false);
+          this.refreshing.set(false);
         },
         error: () => {
-          this.error.set('No se pudieron cargar los datos. Revisa que el backend esté arrancado.');
+          if (this.seriesCtx.id() !== seriesId) return;
+          if (!cached) {
+            this.error.set('No se pudieron cargar los datos. Revisa que el backend esté arrancado.');
+          }
           this.loading.set(false);
+          this.refreshing.set(false);
         },
       });
   }
@@ -381,24 +440,45 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   private refreshLiveData(): void {
+    const seriesId = this.seriesCtx.id();
     // During a live session, standings/last-race/calendar don't change — only
     // sessions metadata (which session is current) matters most.
-    this.f1.getSessions().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: s => this.sessionsRaw.set(s), error: () => {},
+    this.f1.getSessions(seriesId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: s => {
+        if (this.seriesCtx.id() !== seriesId) return;
+        this.sessionsRaw.set(s);
+      },
+      error: () => {},
     });
   }
 
   private refreshAll(): void {
-    this.f1.getCalendar().pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: c => this.calendarRaces.set(c), error: () => {} });
-    this.f1.getDriverStandings().pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: d => this.driverStands.set(d), error: () => {} });
-    this.f1.getConstructorStandings().pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: t => this.teamStands.set(t), error: () => {} });
-    this.f1.getLastRace().pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: r => this.lastRaceRaw.set(r), error: () => {} });
-    this.f1.getSessions().pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: s => this.sessionsRaw.set(s), error: () => {} });
+    const seriesId = this.seriesCtx.id();
+    this.f1.getCalendar(seriesId).pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: c => { if (this.seriesCtx.id() === seriesId) this.calendarRaces.set(c); },
+        error: () => {},
+      });
+    this.f1.getDriverStandings(false, seriesId).pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: d => { if (this.seriesCtx.id() === seriesId) this.driverStands.set(d); },
+        error: () => {},
+      });
+    this.f1.getConstructorStandings(false, seriesId).pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: t => { if (this.seriesCtx.id() === seriesId) this.teamStands.set(t); },
+        error: () => {},
+      });
+    this.f1.getLastRace(seriesId).pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: r => { if (this.seriesCtx.id() === seriesId) this.lastRaceRaw.set(r); },
+        error: () => {},
+      });
+    this.f1.getSessions(seriesId).pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: s => { if (this.seriesCtx.id() === seriesId) this.sessionsRaw.set(s); },
+        error: () => {},
+      });
     this.newsService
       .getFeed(this.seriesCtx.id(), 'Todos', 6, 0)
       .pipe(takeUntilDestroyed(this.destroyRef))

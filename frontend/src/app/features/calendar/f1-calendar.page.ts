@@ -7,7 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { catchError, map, of, tap } from 'rxjs';
-import { bindSeriesLoad } from '../../core/series/bind-series-load';
+import { bindSeriesLoad, isSeriesStillActive } from '../../core/series/bind-series-load';
 import type { SeriesId } from '../../core/series/series.types';
 import { SeriesContextService } from '../../core/series/series-context.service';
 import { SeriesAccentDirective } from '../../core/series/series-accent.directive';
@@ -227,19 +227,21 @@ export class F1CalendarPageComponent {
     bindSeriesLoad((seriesId) => this.fetchCalendar(seriesId), this.destroyRef);
   }
 
-  private fetchCalendar(_seriesId: SeriesId) {
+  private fetchCalendar(seriesId: SeriesId) {
     this.loading.set(true);
     this.error.set(null);
     this.calendar.set([]);
     this.resultsByRound.set({});
 
-    return this.service.getCalendar().pipe(
+    return this.service.getCalendar(seriesId).pipe(
       tap((calendar) => {
+        if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return;
         this.calendar.set(calendar);
         this.loading.set(false);
-        this.loadCompletedResults(calendar);
+        this.loadCompletedResults(calendar, seriesId);
       }),
       catchError(() => {
+        if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return of(null);
         this.error.set('No se pudo cargar el calendario oficial.');
         this.loading.set(false);
         return of(null);
@@ -277,7 +279,7 @@ export class F1CalendarPageComponent {
 
   raceCardLink(card: CalendarCard): (string | number)[] {
     if (!this.seriesCtx.config().features.raceSessionPage) {
-      return this.seriesCtx.path('clasificacion');
+      return this.seriesCtx.path('calendario', card.slug, 'race');
     }
     return this.seriesCtx.path('calendario', card.slug, card.defaultSession);
   }
@@ -286,15 +288,16 @@ export class F1CalendarPageComponent {
     return (index % 6) * 50;
   }
 
-  private loadCompletedResults(calendar: JolpikaCalendarRace[]): void {
+  private loadCompletedResults(calendar: JolpikaCalendarRace[], seriesId: SeriesId): void {
     const completed = calendar.filter(race => this.isPastRace(race));
     if (!completed.length) return;
 
     const requests = completed.map(race =>
-      this.service.getRaceResults(race.round).pipe(catchError(() => of(null)))
+      this.service.getRaceResults(race.round, seriesId).pipe(catchError(() => of(null))),
     );
 
     forkJoin(requests).subscribe(results => {
+      if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return;
       const byRound: Record<number, JolpikaRaceResult> = {};
       for (const result of results) {
         if (result) byRound[result.round] = result;

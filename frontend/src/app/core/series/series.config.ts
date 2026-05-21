@@ -53,3 +53,13 @@ export function seriesFromUrl(url: string): SeriesId {
 export function homePathForSeries(id: SeriesId): string {
   return id === 'f1' ? '/' : `/${id}`;
 }
+
+/** Listado de noticias de la serie (`/f1/noticias`, `/f2/noticias`, …). */
+export function newsPathForSeries(id: SeriesId): string {
+  return id === 'f1' ? '/f1/noticias' : `/${id}/noticias`;
+}
+
+/** F2 y F3 comparten UI de feeder (sin OpenF1, perfiles básicos). */
+export function isFeederSeries(id: SeriesId): boolean {
+  return id === 'f2' || id === 'f3';
+}
