@@ -2,7 +2,10 @@
   <app-header></app-header>
 
   <div class="fc-body">
-    <app-side></app-side>
+    <app-side
+      [motoNews]="motoSidebar()"
+      [newsCat]="motoSidebar() ? (article()?.cat ?? 'motogp') : undefined">
+    </app-side>
 
     <main class="fc-shell">
       @if (loading()) {
@@ -15,7 +18,7 @@
       } @else if (article(); as a) {
         <article class="nw-detail" [style.--nw-accent]="accent()">
           <nav class="nw-crumb" aria-label="Miga de pan">
-            <a [routerLink]="seriesCtx.homePath()">Inicio</a>
+            <a [routerLink]="homePath()">Inicio</a>
             <span>/</span>
             <a [routerLink]="newsListLink()">Noticias</a>
             <span>/</span>

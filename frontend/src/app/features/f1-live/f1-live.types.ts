@@ -119,9 +119,15 @@ export interface JolpikaDriverStanding {
   /** Ergast / Jolpica driver id (e.g. max_verstappen). */
   driverId: string;
   team: string;
+  /** Slug de fabricante (MotoGP PulseLive). */
+  constructorId?: string;
   points: number;
   wins: number;
   nationality: string;
+  /** Retrato oficial (MotoGP Pulse Live /riders). */
+  headshotUrl?: string | null;
+  /** Color de equipo (Pulse Live /teams). */
+  teamColor?: string | null;
 }
 
 export interface JolpikaCareerHistoryPagination {
@@ -186,6 +192,7 @@ export interface JolpikaDriverProfile {
   number: number | null;
   dateOfBirth: string | null;
   nationality: string;
+  headshotUrl?: string | null;
   championships: number;
   debut: string;
   currentSeasonYear: number;
@@ -215,6 +222,8 @@ export interface JolpikaConstructorStanding {
   points: number;
   wins: number;
   nationality: string;
+  logoUrl?: string | null;
+  teamColor?: string | null;
 }
 
 export interface JolpikaConstructorProfileDriver {
@@ -224,6 +233,7 @@ export interface JolpikaConstructorProfileDriver {
   code: string;
   number: number | null;
   nationality: string;
+  headshotUrl?: string | null;
 }
 
 export interface JolpikaConstructorProfileStanding {
@@ -273,6 +283,9 @@ export interface JolpikaConstructorProfile {
   name: string;
   nationality: string;
   wikiUrl: string | null;
+  logoUrl?: string | null;
+  bikeImageUrl?: string | null;
+  teamColor?: string | null;
   currentSeasonYear: number;
   standing: JolpikaConstructorProfileStanding | null;
   stats: {
@@ -302,6 +315,9 @@ export interface JolpikaCalendarRace {
   country: string;
   date: string;
   time: string | null;
+  circuitId?: string | null;
+  circuitSvgUrl?: string | null;
+  circuitImageUrl?: string | null;
 }
 
 export interface JolpikaLastRaceResult {
@@ -310,6 +326,7 @@ export interface JolpikaLastRaceResult {
   driverId?: string | null;
   team: string;
   constructorId?: string | null;
+  headshotUrl?: string | null;
   grid: number;
   laps: number;
   status: string;
@@ -324,8 +341,9 @@ export interface JolpikaLastRace {
   circuitName: string;
   date: string;
   results: JolpikaLastRaceResult[];
-  /** Imagen de victoria/podio del GP (RSS, solo si coincide con la carrera). */
+  /** Imagen de circuito / podio (Pulse Live o RSS). */
   imageUrl?: string | null;
+  circuitSvgUrl?: string | null;
 }
 
 export type JolpikaRaceResult = JolpikaLastRace;

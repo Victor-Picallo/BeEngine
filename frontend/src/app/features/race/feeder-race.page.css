@@ -83,6 +83,12 @@
   min-height: 200px;
 }
 
+.fc-circuit-svg--img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .fr-circuit-svg-wrap {
   position: absolute;
   inset: 12% 8%;

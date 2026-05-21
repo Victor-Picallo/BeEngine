@@ -7,6 +7,8 @@ export const TOPBAR_CATEGORIES = [
 /** Todas las categorías con datos / noticias en backend. */
 export const CATEGORIES = [
   ...TOPBAR_CATEGORIES,
+  { id: 'moto2', label: 'Moto 2', short: 'Moto2', accent: '#FF6B35' },
+  { id: 'moto3', label: 'Moto 3', short: 'Moto3', accent: '#52C41A' },
   { id: 'f2', label: 'Formula 2', short: 'F2', accent: '#0090FF' },
   { id: 'f3', label: 'Formula 3', short: 'F3', accent: '#9E9E9E' },
   { id: 'fe', label: 'Formula E', short: 'FE', accent: '#00C8FF' },

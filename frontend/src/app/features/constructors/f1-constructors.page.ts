@@ -57,8 +57,8 @@ function buildCards(rows: JolpikaConstructorStanding[], seriesId: SeriesId): Con
       nationality: r.nationality,
       countryCode2: alpha2,
       countryCode3: alpha3,
-      teamColor: teamColor(r.team),
-      imageUrl: f1TeamShowcaseImageUrl(r.constructorId ?? '', seriesId),
+      teamColor: teamColor(r.team, r.teamColor),
+      imageUrl: f1TeamShowcaseImageUrl(r.constructorId ?? '', seriesId, r.logoUrl),
     };
   });
 }

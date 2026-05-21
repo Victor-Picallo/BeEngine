@@ -5,9 +5,11 @@
 
 const F3_CLOUD = 'https://res.cloudinary.com/prod-f2f3/image/upload';
 
+/** Tarjetas: imagen completa; el CSS de la card usa object-fit: contain. */
 const portraitCard = (versionPath: string): string =>
-  `${F3_CLOUD}/c_fill,w_400,h_530,g_auto:subject,q_auto:good,f_auto/${versionPath}`;
+  `${F3_CLOUD}/c_limit,w_560,h_720,q_auto:good,f_auto/${versionPath}`;
 
+/** Clasificación / marco pequeño: recorte al sujeto. */
 const portraitLarge = (versionPath: string): string =>
   `${F3_CLOUD}/c_fill,w_520,h_700,g_auto:subject,q_auto:good,f_auto/${versionPath}`;
 

@@ -12,7 +12,11 @@ export class SeriesContextService {
   readonly config = computed<SeriesConfig>(() => SERIES_CONFIG[this.id()]);
   readonly apiPrefix = computed(() => `/${this.id()}`);
   readonly routePrefix = computed(() => this.config().routePrefix);
-  readonly homePath = computed(() => (this.id() === 'f1' ? '/' : this.routePrefix()));
+  readonly homePath = computed(() => {
+    if (this.id() === 'f1') return '/';
+    if (this.id() === 'motogp') return '/motogp';
+    return this.routePrefix();
+  });
 
   constructor() {
     this.syncFromUrl(this.router.url);
@@ -38,7 +42,7 @@ export class SeriesContextService {
     if (this.id() === 'f1') {
       return segments.length ? ['/f1', ...segments] : ['/'];
     }
-    const root = `/${this.id()}`;
+    const root = this.id() === 'motogp' ? '/motogp' : `/${this.id()}`;
     return segments.length ? [root, ...segments] : [root];
   }
 

@@ -4,6 +4,7 @@ import {
   FORMULA_SECTION_ROUTES,
   FORMULA_SERIES_PARENT_ROUTE,
 } from './core/series/formula-section.routes';
+import { MOTO_SERIES_PARENT_ROUTE } from './core/moto/moto-section.routes';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -40,9 +41,12 @@ export const routes: Routes = [
   { path: 'escuderias/:constructorId', redirectTo: 'f1/escuderias/:constructorId' },
   { path: 'clasificacion', redirectTo: 'f1/clasificacion', pathMatch: 'full' },
 
-  // F2 / F3 — home en `/f2`, `/f3` + mismas secciones
+  // F2 / F3 — home en `/f2`, `/f3` + mismas secciones (feeder race dentro del shell)
   { path: 'f2', ...FORMULA_SERIES_PARENT_ROUTE },
   { path: 'f3', ...FORMULA_SERIES_PARENT_ROUTE },
+
+  // MotoGP — paridad con F1 bajo `/motogp`
+  { path: 'motogp', ...MOTO_SERIES_PARENT_ROUTE },
 
   {
     path: 'noticias',

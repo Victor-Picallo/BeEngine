@@ -1,4 +1,4 @@
-export type SeriesId = 'f1' | 'f2' | 'f3';
+export type SeriesId = 'f1' | 'f2' | 'f3' | 'motogp';
 
 export interface SeriesFeatures {
   openF1: boolean;
@@ -12,6 +12,6 @@ export interface SeriesConfig {
   label: string;
   short: string;
   accent: string;
-  routePrefix: `/${SeriesId}`;
+  routePrefix: string;
   features: SeriesFeatures;
 }

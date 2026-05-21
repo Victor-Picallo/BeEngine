@@ -1,8 +1,9 @@
-/* F2 / F3: retratos oficiales — mismo relleno que F1 (cover), sin franja azul vacía. */
+/* F2 / F3: fondo oscuro en marcos de foto. */
 
 .fd-photo-wrap--feeder,
 .fd-photo-wrap--f2,
 .fd-photo-wrap--f3,
+.fd-photo-wrap--motogp,
 .cl-photo-wrap--feeder,
 .cl-photo-wrap--f2,
 .cl-photo-wrap--f3 {
@@ -12,6 +13,7 @@
 .fd-photo-wrap--feeder.fd-photo-loaded .fd-photo-fallback,
 .fd-photo-wrap--f2.fd-photo-loaded .fd-photo-fallback,
 .fd-photo-wrap--f3.fd-photo-loaded .fd-photo-fallback,
+.fd-photo-wrap--motogp.fd-photo-loaded .fd-photo-fallback,
 .cl-photo-wrap--feeder.cl-photo-loaded .cl-photo-fallback,
 .cl-photo-wrap--f2.cl-photo-loaded .cl-photo-fallback,
 .cl-photo-wrap--f3.cl-photo-loaded .cl-photo-fallback {
@@ -19,9 +21,16 @@
   pointer-events: none;
 }
 
+/* Tarjetas de pilotos: cuerpo entero visible (franja alta). */
 .fd-headshot--feeder,
 .fd-headshot--f2,
 .fd-headshot--f3,
+.fd-headshot--motogp {
+  object-fit: contain;
+  object-position: center bottom;
+}
+
+/* Clasificación: marco pequeño — recorte al rostro. */
 .cl-photo-img--feeder,
 .cl-photo-img--f2,
 .cl-photo-img--f3 {
@@ -52,10 +61,4 @@
   pointer-events: none;
 }
 
-.dp-headshot--feeder,
-.dp-headshot--f2,
-.dp-headshot--f3 {
-  object-fit: cover;
-  object-position: center 22%;
-  max-height: none;
-}
+/* Ficha de piloto: estilos finos en f1-driver-profile.page.css (solo ahí). */

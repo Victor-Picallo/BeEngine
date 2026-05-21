@@ -40,26 +40,50 @@ export const SERIES_CONFIG: Record<SeriesId, SeriesConfig> = {
       driverProfiles: 'basic',
     },
   },
+  motogp: {
+    id: 'motogp',
+    label: 'MotoGP',
+    short: 'MotoGP',
+    accent: '#0052CC',
+    routePrefix: '/motogp',
+    features: {
+      openF1: false,
+      livePage: false,
+      raceSessionPage: false,
+      driverProfiles: 'full',
+    },
+  },
 };
 
 export const FORMULA_SERIES_IDS: SeriesId[] = ['f1', 'f2', 'f3'];
 
+/** Series con UI de fórmula bajo su prefijo (incl. MotoGP principal). */
+export const RACING_SERIES_IDS: SeriesId[] = ['f1', 'f2', 'f3', 'motogp'];
+
 export function seriesFromUrl(url: string): SeriesId {
+  if (url.startsWith('/motogp')) return 'motogp';
   if (url.startsWith('/f2')) return 'f2';
   if (url.startsWith('/f3')) return 'f3';
   return 'f1';
 }
 
 export function homePathForSeries(id: SeriesId): string {
-  return id === 'f1' ? '/' : `/${id}`;
+  if (id === 'f1') return '/';
+  if (id === 'motogp') return '/motogp';
+  return `/${id}`;
 }
 
 /** Listado de noticias de la serie (`/f1/noticias`, `/f2/noticias`, …). */
 export function newsPathForSeries(id: SeriesId): string {
-  return id === 'f1' ? '/f1/noticias' : `/${id}/noticias`;
+  if (id === 'f1') return '/f1/noticias';
+  return `/${id}/noticias`;
 }
 
 /** F2 y F3 comparten UI de feeder (sin OpenF1, perfiles básicos). */
 export function isFeederSeries(id: SeriesId): boolean {
-  return id === 'f2' || id === 'f3';
+  return id === 'f2' || id === 'f3' || id === 'motogp';
+}
+
+export function isMotoSeries(id: SeriesId): boolean {
+  return id === 'motogp';
 }

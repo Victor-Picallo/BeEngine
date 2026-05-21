@@ -5,11 +5,6 @@ import { FormulaShellComponent } from './formula-shell.component';
 /** Páginas compartidas F1 / F2 / F3 (misma UI, serie vía URL). */
 export const FORMULA_SECTION_ROUTES: Routes = [
   {
-    path: 'calendario/:race/race',
-    loadComponent: () =>
-      import('../../features/race/feeder-race.page').then((m) => m.FeederRacePageComponent),
-  },
-  {
     path: 'calendario',
     pathMatch: 'full',
     loadComponent: () =>
@@ -60,10 +55,18 @@ export const FORMULA_SECTION_ROUTES: Routes = [
   },
 ];
 
+/** Resultado de carrera (F2/F3/MotoGP). Debe ir antes del `**` del shell. */
+export const FEEDER_RACE_ROUTE: Routes[number] = {
+  path: 'calendario/:race/race',
+  loadComponent: () =>
+    import('../../features/race/feeder-race.page').then((m) => m.FeederRacePageComponent),
+};
+
 /** Home + secciones para una serie (f2, f3). F1 usa `/` como inicio. */
 export function formulaSeriesChildRoutes(): Routes {
   return [
     { path: '', pathMatch: 'full', component: HomeComponent },
+    FEEDER_RACE_ROUTE,
     ...FORMULA_SECTION_ROUTES,
     { path: '**', redirectTo: '' },
   ];

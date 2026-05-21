@@ -7,6 +7,7 @@ import calendarRoutes   from './calendar.routes.js';
 import f1Routes         from './f1.routes.js';
 import f2Routes         from './f2.routes.js';
 import f3Routes         from './f3.routes.js';
+import motogpRoutes     from './motogp.routes.js';
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use('/f1',         f1Routes);
 router.use('/jolpica',    f1Routes);
 router.use('/f2',         f2Routes);
 router.use('/f3',         f3Routes);
+router.use('/motogp',     motogpRoutes);
 
 export default router;

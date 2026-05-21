@@ -20,7 +20,7 @@ import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sid
 import { F1LiveService } from '../f1-live/f1-live.service';
 import { findOfficialCircuit, projectCircuitCoords } from '../calendar/official-circuits';
 import { findRaceBySlug } from './race-slug';
-import { teamColor } from '../drivers/drivers-shared';
+import { resolveDriverHeadshotUrl, teamColor } from '../drivers/drivers-shared';
 import type { JolpikaCalendarRace, JolpikaRaceResult } from '../f1-live/f1-live.types';
 
 const GENERIC_PATH =
@@ -69,6 +69,10 @@ export class FeederRacePageComponent {
     return Number.isFinite(t.getTime()) && t < new Date();
   });
 
+  circuitSvgUrl = computed(
+    () => this.currentRace()?.circuitSvgUrl ?? this.raceResult()?.circuitSvgUrl ?? null,
+  );
+
   circuitSvg = computed(() => {
     const race = this.currentRace();
     if (!race) {
@@ -91,9 +95,13 @@ export class FeederRacePageComponent {
 
   resultRows = computed(() => {
     const results = this.raceResult()?.results ?? [];
+    const sid = this.seriesCtx.id();
     return results.map(r => ({
       ...r,
       teamColor: teamColor(r.team),
+      headshotUrl: r.headshotUrl
+        ? resolveDriverHeadshotUrl(r.driverId ?? '', r.driver, r.headshotUrl, { seriesId: sid })
+        : '',
     }));
   });
 

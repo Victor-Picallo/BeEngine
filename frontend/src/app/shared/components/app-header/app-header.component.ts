@@ -12,6 +12,7 @@ import { HEADER_CATEGORIES } from '../../../data/sports.data';
 import { SeriesContextService } from '../../../core/series/series-context.service';
 import { homePathForSeries, newsPathForSeries } from '../../../core/series/series.config';
 import { isFormulaAppRoute } from '../../../core/series/formula-route';
+import { isMotoAppRoute, isMotoCategory, MOTO_HOME_PATH } from '../../../core/moto/moto-categories';
 
 @Component({
   selector: 'app-header',
@@ -22,7 +23,7 @@ import { isFormulaAppRoute } from '../../../core/series/formula-route';
       [categories]="displayCategories()"
       [activeCat]="activeCat()"
       [accent]="accent()"
-      [homeLink]="seriesCtx.homePath()"
+      [homeLink]="homeLink()"
       (catChange)="onCatChange($event)">
     </app-topbar>
   `,
@@ -43,14 +44,22 @@ export class AppHeaderComponent {
 
   readonly inFormulaApp = computed(() => isFormulaAppRoute(this.urlPath()));
 
+  readonly inMotoApp = computed(() => isMotoAppRoute(this.urlPath()));
+
   readonly displayCategories = computed(() => HEADER_CATEGORIES);
 
+  readonly homeLink = computed(() =>
+    this.inMotoApp() ? MOTO_HOME_PATH : this.seriesCtx.homePath(),
+  );
+
   readonly activeCat = computed(() => {
+    if (this.inMotoApp()) return 'motogp';
     if (this.inFormulaApp()) return 'f1';
     const path = this.urlPath();
     if (path.startsWith('/noticias')) {
       const q = new URLSearchParams(this.router.url.split('?')[1] ?? '');
-      return q.get('cat') === 'motogp' ? 'motogp' : 'f1';
+      const cat = q.get('cat') ?? '';
+      return isMotoCategory(cat) ? 'motogp' : 'f1';
     }
     return 'f1';
   });
@@ -62,7 +71,7 @@ export class AppHeaderComponent {
 
   onCatChange(id: string): void {
     if (id === 'motogp') {
-      void this.router.navigate(['/noticias'], { queryParams: { cat: 'motogp', page: null } });
+      void this.router.navigateByUrl(MOTO_HOME_PATH);
       return;
     }
     if (id === 'f1') {

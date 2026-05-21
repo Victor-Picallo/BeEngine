@@ -59,6 +59,7 @@
                     <div
                       class="fd-photo-wrap"
                       [class.fd-photo-wrap--feeder]="seriesCtx.id() === 'f2' || seriesCtx.id() === 'f3'"
+                      [class.fd-photo-wrap--motogp]="seriesCtx.id() === 'motogp'"
                     >
                       <div
                         class="fd-photo-fallback"
@@ -71,9 +72,10 @@
                         <img
                           class="fd-headshot"
                           [class.fd-headshot--feeder]="seriesCtx.id() === 'f2' || seriesCtx.id() === 'f3'"
+                          [class.fd-headshot--motogp]="seriesCtx.id() === 'motogp'"
                           [src]="card.headshotUrl"
                           [alt]="card.driver"
-                          [loading]="seriesCtx.id() === 'f2' || seriesCtx.id() === 'f3' || card.pos <= 6 ? 'eager' : 'lazy'"
+                          [loading]="seriesCtx.id() === 'f2' || seriesCtx.id() === 'f3' || seriesCtx.id() === 'motogp' || card.pos <= 6 ? 'eager' : 'lazy'"
                           (load)="photoLoaded($event)"
                           (error)="imgError($event, card)"
                         />

@@ -23,6 +23,14 @@ export const NEWS_FEEDS_BY_CATEGORY = {
     { url: 'https://www.crash.net/rss/motogp', source: 'Crash.net', linkIncludes: '/motogp/' },
     { url: 'https://www.motorsport.com/rss/category/motogp/', source: 'Motorsport.com' },
   ],
+  moto2: [
+    { url: 'https://www.motorsport.com/rss/category/moto2/', source: 'Motorsport.com' },
+    { url: 'https://www.crash.net/rss/motogp', source: 'Crash.net', linkIncludes: '/moto2/' },
+  ],
+  moto3: [
+    { url: 'https://www.motorsport.com/rss/category/moto3/', source: 'Motorsport.com' },
+    { url: 'https://www.crash.net/rss/motogp', source: 'Crash.net', linkIncludes: '/moto3/' },
+  ],
   fe: [
     { url: 'https://www.crash.net/rss/fe', source: 'Crash.net', linkIncludes: '/fe/' },
   ],

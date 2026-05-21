@@ -107,15 +107,24 @@ export class F1ConstructorProfilePageComponent {
   private scrollRestoreY: number | null = null;
   private careerLoadGen = 0;
 
-  teamHue = computed(() => teamColor(this.profile()?.name ?? ''));
-
-  logoUrl = computed(() =>
-    f1TeamShowcaseImageUrl(this.profile()?.constructorId ?? '', this.seriesCtx.id()),
+  teamHue = computed(() =>
+    teamColor(this.profile()?.name ?? '', this.profile()?.teamColor),
   );
 
-  carUrl = computed(() =>
-    f1TeamCarImageUrl(this.profile()?.constructorId ?? '', this.seriesCtx.id()),
-  );
+  logoUrl = computed(() => {
+    const p = this.profile();
+    return (
+      p?.logoUrl ??
+      f1TeamShowcaseImageUrl(p?.constructorId ?? '', this.seriesCtx.id(), p?.logoUrl) ??
+      null
+    );
+  });
+
+  carUrl = computed(() => {
+    const p = this.profile();
+    if (this.seriesCtx.id() === 'motogp' && p?.bikeImageUrl) return p.bikeImageUrl;
+    return f1TeamCarImageUrl(p?.constructorId ?? '', this.seriesCtx.id());
+  });
 
   maxCumPts = computed(() => {
     const rows = this.profile()?.currentSeason ?? [];
@@ -139,7 +148,8 @@ export class F1ConstructorProfilePageComponent {
 
   driverHeadshot = (d: JolpikaConstructorProfileDriver): string => {
     const o = matchOpenF1Driver(d, this.openf1Drivers());
-    return resolveDriverHeadshotUrl(d.driverId, `${d.givenName} ${d.familyName}`, o?.headshotUrl, {
+    const media = d.headshotUrl ?? o?.headshotUrl;
+    return resolveDriverHeadshotUrl(d.driverId, `${d.givenName} ${d.familyName}`, media, {
       seriesId: this.seriesCtx.id(),
     });
   };

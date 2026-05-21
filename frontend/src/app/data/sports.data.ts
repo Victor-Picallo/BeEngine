@@ -41,6 +41,8 @@ export interface NextRace {
   round: number;
   totalRounds: number;
   sessions: Session[];
+  /** SVG oficial (MotoGP Pulse Live). */
+  circuitSvgUrl?: string | null;
 }
 
 export interface Driver {

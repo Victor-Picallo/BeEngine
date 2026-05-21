@@ -59,14 +59,45 @@ export class BackNavigationService {
   labelFor(returnUrl: string | null, fallbackPath: string): string {
     const path = (returnUrl ?? fallbackPath).split('?')[0];
     if (path === '/' || path === '') return 'Inicio';
-    if (path.startsWith('/f1/clasificacion') || path.startsWith('/f2/clasificacion') || path.startsWith('/f3/clasificacion')) return 'Clasificación';
-    if (path === '/f1/pilotos' || path === '/f2/pilotos' || path === '/f3/pilotos') return 'Pilotos';
-    if (path === '/f1/escuderias' || path === '/f2/escuderias' || path === '/f3/escuderias') return 'Escuderías';
-    if (path === '/f2' || path === '/f3') return 'Inicio';
-    if (/\/f[23]\/calendario\/[^/]+\/race/.test(path) || /\/f1\/calendario\/[^/]+\//.test(path)) {
+    if (
+      path.startsWith('/f1/clasificacion') ||
+      path.startsWith('/f2/clasificacion') ||
+      path.startsWith('/f3/clasificacion') ||
+      path.startsWith('/motogp/clasificacion')
+    ) {
+      return 'Clasificación';
+    }
+    if (
+      path === '/f1/pilotos' ||
+      path === '/f2/pilotos' ||
+      path === '/f3/pilotos' ||
+      path === '/motogp/pilotos'
+    ) {
+      return 'Pilotos';
+    }
+    if (
+      path === '/f1/escuderias' ||
+      path === '/f2/escuderias' ||
+      path === '/f3/escuderias' ||
+      path === '/motogp/escuderias'
+    ) {
+      return 'Escuderías';
+    }
+    if (path === '/f2' || path === '/f3' || path === '/motogp') return 'Inicio';
+    if (
+      /\/f[23]\/calendario\/[^/]+\/race/.test(path) ||
+      /\/motogp\/calendario\/[^/]+\/race/.test(path) ||
+      /\/f1\/calendario\/[^/]+\//.test(path)
+    ) {
       return 'Carrera';
     }
-    if (path.startsWith('/f2/calendario') || path.startsWith('/f3/calendario')) return 'Calendario';
+    if (
+      path.startsWith('/f2/calendario') ||
+      path.startsWith('/f3/calendario') ||
+      path.startsWith('/motogp/calendario')
+    ) {
+      return 'Calendario';
+    }
     if (path.startsWith('/f1/calendario')) return 'Calendario';
     if (
       path === '/noticias' ||
@@ -76,7 +107,9 @@ export class BackNavigationService {
       path === '/f2/noticias' ||
       path.startsWith('/f2/noticias/') ||
       path === '/f3/noticias' ||
-      path.startsWith('/f3/noticias/')
+      path.startsWith('/f3/noticias/') ||
+      path === '/motogp/noticias' ||
+      path.startsWith('/motogp/noticias/')
     ) {
       return 'Noticias';
     }

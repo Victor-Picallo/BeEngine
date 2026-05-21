@@ -119,16 +119,25 @@
                   }
 
                   <div class="fc-circuit-svg-wrap">
-                    <svg class="fc-circuit-svg" [attr.viewBox]="card.viewBox" role="img"
-                         [attr.aria-label]="card.race.circuitName"
-                         preserveAspectRatio="xMidYMid meet">
-                      <path class="fc-circuit-glow" [attr.d]="card.circuitPath"></path>
-                      <path class="fc-circuit-asphalt" [attr.d]="card.circuitPath"></path>
-                      <path class="fc-circuit-line" [attr.d]="card.circuitPath"></path>
-                      <path class="fc-circuit-dash" [attr.d]="card.circuitPath"></path>
-                      <circle class="fc-start-outer" [attr.cx]="card.startX" [attr.cy]="card.startY" r="5.5"></circle>
-                      <circle class="fc-start-inner" [attr.cx]="card.startX" [attr.cy]="card.startY" r="2.8"></circle>
-                    </svg>
+                    @if (card.circuitSvgUrl) {
+                      <img
+                        class="fc-circuit-svg fc-circuit-svg--img"
+                        [src]="card.circuitSvgUrl"
+                        [alt]="card.race.circuitName"
+                        loading="lazy"
+                      />
+                    } @else {
+                      <svg class="fc-circuit-svg" [attr.viewBox]="card.viewBox" role="img"
+                           [attr.aria-label]="card.race.circuitName"
+                           preserveAspectRatio="xMidYMid meet">
+                        <path class="fc-circuit-glow" [attr.d]="card.circuitPath"></path>
+                        <path class="fc-circuit-asphalt" [attr.d]="card.circuitPath"></path>
+                        <path class="fc-circuit-line" [attr.d]="card.circuitPath"></path>
+                        <path class="fc-circuit-dash" [attr.d]="card.circuitPath"></path>
+                        <circle class="fc-start-outer" [attr.cx]="card.startX" [attr.cy]="card.startY" r="5.5"></circle>
+                        <circle class="fc-start-inner" [attr.cx]="card.startX" [attr.cy]="card.startY" r="2.8"></circle>
+                      </svg>
+                    }
                   </div>
 
                   <div class="fc-round">R{{ card.race.round }}</div>

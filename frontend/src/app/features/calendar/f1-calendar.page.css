@@ -502,6 +502,13 @@
   justify-content: center;
 }
 
+.fc-circuit-svg--img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 12px rgba(255, 120, 0, 0.25));
+}
+
 .fc-circuit-svg {
   width: 100%;
   height: 100%;

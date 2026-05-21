@@ -45,6 +45,20 @@ export const TEAM_COLORS: Record<string, string> = {
   'van amersfoort racing': '#FF4500',
   'aix racing': '#00A651',
   aix: '#00A651',
+  /* MotoGP 2026 — equipos / fabricantes */
+  ducati: '#CC0000',
+  aprilia: '#006B3C',
+  ktm: '#FF6600',
+  yamaha: '#003087',
+  honda: '#E60012',
+  gresini: '#00AEEF',
+  vr46: '#FFD100',
+  lcr: '#E31937',
+  pramac: '#003DA5',
+  'pertamina enduro vr46': '#FFD100',
+  'ducati lenovo': '#CC0000',
+  'red bull ktm': '#FF6600',
+  'trackhouse racing': '#111111',
 };
 
 const NATIONALITY_TO_CC: Record<string, string> = {
@@ -158,8 +172,12 @@ export const normalize = (s: string): string =>
     .replace(/\s+/g, ' ')
     .trim();
 
-export const teamColor = (team: string): string =>
-  TEAM_COLORS[normalize(team)] ?? '#888888';
+/** Color de equipo; si la API envía hex (MotoGP), ese valor tiene prioridad. */
+export const teamColor = (team: string, apiColor?: string | null): string => {
+  const hex = (apiColor && String(apiColor).trim()) || '';
+  if (/^#[0-9a-f]{3,8}$/i.test(hex)) return hex;
+  return TEAM_COLORS[normalize(team)] ?? '#888888';
+};
 
 /** OpenF1 headshot URL upgraded to 8col when possible. */
 export function hiResF1HeadshotUrl(url: string): string {
@@ -214,6 +232,10 @@ export function resolveDriverHeadshotUrl(
   if (options?.seriesId === 'f3') {
     const f3 = f3DriverHeadshotUrl(driverId, options?.size ?? 'card');
     if (f3) return f3;
+  }
+  if (options?.seriesId === 'motogp') {
+    const url = (openF1HeadshotUrl && String(openF1HeadshotUrl).trim()) || '';
+    return url;
   }
 
   const official = f1OfficialHeadshotWhenOpenF1Missing(driverId, driverFullName);

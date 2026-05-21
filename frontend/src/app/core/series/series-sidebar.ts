@@ -26,7 +26,8 @@ export function seriesSectionPath(seriesId: SeriesId, label: string): string | n
   const fn = SECTION_PATHS[key];
   if (!fn) return null;
   const cfg = SERIES_CONFIG[seriesId];
-  const home = seriesId === 'f1' ? '/' : cfg.routePrefix;
+  const home =
+    seriesId === 'f1' ? '/' : seriesId === 'motogp' ? '/motogp' : cfg.routePrefix;
   const prefix = seriesId === 'f1' ? '/f1' : cfg.routePrefix;
   return fn(prefix, home);
 }

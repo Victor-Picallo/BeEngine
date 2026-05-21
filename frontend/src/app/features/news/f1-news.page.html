@@ -2,11 +2,11 @@
   <app-header></app-header>
 
   <div class="fc-body">
-    <app-side></app-side>
+    <app-side [motoNews]="motoSidebar()" [newsCat]="motoSidebar() ? activeCat() : undefined"></app-side>
 
     <main class="fc-shell nw-shell">
       <nav class="nw-crumb" aria-label="Miga de pan">
-        <a [routerLink]="seriesCtx.homePath()">Inicio</a>
+        <a [routerLink]="homePath()">Inicio</a>
         <span>/</span>
         <span>Noticias</span>
         <span>/</span>

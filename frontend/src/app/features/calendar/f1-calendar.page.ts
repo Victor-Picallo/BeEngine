@@ -27,6 +27,7 @@ interface CalendarCard {
   race: JolpikaCalendarRace;
   status: 'done' | 'next' | 'upcoming';
   description: string;
+  circuitSvgUrl: string | null;
   circuitPath: string;
   viewBox: string;
   startX: number;
@@ -174,6 +175,7 @@ export class F1CalendarPageComponent {
         race,
         status,
         description: this.descriptionFor(race),
+        circuitSvgUrl: race.circuitSvgUrl ?? null,
         circuitPath,
         viewBox,
         startX,

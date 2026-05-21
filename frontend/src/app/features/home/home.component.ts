@@ -53,7 +53,9 @@ import { SERIES_SECTION_LABELS } from '../../shared/f1-sidebar-sections';
 import { SeriesContextService } from '../../core/series/series-context.service';
 import { FORMULA_SERIES_IDS, homePathForSeries, SERIES_CONFIG } from '../../core/series/series.config';
 import type { SeriesId } from '../../core/series/series.types';
+import { isMotoCategory, MOTO_SIDEBAR_CATEGORIES } from '../../core/moto/moto-categories';
 import { accentForeground, accentPodiumHighlight } from '../../core/series/series-accent.utils';
+import { teamColor as resolveTeamColor } from '../drivers/drivers-shared';
 // ── Team color & nationality lookups ──────────────────────────────────────
 const TEAM_COLORS: Record<string, string> = {
   'mercedes':           '#27F4D2',
@@ -101,7 +103,7 @@ const REFRESH_LIVE_MS  = 30_000;
 const REFRESH_IDLE_MS  = 5 * 60_000;
 
 const normalize = (s: string) => (s || '').toLowerCase().trim();
-const teamColor = (team: string) => TEAM_COLORS[normalize(team)] ?? '#888888';
+const teamColor = (team: string, apiColor?: string | null) => resolveTeamColor(team, apiColor);
 const lastNameInitial = (full: string): string => {
   const parts = full.trim().split(/\s+/);
   if (parts.length < 2) return full;
@@ -154,10 +156,16 @@ export class HomeComponent implements OnInit, OnDestroy {
   private newsRaw       = signal<NewsItem[]>([]);
   // ── Derived ──
   /** Pestaña activa del header (solo F1 / MotoGP). */
-  topbarActiveCat = computed(() => 'f1');
+  topbarActiveCat = computed(() =>
+    this.seriesCtx.id() === 'motogp' ? 'motogp' : 'f1',
+  );
 
-  /** Serie activa en el sidebar (F1 / F2 / F3). */
-  sidebarActiveCat = computed(() => this.seriesCtx.id());
+  /** Serie activa en el sidebar (F1 / F2 / F3 o MotoGP en app moto). */
+  sidebarActiveCat = computed(() =>
+    this.seriesCtx.id() === 'motogp' ? 'motogp' : this.seriesCtx.id(),
+  );
+
+  motoSidebarMode = computed(() => this.seriesCtx.id() === 'motogp');
 
   currentCat = computed(() => {
     const cfg = this.seriesCtx.config();
@@ -168,12 +176,15 @@ export class HomeComponent implements OnInit, OnDestroy {
   accentFg = computed(() => accentForeground(this.accent()));
   accentPodium = computed(() => accentPodiumHighlight(this.accent()));
 
-  sidebarCategories = computed<Category[]>(() =>
-    FORMULA_SERIES_IDS.map((id) => {
+  sidebarCategories = computed<Category[]>(() => {
+    if (this.seriesCtx.id() === 'motogp') {
+      return MOTO_SIDEBAR_CATEGORIES;
+    }
+    return FORMULA_SERIES_IDS.map((id) => {
       const c = SERIES_CONFIG[id];
       return { id: c.id, label: c.label, short: c.short, accent: c.accent };
-    }),
-  );
+    });
+  });
 
   private nextRaceRaw = computed<JolpikaCalendarRace | null>(() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -296,7 +307,11 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   setCat(id: string): void {
     if (id === 'motogp') {
-      void this.router.navigate(['/noticias'], { queryParams: { cat: 'motogp', page: null } });
+      void this.router.navigateByUrl('/motogp');
+      return;
+    }
+    if (isMotoCategory(id)) {
+      void this.router.navigate(['/motogp/noticias'], { queryParams: { cat: id, page: null } });
       return;
     }
     const seriesId = id as SeriesId;
@@ -534,6 +549,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       round: race.round,
       totalRounds,
       sessions,
+      circuitSvgUrl: race.circuitSvgUrl ?? null,
     };
   }
 
@@ -544,7 +560,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       team: d.team,
       points: d.points,
       nationality: NATIONALITY_TO_CC[d.nationality] ?? d.nationality?.slice(0, 2).toUpperCase() ?? '',
-      teamColor: teamColor(d.team),
+      teamColor: teamColor(d.team, d.teamColor),
       driverId: d.driverId?.trim() || undefined,
     }));
   }
@@ -554,7 +570,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       pos: t.pos,
       team: t.team,
       points: t.points,
-      color: teamColor(t.team),
+      color: teamColor(t.team, t.teamColor),
       constructorId: t.constructorId?.trim() || undefined,
     }));
   }
@@ -564,19 +580,25 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (!r) {
       return { name: '—', date: '—', podium: [] };
     }
-    const podium: PodiumEntry[] = (r.results ?? []).slice(0, 3).map(p => ({
-      pos: p.position,
-      driver: lastNameInitial(p.driver),
-      time: p.time ?? '—',
-      team: p.team,
-      teamColor: teamColor(p.team),
-    }));
+    const podium: PodiumEntry[] = (r.results ?? []).slice(0, 3).map(p => {
+      const stand = this.driverStands().find(
+        d => d.driverId === p.driverId || d.driver === p.driver,
+      );
+      return {
+        pos: p.position,
+        driver: lastNameInitial(p.driver),
+        time: p.time ?? '—',
+        team: p.team,
+        teamColor: teamColor(p.team, stand?.teamColor),
+      };
+    });
     return {
       name: r.raceName,
       slug: slugifyRace({ raceName: r.raceName }),
       date: new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
               .format(new Date(r.date)),
       podium,
+      imageUrl: r.imageUrl ?? undefined,
     };
   }
 

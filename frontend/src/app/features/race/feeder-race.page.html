@@ -24,14 +24,23 @@
           <div class="fr-hero-circuit">
             <div class="fc-grid-pattern"></div>
             <div class="fr-circuit-svg-wrap">
-              <svg class="fc-circuit-svg" [attr.viewBox]="circuitSvg().viewBox" role="img"
-                   [attr.aria-label]="race.circuitName" preserveAspectRatio="xMidYMid meet">
-                <path class="fc-circuit-glow" [attr.d]="circuitSvg().circuitPath"></path>
-                <path class="fc-circuit-asphalt" [attr.d]="circuitSvg().circuitPath"></path>
-                <path class="fc-circuit-line" [attr.d]="circuitSvg().circuitPath"></path>
-                <circle class="fc-start-outer" [attr.cx]="circuitSvg().startX" [attr.cy]="circuitSvg().startY" r="5.5"></circle>
-                <circle class="fc-start-inner" [attr.cx]="circuitSvg().startX" [attr.cy]="circuitSvg().startY" r="2.8"></circle>
-              </svg>
+              @if (circuitSvgUrl()) {
+                <img
+                  class="fc-circuit-svg fc-circuit-svg--img"
+                  [src]="circuitSvgUrl()!"
+                  [alt]="race.circuitName"
+                  loading="lazy"
+                />
+              } @else {
+                <svg class="fc-circuit-svg" [attr.viewBox]="circuitSvg().viewBox" role="img"
+                     [attr.aria-label]="race.circuitName" preserveAspectRatio="xMidYMid meet">
+                  <path class="fc-circuit-glow" [attr.d]="circuitSvg().circuitPath"></path>
+                  <path class="fc-circuit-asphalt" [attr.d]="circuitSvg().circuitPath"></path>
+                  <path class="fc-circuit-line" [attr.d]="circuitSvg().circuitPath"></path>
+                  <circle class="fc-start-outer" [attr.cx]="circuitSvg().startX" [attr.cy]="circuitSvg().startY" r="5.5"></circle>
+                  <circle class="fc-start-inner" [attr.cx]="circuitSvg().startX" [attr.cy]="circuitSvg().startY" r="2.8"></circle>
+                </svg>
+              }
             </div>
             <div class="fc-round">R{{ race.round }}</div>
           </div>

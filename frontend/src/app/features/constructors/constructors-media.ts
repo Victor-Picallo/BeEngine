@@ -38,7 +38,15 @@ const LOGO_SLUG_OVERRIDE: Record<string, string> = {
 /**
  * URL de imagen oficial de escudería (logo F1.com), o `null` si no hay asset conocido.
  */
-export function f1TeamShowcaseImageUrl(constructorId: string, seriesId?: SeriesId): string | null {
+export function f1TeamShowcaseImageUrl(
+  constructorId: string,
+  seriesId?: SeriesId,
+  apiLogoUrl?: string | null,
+): string | null {
+  if (seriesId === 'motogp') {
+    const url = (apiLogoUrl && String(apiLogoUrl).trim()) || '';
+    return url || null;
+  }
   const id = (constructorId || '').trim().toLowerCase();
   if (!id) return null;
   if (seriesId === 'f2') {

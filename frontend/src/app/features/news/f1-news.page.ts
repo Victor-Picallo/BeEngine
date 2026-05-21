@@ -15,6 +15,12 @@ import type { SeriesId } from '../../core/series/series.types';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
 import { isFormulaAppRoute } from '../../core/series/formula-route';
+import {
+  isMotoAppRoute,
+  isMotoCategory,
+  MOTO_HOME_PATH,
+  motoCategoryFromUrl,
+} from '../../core/moto/moto-categories';
 import { newsPathForSeries, seriesFromUrl } from '../../core/series/series.config';
 import { SeriesContextService } from '../../core/series/series-context.service';
 import { NewsService } from './news.service';
@@ -58,7 +64,17 @@ export class F1NewsPageComponent implements OnInit {
     { initialValue: this.router.url.split('?')[0] },
   );
 
-  readonly inFormulaApp = computed(() => isFormulaAppRoute(this.urlPath()));
+  readonly inMotoApp = computed(() => isMotoAppRoute(this.urlPath()));
+
+  readonly inFormulaApp = computed(
+    () => isFormulaAppRoute(this.urlPath()) && !this.inMotoApp(),
+  );
+
+  readonly motoSidebar = computed(() => this.inMotoApp());
+
+  readonly homePath = computed(() =>
+    this.inMotoApp() ? MOTO_HOME_PATH : this.seriesCtx.homePath(),
+  );
 
   accent = computed(
     () => this.categories.find(c => c.id === this.activeCat())?.accent ?? '#FFD100',
@@ -101,10 +117,37 @@ export class F1NewsPageComponent implements OnInit {
       .pipe(
         tap(params => {
           const path = this.router.url.split('?')[0];
-          const formula = isFormulaAppRoute(path);
+          const formula = isFormulaAppRoute(path) && !isMotoAppRoute(path);
+          const moto = isMotoAppRoute(path);
+          const catParam = params.get('cat');
+          const cat = moto
+            ? (catParam && isMotoCategory(catParam) ? catParam : 'motogp')
+            : (catParam || 'f1');
 
-          if (!formula) {
-            const cat = params.get('cat') || 'f1';
+          if (moto && isMotoCategory(cat)) {
+            const pageQ = params.get('page');
+            if (!path.startsWith('/motogp')) {
+              void this.router.navigate(['/motogp/noticias'], {
+                replaceUrl: true,
+                queryParams: {
+                  ...(cat !== 'motogp' ? { cat } : {}),
+                  ...(pageQ ? { page: pageQ } : {}),
+                },
+              });
+              return;
+            }
+            this.activeCat.set(cat);
+          } else if (!formula && isMotoCategory(cat)) {
+            const pageQ = params.get('page');
+            void this.router.navigate(['/motogp/noticias'], {
+              replaceUrl: true,
+              queryParams: {
+                ...(cat !== 'motogp' ? { cat } : {}),
+                ...(pageQ ? { page: pageQ } : {}),
+              },
+            });
+            return;
+          } else if (!formula) {
             if (FORMULA_NEWS_IDS.has(cat as SeriesId)) {
               const sid = cat as SeriesId;
               const pageQ = params.get('page');
@@ -120,6 +163,8 @@ export class F1NewsPageComponent implements OnInit {
             if (this.categories.some(c => c.id === cat)) {
               this.activeCat.set(cat);
             }
+          } else if (moto) {
+            this.activeCat.set(cat);
           } else {
             this.activeCat.set(this.seriesCtx.id());
           }
@@ -129,6 +174,7 @@ export class F1NewsPageComponent implements OnInit {
         }),
         filter(() => {
           const path = this.router.url.split('?')[0];
+          if (isMotoAppRoute(path)) return true;
           if (isFormulaAppRoute(path)) return true;
           const cat = this.route.snapshot.queryParamMap.get('cat');
           return !(cat && FORMULA_NEWS_IDS.has(cat as SeriesId));
@@ -138,7 +184,14 @@ export class F1NewsPageComponent implements OnInit {
           this.error.set(null);
           const offset = (this.page() - 1) * this.pageSize;
           const path = this.router.url.split('?')[0];
-          const cat = isFormulaAppRoute(path) ? seriesFromUrl(path) : this.activeCat();
+          let cat: string;
+          if (isMotoAppRoute(path)) {
+            cat = motoCategoryFromUrl(this.router.url);
+          } else if (isFormulaAppRoute(path)) {
+            cat = seriesFromUrl(path);
+          } else {
+            cat = String(this.activeCat());
+          }
           this.activeCat.set(cat);
           return this.news.getFeed(cat, 'Todos', this.pageSize, offset).pipe(
             catchError(() => {
@@ -174,6 +227,9 @@ export class F1NewsPageComponent implements OnInit {
   }
 
   articleLink(id: string): (string | number)[] {
+    if (this.inMotoApp()) {
+      return ['/motogp/noticias', id];
+    }
     if (this.inFormulaApp()) {
       return this.seriesCtx.path('noticias', id);
     }
@@ -184,7 +240,15 @@ export class F1NewsPageComponent implements OnInit {
     const p = Math.min(Math.max(1, next), this.totalPages());
     if (p === this.page()) return;
 
-    if (this.inFormulaApp()) {
+    if (this.inMotoApp()) {
+      const cat = this.activeCat();
+      void this.router.navigate(['/motogp/noticias'], {
+        queryParams: {
+          ...(cat !== 'motogp' ? { cat } : {}),
+          page: p > 1 ? p : null,
+        },
+      });
+    } else if (this.inFormulaApp()) {
       void this.router.navigate(this.seriesCtx.path('noticias'), {
         queryParams: { page: p > 1 ? p : null },
       });

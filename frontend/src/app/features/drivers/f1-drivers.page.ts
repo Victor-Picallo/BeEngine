@@ -74,9 +74,12 @@ function buildCards(
 ): DriverCard[] {
   return rows.map(j => {
     const o = matchOpenF1Driver(j, open);
-    const url = resolveDriverHeadshotUrl(j.driverId ?? '', j.driver, o?.headshotUrl, {
-      seriesId,
-    });
+    const url = resolveDriverHeadshotUrl(
+      j.driverId ?? '',
+      j.driver,
+      j.headshotUrl ?? o?.headshotUrl,
+      { size: 'card', seriesId },
+    );
     const { alpha2, alpha3 } = countryCodesForDriver(j, o);
     return {
       pos: j.pos,
@@ -87,7 +90,7 @@ function buildCards(
       wins: j.wins,
       countryCode2: alpha2,
       countryCode3: alpha3,
-      teamColor: teamColor(j.team),
+      teamColor: teamColor(j.team, j.teamColor),
       headshotUrl: url,
     };
   });
@@ -164,7 +167,7 @@ export class F1DriversPageComponent {
         this.openf1Drivers.set(res.open);
         this.loading.set(false);
         this.error.set(null);
-        if (isFeederSeries(seriesId)) this.prefetchFeederPortraits(seriesId);
+        if (isFeederSeries(seriesId) || seriesId === 'motogp') this.prefetchPortraits(seriesId);
       }),
       catchError(() => {
         if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return of(null);
@@ -180,7 +183,7 @@ export class F1DriversPageComponent {
     return initials(card.driver);
   }
 
-  private prefetchFeederPortraits(seriesId: SeriesId): void {
+  private prefetchPortraits(seriesId: SeriesId): void {
     for (const card of buildCards(this.raw(), [], seriesId)) {
       if (!card.headshotUrl) continue;
       const img = new Image();

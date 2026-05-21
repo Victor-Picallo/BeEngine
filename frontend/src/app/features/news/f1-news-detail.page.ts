@@ -19,6 +19,7 @@ import { SeriesContextService } from '../../core/series/series-context.service';
 import type { SeriesId } from '../../core/series/series.types';
 import { NewsService } from './news.service';
 import { NewsImageComponent } from './news-image/news-image.component';
+import { isMotoCategory, MOTO_HOME_PATH } from '../../core/moto/moto-categories';
 import { NEWS_PAGE_CATEGORIES, type NewsArticle } from './news.types';
 
 const FORMULA_NEWS_IDS = new Set<string>(['f1', 'f2', 'f3']);
@@ -40,11 +41,23 @@ export class F1NewsDetailPageComponent implements OnInit {
 
   returnUrl = signal<string | null>(null);
 
+  readonly inMotoApp = computed(() => {
+    const art = this.article();
+    return art?.cat != null && isMotoCategory(art.cat);
+  });
+
+  readonly homePath = computed(() =>
+    this.inMotoApp() ? MOTO_HOME_PATH : this.seriesCtx.homePath(),
+  );
+
   newsListFallback = computed(() => {
     const art = this.article();
     const cat = art?.cat ?? this.seriesCtx.id();
     if (FORMULA_NEWS_IDS.has(cat)) {
       return newsPathForSeries(cat as SeriesId);
+    }
+    if (cat && isMotoCategory(cat)) {
+      return cat === 'motogp' ? '/motogp/noticias' : `/motogp/noticias?cat=${cat}`;
     }
     return `/noticias?cat=${cat}`;
   });
@@ -68,12 +81,17 @@ export class F1NewsDetailPageComponent implements OnInit {
     return NEWS_PAGE_CATEGORIES.find(c => c.id === cat)?.label ?? 'Formula 1';
   });
 
+  readonly motoSidebar = computed(() => this.inMotoApp());
+
   goBack(): void {
     this.backNav.goBack(this.newsListFallback(), this.returnUrl());
   }
 
   articleLink(id: string): (string | number)[] {
     const cat = this.article()?.cat;
+    if (cat && isMotoCategory(cat)) {
+      return ['/motogp/noticias', id];
+    }
     if (cat && FORMULA_NEWS_IDS.has(cat)) {
       return cat === 'f1' ? ['/f1', 'noticias', id] : [`/${cat}`, 'noticias', id];
     }
@@ -85,6 +103,9 @@ export class F1NewsDetailPageComponent implements OnInit {
     const cat = art?.cat;
     if (cat && FORMULA_NEWS_IDS.has(cat)) {
       return newsPathForSeries(cat as SeriesId);
+    }
+    if (cat && isMotoCategory(cat)) {
+      return cat === 'motogp' ? '/motogp/noticias' : `/motogp/noticias?cat=${cat}`;
     }
     return ['/noticias'];
   }

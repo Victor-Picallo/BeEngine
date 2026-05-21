@@ -157,9 +157,13 @@ export class F1DriverProfilePageComponent {
   headshotUrl = computed(() => {
     const p = this.profile();
     const full = p ? `${p.givenName} ${p.familyName}`.trim() : '';
-    return resolveDriverHeadshotUrl(p?.driverId ?? '', full, this.openf1()?.headshotUrl, {
-      size: isFeederSeries(this.seriesCtx.id()) ? 'large' : 'card',
-      seriesId: this.seriesCtx.id(),
+    const sid = this.seriesCtx.id();
+    const mediaUrl =
+      sid === 'motogp' ? p?.headshotUrl : this.openf1()?.headshotUrl;
+    return resolveDriverHeadshotUrl(p?.driverId ?? '', full, mediaUrl, {
+      // F2/F3: «card» = imagen completa; «large» solo en clasificación.
+      ...(sid === 'f2' || sid === 'f3' ? { size: 'card' as const } : {}),
+      seriesId: sid,
     });
   });
 

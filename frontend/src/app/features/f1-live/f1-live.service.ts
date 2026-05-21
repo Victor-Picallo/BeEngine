@@ -52,11 +52,25 @@ export class F1LiveService {
     return `/${this.seriesId(explicit)}`;
   }
 
+  /** F1/F2/F3 → Jolpica o datos locales; MotoGP → Pulse Live únicamente. */
+  private racingApi(explicit?: SeriesId): string {
+    const sid = this.seriesId(explicit);
+    return sid === 'motogp'
+      ? `${this.prefix(sid)}/pulselive`
+      : `${this.prefix(sid)}/jolpica`;
+  }
+
   private openF1Enabled(explicit?: SeriesId): boolean {
     return SERIES_CONFIG[this.seriesId(explicit)].features.openF1;
   }
 
   getSessions(seriesId?: SeriesId): Observable<OpenF1Session[]> {
+    const sid = this.seriesId(seriesId);
+    if (sid === 'motogp') {
+      return this.api
+        .get<SourceWrapped<OpenF1Session>>(`${this.racingApi(sid)}/sessions`)
+        .pipe(map((res) => res.items ?? []));
+    }
     if (!this.openF1Enabled(seriesId)) return of([]);
     return this.api.get<OpenF1Session[]>(`${this.prefix(seriesId)}/openf1/sessions`);
   }
@@ -113,7 +127,7 @@ export class F1LiveService {
     if (forceRefresh) this.driverStandingsCache.delete(sid);
     if (!this.driverStandingsCache.has(sid)) {
       const obs = this.api
-        .get<SourceWrapped<JolpikaDriverStanding>>(`${this.prefix(sid)}/jolpica/driver-standings`)
+        .get<SourceWrapped<JolpikaDriverStanding>>(`${this.racingApi(sid)}/driver-standings`)
         .pipe(
           map((res) => res.items ?? []),
           shareReplay({ bufferSize: 1, refCount: false }),
@@ -127,13 +141,13 @@ export class F1LiveService {
     const id = encodeURIComponent(driverId.trim());
     const p = Math.max(1, careerPage);
     const q = p > 1 ? `?careerPage=${p}` : '';
-    return this.api.get<JolpikaDriverProfile>(`${this.prefix()}/jolpica/drivers/${id}/profile${q}`);
+    return this.api.get<JolpikaDriverProfile>(`${this.racingApi()}/drivers/${id}/profile${q}`);
   }
 
   getDriverProfileAggregates(driverId: string): Observable<JolpikaDriverProfileAggregates> {
     const id = encodeURIComponent(driverId.trim());
     return this.api.get<JolpikaDriverProfileAggregates>(
-      `${this.prefix()}/jolpica/drivers/${id}/profile/aggregates`,
+      `${this.racingApi()}/drivers/${id}/profile/aggregates`,
     );
   }
 
@@ -142,7 +156,7 @@ export class F1LiveService {
     if (forceRefresh) this.constructorStandingsCache.delete(sid);
     if (!this.constructorStandingsCache.has(sid)) {
       const obs = this.api
-        .get<SourceWrapped<JolpikaConstructorStanding>>(`${this.prefix(sid)}/jolpica/constructor-standings`)
+        .get<SourceWrapped<JolpikaConstructorStanding>>(`${this.racingApi(sid)}/constructor-standings`)
         .pipe(
           map((res) => res.items ?? []),
           shareReplay({ bufferSize: 1, refCount: false }),
@@ -156,7 +170,7 @@ export class F1LiveService {
     const id = encodeURIComponent(constructorId.trim());
     const p = Math.max(1, careerPage);
     const q = p > 1 ? `?careerPage=${p}` : '';
-    return this.api.get<JolpikaConstructorProfile>(`${this.prefix()}/jolpica/constructors/${id}/profile${q}`);
+    return this.api.get<JolpikaConstructorProfile>(`${this.racingApi()}/constructors/${id}/profile${q}`);
   }
 
   getConstructorProfileAggregates(
@@ -164,21 +178,21 @@ export class F1LiveService {
   ): Observable<JolpikaConstructorProfileAggregates> {
     const id = encodeURIComponent(constructorId.trim());
     return this.api.get<JolpikaConstructorProfileAggregates>(
-      `${this.prefix()}/jolpica/constructors/${id}/profile/aggregates`,
+      `${this.racingApi()}/constructors/${id}/profile/aggregates`,
     );
   }
 
   getCalendar(seriesId?: SeriesId): Observable<JolpikaCalendarRace[]> {
     return this.api
-      .get<SourceWrapped<JolpikaCalendarRace>>(`${this.prefix(seriesId)}/jolpica/calendar`)
+      .get<SourceWrapped<JolpikaCalendarRace>>(`${this.racingApi(seriesId)}/calendar`)
       .pipe(map((res) => res.items ?? []));
   }
 
   getLastRace(seriesId?: SeriesId): Observable<JolpikaLastRace> {
-    return this.api.get<JolpikaLastRace>(`${this.prefix(seriesId)}/jolpica/last-race`);
+    return this.api.get<JolpikaLastRace>(`${this.racingApi(seriesId)}/last-race`);
   }
 
   getRaceResults(round: number, seriesId?: SeriesId): Observable<JolpikaRaceResult> {
-    return this.api.get<JolpikaRaceResult>(`${this.prefix(seriesId)}/jolpica/results/${round}`);
+    return this.api.get<JolpikaRaceResult>(`${this.racingApi(seriesId)}/results/${round}`);
   }
 }

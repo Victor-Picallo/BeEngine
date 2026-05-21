@@ -243,7 +243,7 @@ export function buildDriverRows(
       flagUrl: flagCdnUrl(alpha2),
       country: NAT_COUNTRY[s.nationality] ?? s.nationality,
       team: s.team,
-      teamColor: teamColor(s.team),
+      teamColor: teamColor(s.team, s.teamColor),
       teamShort: teamShort(s.team),
       constructorId: null,
       pts: s.points,
@@ -252,7 +252,7 @@ export function buildDriverRows(
       poles: raceAgg?.poles ?? 0,
       gap: gapPts <= 0 ? '—' : `-${Math.round(gapPts)}`,
       change: prevRanks ? prevRank - curRank : 0,
-      headshotUrl: resolveDriverHeadshotUrl(id, s.driver, o?.headshotUrl, {
+      headshotUrl: resolveDriverHeadshotUrl(id, s.driver, s.headshotUrl ?? o?.headshotUrl, {
         size: options?.headshotSize ?? 'card',
         seriesId: options?.seriesId,
       }),
@@ -284,12 +284,13 @@ export function buildConstructorRows(
     const sid = options?.seriesId;
     const carImageUrl = constructorId ? f1TeamCarImageUrl(constructorId, sid) : null;
     const logoImageUrl =
-      constructorId && !carImageUrl ? f1TeamShowcaseImageUrl(constructorId, sid) : null;
+      c.logoUrl ??
+      (constructorId && !carImageUrl ? f1TeamShowcaseImageUrl(constructorId, sid, c.logoUrl) : null);
 
     return {
       pos: c.pos,
       team: c.team,
-      teamColor: teamColor(c.team),
+      teamColor: teamColor(c.team, c.teamColor),
       constructorId,
       carImageUrl,
       logoImageUrl,
