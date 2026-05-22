@@ -1,142 +1,512 @@
-<div class="fc-root fr-root">
-  <app-header></app-header>
+@if (isMotogp()) {
+  <div class="fl-root fl-root--motogp" [style.--fl-accent]="accent()">
+    <app-header></app-header>
 
-  <div class="fc-body">
-    <app-side></app-side>
-
-    <main class="fc-shell">
-      <nav class="fr-crumb" aria-label="Miga de pan">
-        <button type="button" class="fr-back" (click)="goBack()">← {{ backLabel() }}</button>
-        <span>/</span>
-        <a [routerLink]="seriesCtx.path('calendario')">Calendario</a>
-      </nav>
-
-      @if (loading()) {
-        <div class="fr-loading">Cargando carrera…</div>
-      } @else if (error(); as err) {
-        <div class="fr-empty">
-          <h1>Carrera no disponible</h1>
-          <p>{{ err }}</p>
-          <a [routerLink]="seriesCtx.path('calendario')" class="fr-cta">Volver al calendario</a>
+    @if (error(); as err) {
+      <div class="fr-fl-notfound">
+        <h1>Carrera no disponible</h1>
+        <p>{{ err }}</p>
+        <a [routerLink]="seriesCtx.path('calendario')" class="fr-cta">Ver calendario</a>
+      </div>
+    } @else if (currentRace(); as race) {
+      <div class="fl-session-bar">
+        <span class="fl-session-label-text">SESIÓN</span>
+        @for (tab of sessionTabs(); track tab.sessionKey) {
+          <a
+            [routerLink]="buildSessionLink(tab.sessionKey)"
+            class="fl-session-btn"
+            [class.active]="sessionKey() === tab.sessionKey"
+          >
+            {{ tab.label }}
+          </a>
+        }
+        <div class="fl-session-right">
+          <div class="fl-header-clock">
+            <div class="fl-header-clock-time">
+              <span class="fl-header-clock-tz">{{ today() }}</span>
+              <span>{{ pad(now().getHours()) }}:{{ pad(now().getMinutes()) }}:{{ pad(now().getSeconds()) }}</span>
+            </div>
+          </div>
         </div>
-      } @else if (currentRace(); as race) {
-        <header class="fr-hero" [style.--fr-accent]="accent()">
-          <div class="fr-hero-circuit">
-            <div class="fc-grid-pattern"></div>
-            <div class="fr-circuit-svg-wrap">
-              @if (circuitSvgUrl()) {
-                <img
-                  class="fc-circuit-svg fc-circuit-svg--img"
-                  [src]="circuitSvgUrl()!"
-                  [alt]="race.circuitName"
-                  loading="lazy"
-                />
-              } @else {
-                <svg class="fc-circuit-svg" [attr.viewBox]="circuitSvg().viewBox" role="img"
-                     [attr.aria-label]="race.circuitName" preserveAspectRatio="xMidYMid meet">
-                  <path class="fc-circuit-glow" [attr.d]="circuitSvg().circuitPath"></path>
-                  <path class="fc-circuit-asphalt" [attr.d]="circuitSvg().circuitPath"></path>
-                  <path class="fc-circuit-line" [attr.d]="circuitSvg().circuitPath"></path>
-                  <circle class="fc-start-outer" [attr.cx]="circuitSvg().startX" [attr.cy]="circuitSvg().startY" r="5.5"></circle>
-                  <circle class="fc-start-inner" [attr.cx]="circuitSvg().startX" [attr.cy]="circuitSvg().startY" r="2.8"></circle>
+      </div>
+
+      <div class="fl-live-header">
+        <div class="fl-header-accent-line"></div>
+        <div class="fl-header-scan"></div>
+        <div class="fl-header-glow"></div>
+
+        <div class="fl-header-row">
+          <div style="flex-shrink: 0">
+            <div class="fl-header-label">
+              <div class="fl-header-pulse"></div>
+              <span class="fl-header-en-directo">
+                @switch (raceStatus()) {
+                  @case ('done') { FINALIZADA }
+                  @case ('live') { EN DIRECTO }
+                  @default { PRÓXIMA CITA }
+                }
+              </span>
+            </div>
+            <div class="fl-header-title-big">
+              {{ sessionDisplayLabel() }}
+              <span>{{ raceStatus() === 'live' ? 'LIVE' : '' }}</span>
+            </div>
+          </div>
+
+          <div class="fl-header-sep"></div>
+
+          <div class="fl-header-gp">
+            <div class="fl-header-gp-label">GRAN PREMIO</div>
+            <div class="fl-header-race-name">{{ liveHeaderData().raceName }}</div>
+            <div class="fl-header-circuit-info">
+              <button
+                type="button"
+                class="fl-cal-back-link"
+                [attr.aria-label]="'Volver a ' + backLabel()"
+                (click)="goBack()"
+              >
+                <svg
+                  class="fl-cal-back-arrow"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.25"
+                  aria-hidden="true"
+                >
+                  <path d="M15 18l-6-6 6-6" />
                 </svg>
+              </button>
+              <svg width="10" height="12" viewBox="0 0 10 12" fill="#555" aria-hidden="true">
+                <path
+                  d="M5 0C2.5 0 0 2.2 0 5C0 8 5 12 5 12S10 8 10 5C10 2.2 7.5 0 5 0ZM5 7A2 2 0 1 1 5 3A2 2 0 0 1 5 7Z"
+                />
+              </svg>
+              <span>{{ liveHeaderData().circuitName }}</span>
+              @if (liveHeaderData().round) {
+                <span style="color: #bbb; flex-shrink: 0"
+                  >· Rda {{ liveHeaderData().round }}/{{ liveHeaderData().totalRounds }}</span
+                >
               }
             </div>
-            <div class="fc-round">R{{ race.round }}</div>
           </div>
 
-          <div class="fr-hero-body">
-            <div class="fr-status" [class.fr-status--done]="isPast()" [class.fr-status--next]="!isPast()">
-              {{ isPast() ? 'CARRERA FINALIZADA' : 'PRÓXIMA CARRERA' }}
+          <div class="fl-header-spacer"></div>
+
+          <div class="fl-header-session-counters">
+            <span class="fl-session-elapsed-time">{{ resultRows().length || '—' }}</span>
+            <span class="fl-session-elapsed-label">PILOTOS</span>
+          </div>
+        </div>
+
+        <div class="fl-status-strip">
+          <span class="fl-status-strip-label">ESTADO:</span>
+          @for (b of statusBadges(); track b.label) {
+            <span class="fl-badge" [class]="'fl-badge-' + b.variant">{{ b.label }}</span>
+          }
+        </div>
+      </div>
+
+      @if (tickerDrivers().length) {
+        <div class="fl-ticker">
+          <div class="fl-ticker-inner">
+            @for (rep of [0, 1]; track rep) {
+              @for (d of tickerDrivers(); track d.num) {
+                <span class="fl-ticker-item">
+                  <span class="fl-ticker-pos" [style.color]="d.pos <= 3 ? accent() : '#444'"
+                    >P{{ d.pos }}</span
+                  >
+                  <span class="fl-ticker-team-bar" [style.background]="d.teamColor"></span>
+                  <span class="fl-ticker-driver">{{ d.short }}</span>
+                  <span class="fl-ticker-gap" [style.color]="d.pos === 1 ? accent() : '#555'">{{
+                    d.gap
+                  }}</span>
+                </span>
+              }
+            }
+          </div>
+        </div>
+      }
+
+      <div class="fl-main-grid">
+        <div class="fl-left-col">
+          @if (pageLoading()) {
+            <div class="fl-skeleton" style="flex: 1; min-height: 140px; border-radius: 8px"></div>
+          } @else {
+            <div class="fl-card" style="flex: 1; min-height: 150px; overflow: hidden; display: flex; flex-direction: column">
+              <div class="fl-standings-tabs">
+                <button
+                  type="button"
+                  class="fl-champ-tab"
+                  [class.active]="standingsTab() === 'drivers'"
+                  (click)="setStandingsTab('drivers')"
+                >
+                  PILOTOS
+                </button>
+                <button
+                  type="button"
+                  class="fl-champ-tab"
+                  [class.active]="standingsTab() === 'constructors'"
+                  (click)="setStandingsTab('constructors')"
+                >
+                  EQUIPOS
+                </button>
+              </div>
+              <div class="fl-standings-body">
+                @for (s of activeStandings(); track s.pos) {
+                  <div class="fl-standings-row">
+                    <span class="fl-standings-pos" [style.color]="s.pos === 1 ? accent() : '#444'">{{
+                      s.pos
+                    }}</span>
+                    <div class="fl-standings-team-color" [style.background]="s.color"></div>
+                    <span class="fl-standings-name">{{ s.label }}</span>
+                    <div class="fl-standings-progress">
+                      <div
+                        class="fl-standings-progress-fill"
+                        [style.width.%]="s.widthPct"
+                        [style.background]="s.color"
+                      ></div>
+                    </div>
+                    <span class="fl-standings-points">{{ s.points }}</span>
+                  </div>
+                }
+                @if (!activeStandings().length) {
+                  <div class="fl-standings-empty">Sin datos</div>
+                }
+              </div>
             </div>
-            <h1>{{ raceResult()?.raceName ?? race.raceName }}</h1>
-            <p class="fr-meta">
-              {{ race.circuitName }} · {{ race.locality }}, {{ race.country }}
-            </p>
-            <p class="fr-date">{{ dateLabel() }}</p>
-          </div>
-        </header>
+          }
+        </div>
 
-        @if (!isPast()) {
-          <section class="fr-upcoming">
-            <p>Esta ronda aún no se ha disputado. Vuelve cuando termine el fin de semana para ver el podio y la clasificación completa.</p>
-            <a [routerLink]="seriesCtx.path('calendario')" class="fr-cta">Ver calendario</a>
-          </section>
-        } @else if (!raceResult()) {
-          <section class="fr-upcoming">
-            <p>Resultados en sincronización.</p>
-          </section>
-        } @else {
-          @if (podium().length) {
-            <section class="fr-podium-section">
-              <h2>Podio</h2>
-              <div class="fr-podium">
-                @for (p of podium(); track p.position) {
-                  <div class="fr-podium-slot" [class.fr-podium-slot--p1]="p.position === 1">
-                    <span class="fr-pos" [style.color]="positionColor(p.position)">{{ positionLabel(p.position) }}</span>
-                    @if (driverLink(p.driverId); as link) {
-                      <a [routerLink]="link" appReturnNav class="fr-podium-driver">{{ p.driver }}</a>
-                    } @else {
-                      <span class="fr-podium-driver">{{ p.driver }}</span>
+        <div class="fl-center-col">
+          @if (pageLoading()) {
+            <div class="fl-skeleton" style="border-radius: 8px; flex: 1"></div>
+          } @else if (sessionPending() && !resultRows().length && !sessionLoading()) {
+            <div class="fl-card fl-moto-empty-card">
+              <div class="fl-empty-state">
+                <div class="fl-empty-state-icon">◈</div>
+                <div class="fl-empty-state-title">Sesión sin resultados</div>
+                <div class="fl-empty-state-subtitle">
+                  {{ sessionLabel() }} aún no tiene clasificación publicada. Prueba otra pestaña cuando
+                  termine.
+                </div>
+              </div>
+            </div>
+          } @else {
+            <div
+              class="fl-card fl-timing-card"
+              [class.fl-timing-card--loading]="sessionLoading()"
+              style="flex: 1; overflow: hidden; display: flex; flex-direction: column"
+            >
+              <div class="fl-card-header" style="flex-shrink: 0">
+                <div class="fl-tt-bar"></div>
+                <span class="fl-tt-title">CLASIFICACIÓN · {{ sessionLabel() }}</span>
+                <div class="fl-tt-live">
+                  <div class="fl-panel-live-dot"></div>
+                  <span class="fl-tt-live-text">{{ sessionDisplayLabel() }}</span>
+                </div>
+              </div>
+
+              <div
+                class="fl-timing-header-row fl-timing--moto"
+                [class.fl-timing--moto-pts]="showPointsColumn()"
+                style="flex-shrink: 0"
+              >
+                <div class="fl-th">POS</div>
+                <div class="fl-th">#</div>
+                <div class="fl-th">PILOTO</div>
+                <div class="fl-th fl-th-right">GAP</div>
+                <div class="fl-th fl-th-right">{{ timingTimeColLabel() }}</div>
+                <div class="fl-th fl-th-center">VUELTAS</div>
+                @if (showPointsColumn()) {
+                  <div class="fl-th fl-th-right">PTS</div>
+                }
+              </div>
+
+              <div class="fl-timing-scroll" style="flex: 1; overflow-y: auto; min-height: 0">
+                @for (d of timingRows(); track d.num) {
+                  <div
+                    class="fl-timing-row fl-timing--moto"
+                    [class.fl-timing--moto-pts]="showPointsColumn()"
+                    [class.leader]="d.pos === 1"
+                  >
+                    <div class="fl-cell-pos" [class.top3]="d.pos <= 3">{{ d.pos }}</div>
+                    <div
+                      class="fl-cell-num"
+                      [style.background]="d.teamColor + '22'"
+                      [style.border]="'1px solid ' + d.teamColor + '55'"
+                    >
+                      {{ d.num }}
+                    </div>
+                    <div class="fl-cell-driver">
+                      <div class="fl-driver-team-bar" [style.background]="d.teamColor"></div>
+                      <div>
+                        @if (driverLink(d.driverId); as link) {
+                          <a [routerLink]="link" appReturnNav class="fl-driver-name-main fl-driver-link">{{
+                            d.name
+                          }}</a>
+                        } @else {
+                          <div class="fl-driver-name-main">{{ d.name }}</div>
+                        }
+                        <div class="fl-driver-team-label">{{ d.team }}</div>
+                      </div>
+                    </div>
+                    <div class="fl-cell-gap" [class.leader-gap]="d.pos === 1">{{ d.gap }}</div>
+                    <div class="fl-cell-best" [class.fl-p1]="d.pos === 1">{{ d.bestLap }}</div>
+                    <div class="fl-cell-laps">{{ d.laps }}</div>
+                    @if (showPointsColumn()) {
+                      <div class="fl-cell-best" [class.fl-p1]="d.pos === 1">{{ d.points }}</div>
                     }
-                    <span class="fr-podium-team">{{ p.team }}</span>
-                    <span class="fr-team-bar" [style.background]="p.teamColor"></span>
-                    @if (p.time) {
-                      <span class="fr-podium-time">{{ p.time }}</span>
+                  </div>
+                }
+                @if (!timingRows().length) {
+                  <div class="fl-empty-state">
+                    <div class="fl-empty-state-icon">◈</div>
+                    <div class="fl-empty-state-title">Sin datos</div>
+                    <div class="fl-empty-state-subtitle">No hay resultados para esta sesión.</div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="fl-right-col">
+          @if (pageLoading()) {
+            <div class="fl-skeleton" style="height: 285px; border-radius: 8px; flex-shrink: 0"></div>
+          } @else {
+            <div class="fl-card" style="height: 285px; display: flex; flex-direction: column; flex-shrink: 0">
+              <div class="fl-card-header" style="flex-shrink: 0">
+                <div class="fl-card-header-bar"></div>
+                <span class="fl-card-header-title">MAPA DEL CIRCUITO</span>
+                <span class="fl-card-header-status" [style.color]="raceStatus() === 'done' ? '#16a34a' : '#888'">
+                  @if (raceStatus() === 'done') {
+                    ○ FINALIZADA
+                  } @else {
+                    ○ PROGRAMADA
+                  }
+                </span>
+              </div>
+              <div class="fl-moto-circuit-panel">
+                @if (circuitSvgUrl()) {
+                  <img class="fl-moto-circuit-img" [src]="circuitSvgUrl()!" [alt]="race.circuitName" />
+                } @else {
+                  <svg
+                    class="fl-moto-circuit-img"
+                    [attr.viewBox]="circuitSvg().viewBox"
+                    preserveAspectRatio="xMidYMid meet"
+                    aria-hidden="true"
+                  >
+                    <path class="fc-circuit-asphalt" [attr.d]="circuitSvg().circuitPath"></path>
+                    <path class="fc-circuit-line" [attr.d]="circuitSvg().circuitPath" [attr.stroke]="accent()"></path>
+                  </svg>
+                }
+              </div>
+            </div>
+
+            <div class="fl-card" style="flex: 1; min-height: 120px; display: flex; flex-direction: column">
+              <div class="fl-card-header" style="flex-shrink: 0">
+                <div class="fl-card-header-bar" style="background: #888"></div>
+                <span class="fl-card-header-title">RESUMEN GP</span>
+              </div>
+              <div class="fl-moto-summary">
+                <div class="fl-cond-row">
+                  <span class="fl-cond-row-label">Circuito</span>
+                  <span class="fl-cond-row-value">{{ race.circuitName }}</span>
+                </div>
+                <div class="fl-cond-row">
+                  <span class="fl-cond-row-label">Ubicación</span>
+                  <span class="fl-cond-row-value">{{ race.locality }}, {{ race.country }}</span>
+                </div>
+                <div class="fl-cond-row">
+                  <span class="fl-cond-row-label">Fecha</span>
+                  <span class="fl-cond-row-value">{{ dateLabel() }}</span>
+                </div>
+                @if (podium().length) {
+                  <div class="fl-moto-podium-mini">
+                    @for (p of podium(); track p.position) {
+                      <div class="fl-moto-podium-line">
+                        <span [style.color]="positionColor(p.position)">P{{ p.position }}</span>
+                        <span>{{ p.driver }}</span>
+                        <span class="fl-moto-podium-time">{{ p.time }}</span>
+                      </div>
                     }
                   </div>
                 }
               </div>
-            </section>
-          }
-
-          <section class="fr-results">
-            <h2>Clasificación · Feature Race</h2>
-            <div class="fr-table-wrap">
-              <table class="fr-table">
-                <thead>
-                  <tr>
-                    <th>Pos</th>
-                    <th>Piloto</th>
-                    <th>Equipo</th>
-                    <th>Salida</th>
-                    <th>Vueltas</th>
-                    <th>Tiempo / Gap</th>
-                    <th>Pts</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (r of resultRows(); track r.position) {
-                    <tr [class.fr-row-top3]="r.position <= 3">
-                      <td class="fr-td-pos" [style.color]="positionColor(r.position)">{{ r.position }}</td>
-                      <td>
-                        @if (driverLink(r.driverId); as link) {
-                          <a [routerLink]="link" appReturnNav class="fr-driver-link">{{ r.driver }}</a>
-                        } @else {
-                          {{ r.driver }}
-                        }
-                      </td>
-                      <td>
-                        <span class="fr-team-bar-inline" [style.background]="r.teamColor"></span>
-                        {{ r.team }}
-                      </td>
-                      <td>P{{ r.grid }}</td>
-                      <td>{{ r.laps }}</td>
-                      <td class="fr-mono">{{ r.time ?? r.status }}</td>
-                      <td class="fr-pts">{{ r.points }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
             </div>
-          </section>
+          }
+        </div>
+      </div>
 
-          <footer class="fc-footer">
-            <a [routerLink]="seriesCtx.path('clasificacion')">Clasificación temporada →</a>
-            <a [routerLink]="seriesCtx.path('calendario')">Calendario →</a>
-          </footer>
-        }
-      }
-    </main>
+      <div class="fl-footer">
+        <a [routerLink]="seriesCtx.path('clasificacion')">Clasificación temporada</a>
+        <a [routerLink]="seriesCtx.path('calendario')">Calendario</a>
+      </div>
+    }
   </div>
-</div>
+} @else {
+  <div class="fc-root fr-root">
+    <app-header></app-header>
+
+    <div class="fc-body">
+      <app-side></app-side>
+
+      <main class="fc-shell">
+        <nav class="fr-crumb" aria-label="Miga de pan">
+          <button type="button" class="fr-back" (click)="goBack()">← {{ backLabel() }}</button>
+          <span>/</span>
+          <a [routerLink]="seriesCtx.path('calendario')">Calendario</a>
+        </nav>
+
+        @if (pageLoading()) {
+          <div class="fr-loading">Cargando carrera…</div>
+        } @else if (error(); as err) {
+          <div class="fr-empty">
+            <h1>Carrera no disponible</h1>
+            <p>{{ err }}</p>
+            <a [routerLink]="seriesCtx.path('calendario')" class="fr-cta">Volver al calendario</a>
+          </div>
+        } @else if (currentRace(); as race) {
+          <header class="fr-hero" [style.--fr-accent]="accent()">
+            <div class="fr-hero-circuit">
+              <div class="fc-grid-pattern"></div>
+              <div class="fr-circuit-svg-wrap">
+                @if (circuitSvgUrl()) {
+                  <img
+                    class="fc-circuit-svg fc-circuit-svg--img"
+                    [src]="circuitSvgUrl()!"
+                    [alt]="race.circuitName"
+                    loading="lazy"
+                  />
+                } @else {
+                  <svg
+                    class="fc-circuit-svg"
+                    [attr.viewBox]="circuitSvg().viewBox"
+                    role="img"
+                    [attr.aria-label]="race.circuitName"
+                    preserveAspectRatio="xMidYMid meet"
+                  >
+                    <path class="fc-circuit-glow" [attr.d]="circuitSvg().circuitPath"></path>
+                    <path class="fc-circuit-asphalt" [attr.d]="circuitSvg().circuitPath"></path>
+                    <path class="fc-circuit-line" [attr.d]="circuitSvg().circuitPath"></path>
+                    <circle
+                      class="fc-start-outer"
+                      [attr.cx]="circuitSvg().startX"
+                      [attr.cy]="circuitSvg().startY"
+                      r="5.5"
+                    ></circle>
+                    <circle
+                      class="fc-start-inner"
+                      [attr.cx]="circuitSvg().startX"
+                      [attr.cy]="circuitSvg().startY"
+                      r="2.8"
+                    ></circle>
+                  </svg>
+                }
+              </div>
+              <div class="fc-round">R{{ race.round }}</div>
+            </div>
+
+            <div class="fr-hero-body">
+              <div
+                class="fr-status"
+                [class.fr-status--done]="isPast()"
+                [class.fr-status--next]="!isPast()"
+              >
+                {{ isPast() ? 'CARRERA FINALIZADA' : 'PRÓXIMA CARRERA' }}
+              </div>
+              <h1>{{ raceResult()?.raceName ?? race.raceName }}</h1>
+              <p class="fr-meta">{{ race.circuitName }} · {{ race.locality }}, {{ race.country }}</p>
+              <p class="fr-date">{{ dateLabel() }}</p>
+            </div>
+          </header>
+
+          @if (!isPast()) {
+            <section class="fr-upcoming">
+              <p>
+                Esta ronda aún no se ha disputado. Vuelve cuando termine el fin de semana para ver el podio y la
+                clasificación completa.
+              </p>
+              <a [routerLink]="seriesCtx.path('calendario')" class="fr-cta">Ver calendario</a>
+            </section>
+          } @else if (!raceResult() && !resultRows().length) {
+            <section class="fr-upcoming">
+              <p>Resultados en sincronización.</p>
+            </section>
+          } @else if (resultRows().length) {
+            @if (podium().length) {
+              <section class="fr-podium-section">
+                <h2>Podio</h2>
+                <div class="fr-podium">
+                  @for (p of podium(); track p.position) {
+                    <div class="fr-podium-slot" [class.fr-podium-slot--p1]="p.position === 1">
+                      <span class="fr-pos" [style.color]="positionColor(p.position)">{{
+                        positionLabel(p.position)
+                      }}</span>
+                      @if (driverLink(p.driverId); as link) {
+                        <a [routerLink]="link" appReturnNav class="fr-podium-driver">{{ p.driver }}</a>
+                      } @else {
+                        <span class="fr-podium-driver">{{ p.driver }}</span>
+                      }
+                      <span class="fr-podium-team">{{ p.team }}</span>
+                      <span class="fr-team-bar" [style.background]="p.teamColor"></span>
+                      @if (p.time) {
+                        <span class="fr-podium-time">{{ p.time }}</span>
+                      }
+                    </div>
+                  }
+                </div>
+              </section>
+            }
+
+            <section class="fr-results">
+              <h2>Clasificación · Carrera</h2>
+              <div class="fr-table-wrap">
+                <table class="fr-table">
+                  <thead>
+                    <tr>
+                      <th>Pos</th>
+                      <th>Piloto</th>
+                      <th>Equipo</th>
+                      <th>Vueltas</th>
+                      <th>Tiempo / Gap</th>
+                      <th>Pts</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (r of resultRows(); track r.position) {
+                      <tr [class.fr-row-top3]="r.position <= 3">
+                        <td class="fr-td-pos" [style.color]="positionColor(r.position)">{{ r.position }}</td>
+                        <td>
+                          @if (driverLink(r.driverId); as link) {
+                            <a [routerLink]="link" appReturnNav class="fr-driver-link">{{ r.driver }}</a>
+                          } @else {
+                            {{ r.driver }}
+                          }
+                        </td>
+                        <td>
+                          <span class="fr-team-bar-inline" [style.background]="r.teamColor"></span>
+                          {{ r.team }}
+                        </td>
+                        <td>{{ r.laps > 0 ? r.laps : '—' }}</td>
+                        <td class="fr-mono">{{ r.time ?? r.status }}</td>
+                        <td class="fr-pts">{{ r.points }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <footer class="fc-footer">
+              <a [routerLink]="seriesCtx.path('clasificacion')">Clasificación temporada →</a>
+              <a [routerLink]="seriesCtx.path('calendario')">Calendario →</a>
+            </footer>
+          }
+        }
+      </main>
+    </div>
+  </div>
+}

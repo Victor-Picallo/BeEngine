@@ -43,6 +43,7 @@ export interface NextRace {
   sessions: Session[];
   /** SVG oficial (MotoGP Pulse Live). */
   circuitSvgUrl?: string | null;
+  circuitImageUrl?: string | null;
 }
 
 export interface Driver {

@@ -55,9 +55,9 @@ export const FORMULA_SECTION_ROUTES: Routes = [
   },
 ];
 
-/** Resultado de carrera (F2/F3/MotoGP). Debe ir antes del `**` del shell. */
+/** Resultado por sesión (F2/F3/MotoGP). MotoGP: fp1, q1, sprint, race… */
 export const FEEDER_RACE_ROUTE: Routes[number] = {
-  path: 'calendario/:race/race',
+  path: 'calendario/:race/:session',
   loadComponent: () =>
     import('../../features/race/feeder-race.page').then((m) => m.FeederRacePageComponent),
 };

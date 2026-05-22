@@ -212,6 +212,11 @@
   object-fit: contain;
 }
 
+.cp-logo-fallback--sm {
+  max-width: 200px;
+  max-height: 120px;
+}
+
 .cp-champ-banner {
   display: flex;
   align-items: center;
@@ -237,6 +242,55 @@
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 900;
   font-size: 12px;
+}
+
+.cp-champ-years {
+  padding: 0 32px 16px;
+  border-top: 1px solid color-mix(in srgb, var(--cp-team) 12%, #eee);
+  background: color-mix(in srgb, var(--cp-team) 5%, #fafafa);
+}
+
+.cp-champ-years-label {
+  margin: 12px 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #666;
+}
+
+.cp-champ-years-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cp-champ-year-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--cp-team) 18%, #fff);
+  border: 1px solid color-mix(in srgb, var(--cp-team) 35%, #ddd);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--cp-team);
+}
+
+.cp-linked-mfr {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.cp-linked-mfr-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #333;
 }
 
 .cp-section-head {

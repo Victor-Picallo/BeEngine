@@ -89,6 +89,15 @@
   object-fit: contain;
   object-position: center center;
   margin: 0;
+  place-self: center;
+}
+
+/* Honda HRC: bitmap pequeño (316px) — reducir escala para que no se vea borroso */
+.fc-constructors .fc-team-showcase-img--sm {
+  width: 72%;
+  height: 72%;
+  max-width: 72%;
+  max-height: 72%;
 }
 
 .fc-constructors .fc-round {

@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  input,
+  signal,
+} from '@angular/core';
 import { buildCircuitSvg } from '../../utils/circuit-svg.util';
 
 @Component({
@@ -6,8 +13,14 @@ import { buildCircuitSvg } from '../../utils/circuit-svg.util';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (circuitSvgUrl()) {
-      <img class="hm-circuit-svg hm-circuit-svg--img" [src]="circuitSvgUrl()!" [alt]="circuitName()" loading="lazy" />
+    @if (displayUrl()) {
+      <img
+        class="hm-circuit-svg hm-circuit-svg--img"
+        [src]="displayUrl()!"
+        [alt]="circuitName()"
+        loading="lazy"
+        (error)="onImgError()"
+      />
     } @else {
       <svg class="hm-circuit-svg" [attr.viewBox]="svg().viewBox" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
         <path class="hm-circuit-shadow" [attr.d]="svg().circuitPath" />
@@ -64,8 +77,32 @@ export class HomeCircuitPreviewComponent {
   circuitName = input('');
   locality = input('');
   accent = input('#FFD100');
-  /** Si viene de Pulse Live, se muestra el SVG oficial en lugar del mapa F1. */
+  /** SVG oficial Pulse Live / MotoGP. */
   circuitSvgUrl = input<string | null>(null);
+  /** PNG de respaldo si el SVG no carga. */
+  circuitImageUrl = input<string | null>(null);
+
+  private svgFailed = signal(false);
+
+  displayUrl = computed(() => {
+    const svg = this.circuitSvgUrl();
+    const png = this.circuitImageUrl();
+    if (svg && !this.svgFailed()) return svg;
+    return png || null;
+  });
 
   svg = computed(() => buildCircuitSvg(this.circuitName(), this.locality()));
+
+  constructor() {
+    effect(() => {
+      this.circuitSvgUrl();
+      this.svgFailed.set(false);
+    });
+  }
+
+  onImgError(): void {
+    if (this.circuitSvgUrl() && !this.svgFailed()) {
+      this.svgFailed.set(true);
+    }
+  }
 }

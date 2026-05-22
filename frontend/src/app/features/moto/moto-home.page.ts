@@ -28,10 +28,10 @@ import { NewsService } from '../news/news.service';
 import { MotoLiveService } from '../moto-live/moto-live.service';
 import type {
   JolpikaCalendarRace,
-  JolpikaConstructorStanding,
   JolpikaDriverStanding,
   JolpikaLastRace,
 } from '../f1-live/f1-live.types';
+import type { MotogpTeamStanding } from '../motogp/motogp.types';
 import { TopbarComponent } from '../../shared/components/topbar/topbar.component';
 import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
 import { RaceCardComponent } from '../../shared/components/race-card/race-card.component';
@@ -46,26 +46,7 @@ import { accentForeground, accentPodiumHighlight } from '../../core/series/serie
 import { homePathForSeries } from '../../core/series/series.config';
 import type { MotoNextRacePayload } from '../moto-live/moto-live.service';
 import { slugifyRace } from '../race/race-slug';
-
-const MOTO_COLORS: Record<string, string> = {
-  ducati: '#CC0000',
-  aprilia: '#006B3C',
-  ktm: '#FF6600',
-  yamaha: '#003087',
-  honda: '#E60012',
-  bmw: '#0066B1',
-  'gresini': '#00AEEF',
-  'vr46': '#FFD100',
-};
-
-const normalize = (s: string) => (s || '').toLowerCase().trim();
-const teamColor = (team: string) => {
-  const key = normalize(team);
-  for (const [k, v] of Object.entries(MOTO_COLORS)) {
-    if (key.includes(k)) return v;
-  }
-  return '#888888';
-};
+import { teamColor } from '../drivers/drivers-shared';
 
 const lastNameInitial = (full: string): string => {
   const parts = full.trim().split(/\s+/);
@@ -109,7 +90,7 @@ export class MotoHomePageComponent implements OnInit, OnDestroy {
 
   calendarRaces = signal<JolpikaCalendarRace[]>([]);
   driverStands = signal<JolpikaDriverStanding[]>([]);
-  teamStands = signal<JolpikaConstructorStanding[]>([]);
+  teamStands = signal<MotogpTeamStanding[]>([]);
   lastRaceRaw = signal<JolpikaLastRace | null>(null);
   nextRaceRaw = signal<MotoNextRacePayload | null>(null);
   newsRaw = signal<NewsItem[]>([]);
@@ -207,7 +188,7 @@ export class MotoHomePageComponent implements OnInit, OnDestroy {
     forkJoin({
       calendar: this.motoLive.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
       driverStands: this.motoLive.getDriverStandings().pipe(catchError(() => of([] as JolpikaDriverStanding[]))),
-      teamStands: this.motoLive.getConstructorStandings().pipe(catchError(() => of([] as JolpikaConstructorStanding[]))),
+      teamStands: this.motoLive.getOfficialTeamsGrid().pipe(catchError(() => of([] as MotogpTeamStanding[]))),
       lastRace: this.motoLive.getLastRace().pipe(catchError(() => of(null as JolpikaLastRace | null))),
       nextRace: this.motoLive.getNextRace().pipe(catchError(() => of(null))),
       news: this.newsService.getFeed('motogp', 'Todos', 6, 0).pipe(
@@ -251,7 +232,7 @@ export class MotoHomePageComponent implements OnInit, OnDestroy {
     forkJoin({
       calendar: this.motoLive.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
       driverStands: this.motoLive.getDriverStandings(true).pipe(catchError(() => of([] as JolpikaDriverStanding[]))),
-      teamStands: this.motoLive.getConstructorStandings(true).pipe(catchError(() => of([] as JolpikaConstructorStanding[]))),
+      teamStands: this.motoLive.getOfficialTeamsGrid(true).pipe(catchError(() => of([] as MotogpTeamStanding[]))),
       lastRace: this.motoLive.getLastRace().pipe(catchError(() => of(null as JolpikaLastRace | null))),
       nextRace: this.motoLive.getNextRace().pipe(catchError(() => of(null))),
     })
@@ -327,6 +308,8 @@ export class MotoHomePageComponent implements OnInit, OnDestroy {
         round: upcoming.round,
         totalRounds,
         sessions: [],
+        circuitSvgUrl: upcoming.circuitSvgUrl ?? null,
+        circuitImageUrl: upcoming.circuitImageUrl ?? null,
       };
     }
 
@@ -342,6 +325,7 @@ export class MotoHomePageComponent implements OnInit, OnDestroy {
       ? (nr.sessions?.find((x) => x.highlight)?.dateIso ?? ev.date)
       : ev.date;
 
+    const calMatch = cal.find((r) => r.round === ev.round);
     return {
       name: ev.raceName,
       circuit: ev.circuitName,
@@ -350,6 +334,9 @@ export class MotoHomePageComponent implements OnInit, OnDestroy {
       round: ev.round,
       totalRounds,
       sessions,
+      circuitSvgUrl: ev.circuitSvgUrl ?? calMatch?.circuitSvgUrl ?? null,
+      circuitImageUrl:
+        ev.circuitImageUrl ?? calMatch?.circuitImageUrl ?? null,
     };
   }
 
@@ -360,7 +347,7 @@ export class MotoHomePageComponent implements OnInit, OnDestroy {
       team: d.team,
       points: d.points,
       nationality: d.nationality?.slice(0, 2).toUpperCase() ?? '',
-      teamColor: teamColor(d.team),
+      teamColor: teamColor(d.team, d.teamColor),
       driverId: d.driverId?.trim() || undefined,
     }));
   }
@@ -370,7 +357,7 @@ export class MotoHomePageComponent implements OnInit, OnDestroy {
       pos: t.pos,
       team: t.team,
       points: t.points,
-      color: teamColor(t.team),
+      color: teamColor(t.team, t.teamColor),
       constructorId: t.constructorId?.trim() || undefined,
     }));
   }
@@ -385,7 +372,7 @@ export class MotoHomePageComponent implements OnInit, OnDestroy {
       driver: lastNameInitial(p.driver),
       time: p.time ?? '—',
       team: p.team,
-      teamColor: teamColor(p.team),
+      teamColor: teamColor(p.team, p.teamColor),
     }));
     return {
       name: r.raceName,

@@ -131,11 +131,15 @@
                 <div class="hm-card-head">
                   <div class="hm-card-head-left">
                     <div class="hm-card-accent-bar" style="background: #888"></div>
-                    <span class="hm-card-title">Constructores</span>
+                    <span class="hm-card-title">Equipos</span>
                   </div>
                 </div>
                 @for (c of d.constructors; track c.team) {
-                  <div class="hm-constructor-row" style="cursor: default">
+                  <a
+                    class="hm-constructor-row"
+                    [routerLink]="c.constructorId ? ['/motogp', 'escuderias', c.constructorId] : null"
+                    [style.cursor]="c.constructorId ? 'pointer' : 'default'"
+                  >
                     <span class="hm-constructor-pos">{{ c.pos }}</span>
                     <div style="flex: 1">
                       <div style="display: flex; justify-content: space-between; margin-bottom: 3px">
@@ -149,8 +153,11 @@
                           [style.background]="c.color"></div>
                       </div>
                     </div>
-                  </div>
+                  </a>
                 }
+                <div class="hm-constructors-foot">
+                  <a routerLink="/motogp/escuderias">Ver todos los equipos →</a>
+                </div>
               </div>
             </div>
           </div>

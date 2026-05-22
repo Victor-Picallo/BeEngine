@@ -1,0 +1,142 @@
+<div class="fc-root fc-constructors">
+  <app-header></app-header>
+
+  <div class="fc-body">
+    <app-side></app-side>
+
+    <main class="fc-shell">
+      <div class="fc-hero">
+        <div class="fc-hero-left">
+          <div class="fc-hero-title-row">
+            <span class="fc-hero-bar"></span>
+            <h1>Equipos <span class="fc-hero-faded">MotoGP 2026</span></h1>
+          </div>
+          <div class="fc-hero-sub">
+            Parrilla MotoGP 2026 · Datos
+            <a href="https://api.motogp.pulselive.com" target="_blank" rel="noopener noreferrer" class="fd-openf1-link">Pulse Live</a>
+            · Logo en tarjeta · Moto en la ficha del equipo
+          </div>
+        </div>
+      </div>
+
+      @if (loading()) {
+        <section class="fc-grid">
+          @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+            <div class="fc-card fc-skeleton"></div>
+          }
+        </section>
+      } @else if (error(); as err) {
+        <div class="fc-error">{{ err }}</div>
+      } @else {
+        <section class="fc-grid">
+          @for (card of cards(); track card.team; let i = $index) {
+            @if (cardHasDetail(card)) {
+              <a
+                class="fd-card-link-wrap"
+                [routerLink]="teamLink(card)"
+                appReturnNav
+                [attr.aria-label]="'Ficha de ' + card.team"
+              >
+                <div
+                  class="fc-card fd-card fd-card--clickable"
+                  [class.next]="card.pos === 1"
+                  [class.done]="card.pos > 3"
+                  [style.animation-delay.ms]="cardDelay(i)"
+                >
+                  <div class="fc-card-circuit fd-card-circuit fc-constructors-card-strip">
+                    @if (card.pos === 1) {
+                      <div class="fc-glow"></div>
+                    }
+                    @if (card.pos > 3) {
+                      <div class="fc-dim"></div>
+                    }
+                    <div class="fd-photo-wrap fc-constructors-photo-wrap">
+                      @if (card.imageUrl && !failedTeamImg().has(imgFailKey(card))) {
+                        <img
+                          [class]="teamLogoClass(card)"
+                          [src]="card.imageUrl"
+                          [alt]="'Logo ' + card.team"
+                          loading="lazy"
+                          (error)="onTeamImgError(imgFailKey(card))"
+                        />
+                      } @else {
+                        <div
+                          class="fd-photo-fallback fc-constructors-fallback"
+                          [style.--fd-team]="card.teamColor"
+                          aria-hidden="true"
+                        >
+                          <span class="fd-photo-initials fc-constructors-initials">{{ initialsFor(card) }}</span>
+                        </div>
+                      }
+                    </div>
+                    <div class="fc-round">P{{ card.pos }}</div>
+                    @if (card.pos === 1) {
+                      <div class="fd-tag-leader">LÍDER</div>
+                    }
+                  </div>
+                  <div class="fc-card-body">
+                    <h2 class="fc-card-title">{{ card.team }}</h2>
+                    <div class="fc-card-meta">
+                      <span class="fd-team-bar" [style.background]="card.teamColor"></span>
+                      <span class="fc-stats">{{ card.points }} pts</span>
+                      @if (card.wins > 0) {
+                        <span class="fc-meta-sep">·</span>
+                        <span class="fc-stats">{{ card.wins }} {{ card.wins === 1 ? 'victoria' : 'victorias' }}</span>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </a>
+            } @else {
+              <div
+                class="fc-card fd-card"
+                [class.next]="card.pos === 1"
+                [class.done]="card.pos > 3"
+                [style.animation-delay.ms]="cardDelay(i)"
+              >
+                <div class="fc-card-circuit fd-card-circuit fc-constructors-card-strip">
+                  <div class="fd-photo-wrap fc-constructors-photo-wrap">
+                    @if (card.imageUrl && !failedTeamImg().has(imgFailKey(card))) {
+                      <img
+                        [class]="teamLogoClass(card)"
+                        [src]="card.imageUrl"
+                        [alt]="'Logo ' + card.team"
+                        loading="lazy"
+                        (error)="onTeamImgError(imgFailKey(card))"
+                      />
+                    } @else {
+                      <div
+                        class="fd-photo-fallback fc-constructors-fallback"
+                        [style.--fd-team]="card.teamColor"
+                        aria-hidden="true"
+                      >
+                        <span class="fd-photo-initials fc-constructors-initials">{{ initialsFor(card) }}</span>
+                      </div>
+                    }
+                  </div>
+                  <div class="fc-round">P{{ card.pos }}</div>
+                </div>
+                <div class="fc-card-body">
+                  <h2 class="fc-card-title">{{ card.team }}</h2>
+                  <div class="fc-card-meta">
+                    <span class="fd-team-bar" [style.background]="card.teamColor"></span>
+                    <span class="fc-stats">{{ card.points }} pts</span>
+                  </div>
+                </div>
+              </div>
+            }
+          }
+        </section>
+
+        <footer class="fc-footer">
+          <span>BeEngine · Equipos MotoGP 2026</span>
+          <div class="fc-footer-links">
+            <a [routerLink]="homePath">← Inicio</a>
+            <a routerLink="/motogp/pilotos">Pilotos →</a>
+            <a routerLink="/motogp/calendario">Calendario →</a>
+          </div>
+        </footer>
+      }
+    </main>
+  </div>
+</div>

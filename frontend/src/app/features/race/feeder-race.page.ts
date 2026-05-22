@@ -4,11 +4,13 @@ import {
   computed,
   DestroyRef,
   inject,
+  OnInit,
   signal,
+  ViewEncapsulation,
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { catchError, map, of, skip, switchMap, tap } from 'rxjs';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, combineLatest, forkJoin, interval, map, of, skip, switchMap, tap } from 'rxjs';
+import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { bindSeriesLoad, isSeriesStillActive } from '../../core/series/bind-series-load';
 import type { SeriesId } from '../../core/series/series.types';
 import { SeriesContextService } from '../../core/series/series-context.service';
@@ -20,11 +22,29 @@ import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sid
 import { F1LiveService } from '../f1-live/f1-live.service';
 import { findOfficialCircuit, projectCircuitCoords } from '../calendar/official-circuits';
 import { findRaceBySlug } from './race-slug';
+import {
+  isMotogpSessionKey,
+  MOTOGP_SESSION_CONFIGS,
+  type MotogpSessionKey,
+  type MotogpWeekendSession,
+  sessionConfigLabel,
+} from './motogp-session';
 import { resolveDriverHeadshotUrl, teamColor } from '../drivers/drivers-shared';
-import type { JolpikaCalendarRace, JolpikaRaceResult } from '../f1-live/f1-live.types';
+import type {
+  JolpikaCalendarRace,
+  JolpikaConstructorStanding,
+  JolpikaDriverStanding,
+  JolpikaRaceResult,
+} from '../f1-live/f1-live.types';
 
 const GENERIC_PATH =
   'M 24 92 C 46 30 124 18 164 58 C 198 92 262 34 276 84 C 288 128 228 146 174 126 C 118 106 86 156 42 130 C 18 116 16 100 24 92 Z';
+
+const driverShort = (name: string): string => {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length < 2) return name.slice(0, 3).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1]).toUpperCase();
+};
 
 @Component({
   selector: 'app-feeder-race-page',
@@ -37,10 +57,11 @@ const GENERIC_PATH =
     SeriesAccentDirective,
   ],
   templateUrl: './feeder-race.page.html',
-  styleUrls: ['../calendar/f1-calendar.page.css', './feeder-race.page.css'],
+  styleUrls: ['./feeder-race.page.css', '../race/race-session.page.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  encapsulation: ViewEncapsulation.None,
 })
-export class FeederRacePageComponent {
+export class FeederRacePageComponent implements OnInit {
   private readonly service = inject(F1LiveService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
@@ -48,18 +69,97 @@ export class FeederRacePageComponent {
 
   readonly seriesCtx = inject(SeriesContextService);
   readonly accent = computed(() => this.seriesCtx.config().accent);
+  readonly isMotogp = computed(() => this.seriesCtx.id() === 'motogp');
 
   returnUrl = signal<string | null>(null);
-  loading = signal(true);
+  /** Carga completa (cambio de GP o primera entrada). */
+  pageLoading = signal(true);
+  /** Solo al cambiar pestaña de sesión — no vacía el layout. */
+  sessionLoading = signal(false);
+  private loadedRaceSlug = signal<string | null>(null);
   error = signal<string | null>(null);
   calendar = signal<JolpikaCalendarRace[]>([]);
   raceResult = signal<JolpikaRaceResult | null>(null);
+  weekendSessions = signal<MotogpWeekendSession[]>([]);
+  driverStands = signal<JolpikaDriverStanding[]>([]);
+  constructorStands = signal<JolpikaConstructorStanding[]>([]);
+  standingsTab = signal<'drivers' | 'constructors'>('drivers');
+  now = signal(new Date());
 
-  raceSlug = computed(() => this.route.snapshot.paramMap.get('race') ?? '');
+  raceSlug = toSignal(
+    this.route.paramMap.pipe(map((p) => p.get('race') ?? '')),
+    { initialValue: '' },
+  );
+
+  sessionKey = toSignal(
+    combineLatest([this.route.paramMap, toObservable(this.seriesCtx.id)]).pipe(
+      map(([params, seriesId]) => {
+        const raw = params.get('session') ?? 'race';
+        if (seriesId === 'motogp' && isMotogpSessionKey(raw)) return raw;
+        return 'race' as MotogpSessionKey;
+      }),
+    ),
+    { initialValue: 'race' as MotogpSessionKey },
+  );
 
   currentRace = computed(() => {
     const slug = this.raceSlug();
     return slug ? findRaceBySlug(this.calendar(), slug) : null;
+  });
+
+  sessionLabel = computed(() => {
+    const key = this.sessionKey();
+    if (this.isMotogp() && isMotogpSessionKey(key)) {
+      return MOTOGP_SESSION_CONFIGS[key].longLabel;
+    }
+    const r = this.raceResult();
+    if (r?.sessionLabel) return r.sessionLabel;
+    return sessionConfigLabel(key);
+  });
+
+  sessionDisplayLabel = computed(() => {
+    const key = this.sessionKey();
+    if (this.isMotogp() && isMotogpSessionKey(key)) {
+      return MOTOGP_SESSION_CONFIGS[key].label;
+    }
+    return this.sessionLabel();
+  });
+
+  sessionTabs = computed(() => {
+    if (!this.isMotogp()) return [];
+    const list = this.weekendSessions();
+    if (list.length) return list;
+    return [{ sessionKey: 'race', label: 'RACE', hasResults: true } as MotogpWeekendSession];
+  });
+
+  liveHeaderData = computed(() => ({
+    raceName: this.raceResult()?.raceName ?? this.currentRace()?.raceName ?? '',
+    circuitName: this.currentRace()?.circuitName ?? '',
+    round: this.currentRace()?.round ?? 0,
+    totalRounds: this.calendar().length || 22,
+  }));
+
+  raceStatus = computed<'live' | 'upcoming' | 'done'>(() => {
+    const tab = this.sessionTabs().find((t) => t.sessionKey === this.sessionKey());
+    if (tab?.hasResults && this.resultRows().length) return 'done';
+    const race = this.currentRace();
+    if (!race) return 'upcoming';
+    const t = new Date(`${race.date}T${race.time ?? '23:59:59Z'}`);
+    if (Number.isFinite(t.getTime()) && t < new Date()) return 'done';
+    return 'upcoming';
+  });
+
+  statusBadges = computed(() => {
+    const badges: { label: string; variant: string }[] = [];
+    if (this.raceStatus() === 'done') {
+      badges.push({ label: 'FINALIZADA', variant: 'green' });
+    } else {
+      badges.push({ label: 'PROGRAMADA', variant: 'grey' });
+    }
+    if (this.resultRows().length) {
+      badges.push({ label: 'RESULTADOS OFICIALES', variant: 'yellow' });
+    }
+    return badges;
   });
 
   isPast = computed(() => {
@@ -68,6 +168,8 @@ export class FeederRacePageComponent {
     const t = new Date(`${race.date}T${race.time ?? '23:59:59Z'}`);
     return Number.isFinite(t.getTime()) && t < new Date();
   });
+
+  sessionPending = computed(() => this.raceResult()?.sessionPending === true);
 
   circuitSvgUrl = computed(
     () => this.currentRace()?.circuitSvgUrl ?? this.raceResult()?.circuitSvgUrl ?? null,
@@ -83,11 +185,11 @@ export class FeederRacePageComponent {
 
   podium = computed(() => {
     const results = this.raceResult()?.results ?? [];
-    return results.slice(0, 3).map(r => ({
+    return results.slice(0, 3).map((r) => ({
       position: r.position,
       driver: r.driver,
       team: r.team,
-      teamColor: teamColor(r.team),
+      teamColor: teamColor(r.team, r.teamColor),
       time: r.time,
       driverId: r.driverId,
     }));
@@ -96,13 +198,62 @@ export class FeederRacePageComponent {
   resultRows = computed(() => {
     const results = this.raceResult()?.results ?? [];
     const sid = this.seriesCtx.id();
-    return results.map(r => ({
+    return results.map((r) => ({
       ...r,
-      teamColor: teamColor(r.team),
+      teamColor: teamColor(r.team, r.teamColor),
       headshotUrl: r.headshotUrl
         ? resolveDriverHeadshotUrl(r.driverId ?? '', r.driver, r.headshotUrl, { seriesId: sid })
         : '',
     }));
+  });
+
+  timingRows = computed(() =>
+    this.resultRows().map((r) => ({
+      pos: r.position,
+      num: r.number ?? r.position,
+      name: r.driver,
+      short: driverShort(r.driver),
+      team: r.team,
+      teamColor: r.teamColor,
+      gap: r.position === 1 ? '—' : r.time?.startsWith('+') ? r.time : '—',
+      bestLap: r.position === 1 && !r.time?.startsWith('+') ? r.time ?? '—' : r.time ?? '—',
+      laps: r.laps > 0 ? String(r.laps) : '—',
+      points: r.points > 0 ? String(r.points) : '—',
+      driverId: r.driverId,
+    })),
+  );
+
+  tickerDrivers = computed(() => this.timingRows().slice(0, 12));
+
+  activeStandings = computed(() => {
+    const tab = this.standingsTab();
+    const rows =
+      tab === 'drivers'
+        ? this.driverStands().map((d) => ({
+            pos: d.pos,
+            label: d.driver,
+            points: d.points,
+            color: teamColor(d.team, d.teamColor),
+          }))
+        : this.constructorStands().map((c) => ({
+            pos: c.pos,
+            label: c.team,
+            points: c.points,
+            color: teamColor(c.team, c.teamColor),
+          }));
+    const max = Math.max(...rows.map((r) => r.points), 1);
+    return rows.slice(0, 10).map((r) => ({
+      ...r,
+      widthPct: Math.round((r.points / max) * 100),
+    }));
+  });
+
+  showPointsColumn = computed(() => this.sessionKey() === 'race' || this.sessionKey() === 'sprint');
+
+  timingTimeColLabel = computed(() => {
+    const key = this.sessionKey();
+    if (key === 'race' || key === 'sprint') return 'TIEMPO';
+    return 'MEJOR V.';
   });
 
   dateLabel = computed(() => {
@@ -121,13 +272,29 @@ export class FeederRacePageComponent {
     this.backNav.labelFor(this.returnUrl(), this.seriesCtx.urlPath('calendario')),
   );
 
+  ngOnInit(): void {
+    interval(1000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.now.set(new Date()));
+  }
+
   constructor() {
-    bindSeriesLoad((seriesId) => this.loadRace(seriesId), this.destroyRef);
+    bindSeriesLoad((seriesId) => {
+      this.loadedRaceSlug.set(null);
+      return this.loadRace(seriesId);
+    }, this.destroyRef);
 
     this.route.paramMap
       .pipe(
         skip(1),
-        switchMap(() => this.loadRace(this.seriesCtx.id())),
+        switchMap((params) => {
+          const seriesId = this.seriesCtx.id();
+          const slug = params.get('race') ?? '';
+          if (this.loadedRaceSlug() === slug && this.calendar().length) {
+            return this.reloadSessionResults(seriesId);
+          }
+          return this.loadRace(seriesId);
+        }),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe();
@@ -135,6 +302,26 @@ export class FeederRacePageComponent {
 
   goBack(): void {
     this.backNav.goBack(this.seriesCtx.path('calendario'), this.returnUrl());
+  }
+
+  buildSessionLink(key: string): (string | number)[] {
+    return this.seriesCtx.path('calendario', this.raceSlug(), key);
+  }
+
+  setStandingsTab(tab: 'drivers' | 'constructors'): void {
+    this.standingsTab.set(tab);
+  }
+
+  pad(n: number): string {
+    return String(n).padStart(2, '0');
+  }
+
+  today(): string {
+    return new Intl.DateTimeFormat('es-ES', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    }).format(this.now());
   }
 
   positionLabel(pos: number): string {
@@ -167,10 +354,10 @@ export class FeederRacePageComponent {
     const points = projectCircuitCoords(official.coords);
     if (points.length < 3) return fallback;
 
-    const minX = Math.min(...points.map(p => p[0]));
-    const maxX = Math.max(...points.map(p => p[0]));
-    const minY = Math.min(...points.map(p => p[1]));
-    const maxY = Math.max(...points.map(p => p[1]));
+    const minX = Math.min(...points.map((p) => p[0]));
+    const maxX = Math.max(...points.map((p) => p[0]));
+    const minY = Math.min(...points.map((p) => p[1]));
+    const maxY = Math.max(...points.map((p) => p[1]));
     const width = Math.max(maxX - minX, 1);
     const height = Math.max(maxY - minY, 1);
     const scale = Math.min(260 / width, 130 / height);
@@ -188,46 +375,115 @@ export class FeederRacePageComponent {
     };
   }
 
+  private reloadSessionResults(seriesId: SeriesId) {
+    const slug = this.route.snapshot.paramMap.get('race') ?? '';
+    const rawSession = this.route.snapshot.paramMap.get('session') ?? 'race';
+    const session =
+      seriesId === 'motogp' && isMotogpSessionKey(rawSession) ? rawSession : 'race';
+    const race = findRaceBySlug(this.calendar(), slug);
+    if (!race) return of(null);
+
+    this.sessionLoading.set(true);
+    return this.service.getRaceResults(race.round, seriesId, session).pipe(
+      tap((result) => {
+        if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return;
+        if (result) this.raceResult.set(result);
+        this.sessionLoading.set(false);
+      }),
+      catchError(() => {
+        if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return of(null);
+        this.sessionLoading.set(false);
+        return of(null);
+      }),
+      map(() => undefined),
+    );
+  }
+
   private loadRace(seriesId: SeriesId) {
-    const slug = this.raceSlug();
-    this.loading.set(true);
+    const slug = this.route.snapshot.paramMap.get('race') ?? this.raceSlug();
+    const rawSession = this.route.snapshot.paramMap.get('session') ?? 'race';
+    const session =
+      seriesId === 'motogp' && isMotogpSessionKey(rawSession)
+        ? rawSession
+        : 'race';
+    const isNewRace = this.loadedRaceSlug() !== slug;
+
+    this.pageLoading.set(isNewRace || !this.calendar().length);
+    this.sessionLoading.set(false);
     this.error.set(null);
-    this.calendar.set([]);
-    this.raceResult.set(null);
-    this.returnUrl.set(this.backNav.captureReturnUrl());
+    if (isNewRace) {
+      this.calendar.set([]);
+      this.raceResult.set(null);
+      this.weekendSessions.set([]);
+      this.driverStands.set([]);
+      this.constructorStands.set([]);
+    }
+    if (!this.returnUrl()) {
+      this.returnUrl.set(this.backNav.captureReturnUrl());
+    }
 
     return this.service.getCalendar(seriesId).pipe(
-      switchMap(cal => {
+      switchMap((cal) => {
         if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return of(null);
         this.calendar.set(cal);
         const race = findRaceBySlug(cal, slug);
         if (!race) {
           this.error.set('No hemos encontrado esta ronda en el calendario.');
-          this.loading.set(false);
+          this.pageLoading.set(false);
+          this.loadedRaceSlug.set(null);
           return of(null);
         }
-        const raceTime = new Date(`${race.date}T${race.time ?? '23:59:59Z'}`);
-        const past = Number.isFinite(raceTime.getTime()) && raceTime < new Date();
-        if (!past) {
-          this.loading.set(false);
-          return of(null);
-        }
-        return this.service.getRaceResults(race.round, seriesId).pipe(
-          catchError(() => {
-            this.error.set('Aún no hay resultados publicados para esta carrera.');
-            return of(null);
+
+        const extras$ =
+          seriesId === 'motogp'
+            ? forkJoin({
+                sessions: this.service.getRoundSessions(race.round, seriesId).pipe(
+                  catchError(() => of({ sessions: [] as MotogpWeekendSession[] })),
+                ),
+                drivers: this.service.getDriverStandings(false, seriesId).pipe(catchError(() => of([]))),
+                teams: this.service.getConstructorStandings(false, seriesId).pipe(catchError(() => of([]))),
+              })
+            : of({
+                sessions: { sessions: [] as MotogpWeekendSession[] },
+                drivers: [] as JolpikaDriverStanding[],
+                teams: [] as JolpikaConstructorStanding[],
+              });
+
+        return extras$.pipe(
+          switchMap((extras) => {
+            if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return of(null);
+            this.weekendSessions.set(extras.sessions.sessions ?? []);
+            this.driverStands.set(extras.drivers);
+            this.constructorStands.set(extras.teams);
+
+            if (seriesId !== 'motogp') {
+              const raceTime = new Date(`${race.date}T${race.time ?? '23:59:59Z'}`);
+              const past =
+                Number.isFinite(raceTime.getTime()) && raceTime < new Date();
+              if (!past) {
+                this.pageLoading.set(false);
+                this.loadedRaceSlug.set(slug);
+                return of(null);
+              }
+            }
+
+            return this.service.getRaceResults(race.round, seriesId, session).pipe(
+              catchError(() => of(null)),
+            );
           }),
         );
       }),
-      tap(result => {
+      tap((result) => {
         if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return;
         if (result) this.raceResult.set(result);
-        this.loading.set(false);
+        this.loadedRaceSlug.set(slug);
+        this.pageLoading.set(false);
       }),
       catchError(() => {
         if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return of(null);
         this.error.set('No se pudo cargar la información de la carrera.');
-        this.loading.set(false);
+        this.pageLoading.set(false);
+        this.loadedRaceSlug.set(null);
         return of(null);
       }),
       map(() => undefined),

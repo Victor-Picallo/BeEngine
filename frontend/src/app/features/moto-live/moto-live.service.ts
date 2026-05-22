@@ -1,12 +1,17 @@
 import { inject, Injectable } from '@angular/core';
-import { map, Observable, shareReplay } from 'rxjs';
+import { catchError, forkJoin, map, Observable, of, shareReplay } from 'rxjs';
+import {
+  mergeOfficialTeamsGrid,
+  type MotogpPulseTeam,
+} from '../motogp/motogp-official-grid';
 import { ApiService } from '../../core/services/api.service';
 import type {
   JolpikaCalendarRace,
-  JolpikaConstructorStanding,
   JolpikaDriverStanding,
   JolpikaLastRace,
+  JolpikaRaceResult,
 } from '../f1-live/f1-live.types';
+import type { MotogpTeamProfile, MotogpTeamStanding } from '../motogp/motogp.types';
 
 interface SourceWrapped<T> {
   source: string;
@@ -31,6 +36,8 @@ export interface MotoNextRacePayload {
     date: string;
     round: number;
     totalRounds: number;
+    circuitSvgUrl?: string | null;
+    circuitImageUrl?: string | null;
   } | null;
   sessions: MotoNextRaceSession[];
 }
@@ -41,7 +48,8 @@ export class MotoLiveService {
   private readonly prefix = '/motogp';
 
   private driverStandingsCache?: Observable<JolpikaDriverStanding[]>;
-  private constructorStandingsCache?: Observable<JolpikaConstructorStanding[]>;
+  private constructorStandingsCache?: Observable<MotogpTeamStanding[]>;
+  private officialTeamsGridCache?: Observable<MotogpTeamStanding[]>;
 
   getDriverStandings(forceRefresh = false): Observable<JolpikaDriverStanding[]> {
     if (forceRefresh) this.driverStandingsCache = undefined;
@@ -56,17 +64,41 @@ export class MotoLiveService {
     return this.driverStandingsCache;
   }
 
-  getConstructorStandings(forceRefresh = false): Observable<JolpikaConstructorStanding[]> {
+  getTeamStandings(forceRefresh = false): Observable<MotogpTeamStanding[]> {
     if (forceRefresh) this.constructorStandingsCache = undefined;
     if (!this.constructorStandingsCache) {
       this.constructorStandingsCache = this.api
-        .get<SourceWrapped<JolpikaConstructorStanding>>(`${this.prefix}/pulselive/constructor-standings`)
+        .get<SourceWrapped<MotogpTeamStanding>>(`${this.prefix}/pulselive/constructor-standings`)
         .pipe(
           map((res) => res.items ?? []),
           shareReplay({ bufferSize: 1, refCount: false }),
         );
     }
     return this.constructorStandingsCache;
+  }
+
+  /**
+   * Parrilla oficial: 11 equipos (Pulse /teams) + puntos agregados.
+   * No depende de /official-teams (ruta nueva); usa /teams + /constructor-standings.
+   */
+  getOfficialTeamsGrid(forceRefresh = false): Observable<MotogpTeamStanding[]> {
+    if (forceRefresh) {
+      this.officialTeamsGridCache = undefined;
+      this.constructorStandingsCache = undefined;
+    }
+    if (!this.officialTeamsGridCache) {
+      this.officialTeamsGridCache = forkJoin({
+        teams: this.api.get<SourceWrapped<MotogpPulseTeam>>(`${this.prefix}/pulselive/teams`),
+        standings: this.getTeamStandings(forceRefresh),
+      }).pipe(
+        map(({ teams, standings }) =>
+          mergeOfficialTeamsGrid(teams.items ?? [], standings),
+        ),
+        catchError(() => of([] as MotogpTeamStanding[])),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
+    }
+    return this.officialTeamsGridCache;
   }
 
   getCalendar(): Observable<JolpikaCalendarRace[]> {
@@ -81,5 +113,28 @@ export class MotoLiveService {
 
   getNextRace(): Observable<MotoNextRacePayload> {
     return this.api.get<MotoNextRacePayload>(`${this.prefix}/pulselive/next-race`);
+  }
+
+  getRaceResults(round: number): Observable<JolpikaRaceResult> {
+    return this.api.get<JolpikaRaceResult>(`${this.prefix}/pulselive/results/${round}`);
+  }
+
+  getTeamProfile(constructorId: string, careerPage = 1): Observable<MotogpTeamProfile> {
+    const id = encodeURIComponent(constructorId.trim());
+    const p = Math.max(1, careerPage);
+    const q = p > 1 ? `?careerPage=${p}` : '';
+    return this.api.get<MotogpTeamProfile>(
+      `${this.prefix}/pulselive/constructors/${id}/profile${q}`,
+    );
+  }
+
+  getTeamProfileAggregates(constructorId: string): Observable<{
+    stats: MotogpTeamProfile['stats'];
+    bioText: string;
+    maxCareerPts: number;
+    partial?: boolean;
+  }> {
+    const id = encodeURIComponent(constructorId.trim());
+    return this.api.get(`${this.prefix}/pulselive/constructors/${id}/profile/aggregates`);
   }
 }

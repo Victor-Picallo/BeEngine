@@ -56,10 +56,28 @@ export const TEAM_COLORS: Record<string, string> = {
   lcr: '#E31937',
   pramac: '#003DA5',
   'pertamina enduro vr46': '#FFD100',
+  'pertamina enduro vr46 racing team': '#FFD100',
   'ducati lenovo': '#CC0000',
+  'ducati lenovo team': '#CC0000',
   'red bull ktm': '#FF6600',
-  'trackhouse racing': '#111111',
+  'red bull ktm factory racing': '#FF6600',
+  'red bull ktm tech3': '#FF6600',
+  'trackhouse racing': '#1E2A5A',
+  'trackhouse motogp team': '#1E2A5A',
+  'aprilia racing': '#006B3C',
+  'honda hrc castrol': '#E60012',
+  'monster energy yamaha motogp': '#003087',
+  'monster energy yamaha': '#003087',
+  'prima pramac yamaha motogp': '#003DA5',
+  'prima pramac yamaha': '#003DA5',
+  'bk8 gresini racing motogp': '#00AEEF',
+  'gresini racing motogp': '#00AEEF',
+  'castrol honda lcr': '#E31937',
+  'lcr honda': '#E31937',
 };
+
+/** Claves ordenadas de más larga a más corta para resolver por substring (MotoGP, etc.). */
+const TEAM_COLOR_KEYS = Object.keys(TEAM_COLORS).sort((a, b) => b.length - a.length);
 
 const NATIONALITY_TO_CC: Record<string, string> = {
   British: 'GB',
@@ -176,7 +194,13 @@ export const normalize = (s: string): string =>
 export const teamColor = (team: string, apiColor?: string | null): string => {
   const hex = (apiColor && String(apiColor).trim()) || '';
   if (/^#[0-9a-f]{3,8}$/i.test(hex)) return hex;
-  return TEAM_COLORS[normalize(team)] ?? '#888888';
+  const n = normalize(team);
+  if (!n) return '#888888';
+  if (TEAM_COLORS[n]) return TEAM_COLORS[n];
+  for (const key of TEAM_COLOR_KEYS) {
+    if (n.includes(key)) return TEAM_COLORS[key];
+  }
+  return '#888888';
 };
 
 /** OpenF1 headshot URL upgraded to 8col when possible. */

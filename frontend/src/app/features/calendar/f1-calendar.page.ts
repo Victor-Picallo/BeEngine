@@ -17,6 +17,7 @@ import { forkJoin } from 'rxjs';
 import { F1LiveService } from '../f1-live/f1-live.service';
 import { findOfficialCircuit, projectCircuitCoords } from './official-circuits';
 import { defaultSessionFor, slugifyRace } from '../race/race-slug';
+import { defaultMotogpSession } from '../race/motogp-session';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
 import type { JolpikaCalendarRace, JolpikaRaceResult } from '../f1-live/f1-live.types';
@@ -280,6 +281,13 @@ export class F1CalendarPageComponent {
   }
 
   raceCardLink(card: CalendarCard): (string | number)[] {
+    if (this.seriesCtx.id() === 'motogp') {
+      return this.seriesCtx.path(
+        'calendario',
+        card.slug,
+        defaultMotogpSession(card.race),
+      );
+    }
     if (!this.seriesCtx.config().features.raceSessionPage) {
       return this.seriesCtx.path('calendario', card.slug, 'race');
     }

@@ -2,6 +2,7 @@ import {
   pulseliveClient,
   MOTOGP_CATEGORY_UUID,
 } from '../../external/motogp/pulselive.client.js';
+import { resolveMotogpTeamLogoUrl } from '../../data/motogpTeamLogos.js';
 
 /** Categoría broadcast MotoGP™ (equipos / riders con fotos). */
 export const MOTOGP_BROADCAST_CATEGORY_UUID = '737ab122-76e1-4081-bedb-334caaa18c70';
@@ -46,21 +47,31 @@ const normalizeRider = (r) => ({
   inGrid: r.current_career_step?.in_grid !== false,
 });
 
+const isBikePicture = (url) =>
+  Boolean(url && /\/main-picture\.|FrontalBike_/i.test(String(url)));
+
 const normalizeTeam = (t) => {
   const constructorName = t.constructor?.name ?? '';
   const name = t.name ?? constructorName;
   const slug = slugify(name);
   const constructorSlug = slugify(constructorName || name);
+  const picture = t.picture ?? null;
+  const bg = t.background_picture ?? null;
+  const bikeImageUrl = isBikePicture(picture)
+    ? picture
+    : isBikePicture(bg)
+      ? bg
+      : picture ?? bg ?? null;
   return {
     teamId: t.id,
-    constructorId: constructorSlug,
+    constructorId: slug,
     constructorLegacyId: t.constructor?.legacy_id ?? null,
     name,
     constructorName,
     color: t.color ?? null,
     textColor: t.text_color ?? null,
-    logoUrl: t.picture ?? null,
-    bikeImageUrl: t.background_picture ?? null,
+    logoUrl: resolveMotogpTeamLogoUrl(t.id, slug, name),
+    bikeImageUrl,
     nationality: '',
     riders: (t.riders ?? [])
       .filter((r) => r.published !== false && r.current_career_step?.in_grid !== false)
@@ -114,26 +125,29 @@ export const findTeam = async (key, seasonYear) => {
 };
 
 export const enrichStandingRow = (row, idx) => {
-  const rowSlug = slugify(row.team);
-  let team =
+  const rowSlug = slugify(row.team) || row.constructorId || '';
+  const logoUrl =
+    row.logoUrl ?? resolveMotogpTeamLogoUrl(row.teamId, rowSlug, row.team);
+
+  const team =
     idx.bySlug.get(rowSlug) ??
     idx.bySlug.get(row.constructorId) ??
-    idx.byConstructorSlug.get(row.constructorId) ??
-    idx.byConstructorSlug.get(rowSlug);
+    idx.list.find((t) => slugify(t.name) === rowSlug);
 
   if (!team) {
-    team = idx.list.find((t) => {
-      const ts = slugify(t.name);
-      return ts === rowSlug || ts.includes(rowSlug) || rowSlug.includes(ts);
-    });
+    return {
+      ...row,
+      constructorId: rowSlug,
+      logoUrl,
+    };
   }
 
-  if (!team) return row;
   return {
     ...row,
-    team: row.team || team.name,
-    constructorId: slugify(team.name),
+    constructorId: rowSlug,
+    teamId: team.teamId ?? row.teamId,
     teamColor: team.color ?? row.teamColor,
-    logoUrl: team.logoUrl ?? row.logoUrl,
+    logoUrl: logoUrl ?? team.logoUrl,
+    bikeImageUrl: team.bikeImageUrl ?? row.bikeImageUrl,
   };
 };

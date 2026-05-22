@@ -1,15 +1,13 @@
 import { Routes } from '@angular/router';
-import { HomeComponent } from '../../features/home/home.component';
+import { MotoHomePageComponent } from '../../features/moto/moto-home.page';
 import { FormulaShellComponent } from '../series/formula-shell.component';
-import { FEEDER_RACE_ROUTE, FORMULA_SECTION_ROUTES } from '../series/formula-section.routes';
-
-/** Mismas secciones que F1 (calendario, pilotos, escuderías, clasificación, noticias). */
-const MOTO_GP_SECTION_ROUTES: Routes = FORMULA_SECTION_ROUTES.map((r) => ({ ...r }));
+import { FEEDER_RACE_ROUTE } from '../series/formula-section.routes';
+import { MOTOGP_OWN_SECTION_ROUTES } from './motogp-section.routes';
 
 export const MOTO_SECTION_ROUTES: Routes = [
-  { path: '', pathMatch: 'full', component: HomeComponent },
+  { path: '', pathMatch: 'full', component: MotoHomePageComponent },
   FEEDER_RACE_ROUTE,
-  ...MOTO_GP_SECTION_ROUTES,
+  ...MOTOGP_OWN_SECTION_ROUTES,
   { path: '**', redirectTo: '' },
 ];
 

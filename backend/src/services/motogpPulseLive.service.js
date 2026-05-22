@@ -6,19 +6,21 @@ import motogpMock from '../data/motogp.data.js';
 import { getRidersIndex } from './motogp/motogpRiders.service.js';
 import { getCircuits, findCircuitByName } from './motogp/motogpCircuits.service.js';
 import { getTeamsIndex, enrichStandingRow } from './motogp/motogpTeams.service.js';
+import {
+  resolveMotogpTeamLogoUrl,
+  resolveOfficialConstructorSlug,
+} from '../data/motogpTeamLogos.js';
+import {
+  pickMainRaceSession,
+  pulseSessionLabel,
+  pulseSessionToKey,
+  resolvePulseSession,
+  sessionHasResults,
+} from './motogp/motogpSessions.util.js';
 
 export const getCurrentSeasonYear = async () => {
   const season = await getCurrentSeason();
   return season.year ?? new Date().getFullYear();
-};
-
-const SESSION_LABELS = {
-  FP: 'FP',
-  PR: 'PRACTICE',
-  Q: 'QUALY',
-  SPR: 'SPRINT',
-  WUP: 'WARM-UP',
-  RAC: 'RACE',
 };
 
 const asList = (raw) => (Array.isArray(raw) ? raw : raw?.value ?? []);
@@ -80,19 +82,6 @@ const getRaceEvents = async () => {
   return asList(events).filter((e) => !e.test);
 };
 
-const pickMainRaceSession = (sessions) => {
-  const races = sessions.filter((s) => s.type === 'RAC');
-  return races.length ? races[races.length - 1] : sessions.at(-1);
-};
-
-const sessionLabel = (s) => {
-  const base = SESSION_LABELS[s.type] ?? s.type;
-  if (s.type === 'FP' && s.number) return `FP${s.number}`;
-  if (s.type === 'Q' && s.number) return s.number > 1 ? 'Q2' : 'Q1';
-  if (s.type === 'RAC' && s.number && s.number > 1) return 'RACE';
-  return base;
-};
-
 const normalizeDriverStandings = (raw) => {
   const rows = raw?.classification ?? [];
   return rows.map((r) => ({
@@ -124,16 +113,19 @@ const normalizeConstructorStandingsByTeam = (classificationRows) => {
   }
   return [...byTeam.values()]
     .sort((a, b) => b.points - a.points || a.team.localeCompare(b.team))
-    .map((c, i) => ({
-      pos: i + 1,
-      team: c.team,
-      constructorId: slugify(c.team),
-      points: c.points,
-      wins: c.wins,
-      nationality: '',
-      teamColor: null,
-      logoUrl: null,
-    }));
+    .map((c, i) => {
+      const constructorId = slugify(c.team);
+      return {
+        pos: i + 1,
+        team: c.team,
+        constructorId,
+        points: c.points,
+        wins: c.wins,
+        nationality: '',
+        teamColor: null,
+        logoUrl: resolveMotogpTeamLogoUrl(null, constructorId, c.team),
+      };
+    });
 };
 
 const teamSlugMatches = (a, b) => {
@@ -147,6 +139,8 @@ const mergeTeamsGridIntoStandings = (items, teamsIdx) => {
     const key = slugify(t.name);
     const existing = rows.find((row) => teamSlugMatches(slugify(row.team), key));
     if (existing) {
+      if (!existing.teamId && t.teamId) existing.teamId = t.teamId;
+      if (!existing.bikeImageUrl && t.bikeImageUrl) existing.bikeImageUrl = t.bikeImageUrl;
       if (!existing.logoUrl && t.logoUrl) existing.logoUrl = t.logoUrl;
       if (!existing.teamColor && t.color) existing.teamColor = t.color;
       continue;
@@ -155,11 +149,13 @@ const mergeTeamsGridIntoStandings = (items, teamsIdx) => {
       pos: 0,
       team: t.name,
       constructorId: slugify(t.name),
+      teamId: t.teamId,
       points: 0,
       wins: 0,
       nationality: '',
       teamColor: t.color,
       logoUrl: t.logoUrl,
+      bikeImageUrl: t.bikeImageUrl,
     });
   }
   return rows
@@ -181,39 +177,83 @@ const normalizeCalendar = (events) =>
     eventId: e.id,
   }));
 
-const enrichRaceResultsHeadshots = async (rows) => {
+const enrichRaceResultsHeadshots = async (rows, seasonYear) => {
   try {
-    const idx = await getRidersIndex();
+    const year =
+      Number.parseInt(String(seasonYear ?? new Date().getFullYear()), 10) ||
+      new Date().getFullYear();
+    const [ridersIdx, teamsIdx] = await Promise.all([
+      getRidersIndex(),
+      getTeamsIndex(year),
+    ]);
     return rows.map((r) => {
       const rider =
-        idx.byId.get(r.driverId) ??
-        idx.bySlug.get(slugify(r.driver));
-      return { ...r, headshotUrl: rider?.portraitUrl ?? null };
+        ridersIdx.byId.get(r.driverId) ??
+        ridersIdx.bySlug.get(slugify(r.driver));
+      const withTeam = enrichStandingRow(
+        {
+          team: r.team,
+          constructorId: r.constructorId ?? slugify(r.team),
+          teamColor: null,
+        },
+        teamsIdx,
+      );
+      return {
+        ...r,
+        headshotUrl: rider?.portraitUrl ?? null,
+        teamColor: withTeam.teamColor ?? null,
+      };
     });
   } catch {
     return rows;
   }
 };
 
-const normalizeClassification = (cls) =>
-  (cls?.classification ?? []).map((r) => {
+const formatClassificationTime = (r, sessionType) => {
+  if (sessionType === 'RAC') {
     const gapFirst = r.gap?.first;
-    const time =
-      r.position === 1
-        ? r.time ?? '—'
-        : gapFirst && gapFirst !== '0.000'
-          ? `+${gapFirst}s`
-          : r.time ?? '—';
-    return {
-      position: r.position,
-      driver: r.rider?.full_name ?? '—',
-      driverId: r.rider?.riders_api_uuid ?? r.rider?.id ?? slugify(r.rider?.full_name),
-      team: r.team?.name ?? r.constructor?.name ?? '—',
-      constructorId: slugify(r.constructor?.name ?? r.team?.name),
-      points: Number(r.points) || 0,
-      time,
-    };
-  });
+    if (r.position === 1) return r.time ?? '—';
+    if (gapFirst && gapFirst !== '0.000' && gapFirst !== '0') {
+      return gapFirst.includes(':') || gapFirst.includes('+') ? gapFirst : `+${gapFirst}s`;
+    }
+    return r.time ?? r.status ?? '—';
+  }
+  if (r.best_lap?.time) {
+    const gapFirst = r.gap?.first;
+    if (r.position === 1) return r.best_lap.time;
+    if (gapFirst && gapFirst !== '0.000' && gapFirst !== '0') {
+      return `+${gapFirst}s`;
+    }
+    return r.best_lap.time;
+  }
+  return r.time ?? '—';
+};
+
+const normalizeClassification = (cls, session) => {
+  const sessionType = session?.type ?? 'RAC';
+  return (cls?.classification ?? []).map((r) => ({
+    position: r.position,
+    driver: r.rider?.full_name ?? '—',
+    driverId: r.rider?.riders_api_uuid ?? r.rider?.id ?? slugify(r.rider?.full_name),
+    team: r.team?.name ?? r.constructor?.name ?? '—',
+    constructorId: slugify(r.constructor?.name ?? r.team?.name),
+    points: sessionType === 'RAC' ? Number(r.points) || 0 : 0,
+    time: formatClassificationTime(r, sessionType),
+    grid: Number(r.start_position ?? r.grid ?? r.position) || null,
+    laps: Number(r.total_laps) || 0,
+    status: r.status ?? 'Finished',
+    number: r.rider?.number ?? null,
+  }));
+};
+
+const fetchEventSessions = async (event) => {
+  if (!event?.id) return [];
+  return asList(
+    await pulseliveClient.get(
+      `/results/sessions?eventUuid=${event.id}&categoryUuid=${MOTOGP_CATEGORY_UUID}`,
+    ),
+  );
+};
 
 // ── Fallbacks (mock local) ───────────────────────────────────
 
@@ -332,6 +372,64 @@ export const getConstructorStandings = async () => {
   }
 };
 
+/** Parrilla oficial: 11 equipos Pulse + puntos/victorias agregados por equipo del grid. */
+const aggregateStandingsByOfficialTeam = (classificationRows) => {
+  const bySlug = new Map();
+  for (const r of classificationRows) {
+    const teamName = r.team?.name ?? r.constructor?.name;
+    if (!teamName) continue;
+    const officialSlug = resolveOfficialConstructorSlug(
+      r.team?.id ?? r.team?.uuid ?? null,
+      slugify(teamName),
+      teamName,
+    );
+    if (!officialSlug) continue;
+    const pts = Number(r.points) || 0;
+    const wins = Number(r.race_wins) || 0;
+    const cur = bySlug.get(officialSlug) ?? { points: 0, wins: 0 };
+    cur.points += pts;
+    cur.wins += wins;
+    bySlug.set(officialSlug, cur);
+  }
+  return bySlug;
+};
+
+export const getOfficialTeamsGrid = async () => {
+  try {
+    const season = await getCurrentSeason();
+    const [raw, teamsIdx] = await Promise.all([
+      pulseliveClient.get(
+        `/results/standings?seasonUuid=${season.id}&categoryUuid=${MOTOGP_CATEGORY_UUID}`,
+      ),
+      getTeamsIndex(season.year),
+    ]);
+    const agg = aggregateStandingsByOfficialTeam(raw?.classification ?? []);
+    const items = teamsIdx.list
+      .map((t) => {
+        const stats = agg.get(t.constructorId) ?? { points: 0, wins: 0 };
+        return {
+          pos: 0,
+          team: t.name,
+          constructorId: t.constructorId,
+          teamId: t.teamId,
+          points: stats.points,
+          wins: stats.wins,
+          nationality: '',
+          teamColor: t.color,
+          logoUrl:
+            t.logoUrl ?? resolveMotogpTeamLogoUrl(t.teamId, t.constructorId, t.name),
+          bikeImageUrl: t.bikeImageUrl,
+        };
+      })
+      .sort((a, b) => b.points - a.points || a.team.localeCompare(b.team))
+      .map((row, i) => ({ ...row, pos: i + 1 }));
+    return { source: 'external', items };
+  } catch {
+    const mock = fallbackConstructorStandings();
+    return { source: 'mock', items: mock.slice(0, 11) };
+  }
+};
+
 export const getCalendar = async () => {
   try {
     const season = await getCurrentSeason();
@@ -380,7 +478,10 @@ export const getLastRace = async () => {
     const cls = await pulseliveClient.get(
       `/results/session/${raceSession.id}/classification?seasonYear=${season.year}&test=false`,
     );
-    const results = await enrichRaceResultsHeadshots(normalizeClassification(cls));
+    const results = await enrichRaceResultsHeadshots(
+      normalizeClassification(cls, raceSession),
+      season.year,
+    );
     const round = finished.length;
     const circuit = await findCircuitByName(last.circuit?.name, season.year).catch(() => null);
 
@@ -428,7 +529,7 @@ export const getNextRaceSessions = async () => {
         circuitImageUrl: circuit?.imageUrl ?? null,
       },
       sessions: sessions.map((s) => ({
-        name: sessionLabel(s),
+        name: pulseSessionLabel(s),
         date: formatSessionDate(s.date),
         time: formatSessionTime(s.date),
         highlight: s.id === mainRaceId,
@@ -459,7 +560,47 @@ export const getNextRaceSessions = async () => {
   }
 };
 
-export const getRaceResultsByRound = async (round) => {
+export const getRoundSessions = async (round) => {
+  const cleanRound = Number.parseInt(round, 10);
+  if (!Number.isInteger(cleanRound) || cleanRound < 1) {
+    throw new Error('Invalid race round');
+  }
+
+  const season = await getCurrentSeason();
+  const events = await getRaceEvents();
+  const event = events[cleanRound - 1];
+  if (!event) throw new Error(`No MotoGP event for round ${cleanRound}`);
+
+  const sessions = await fetchEventSessions(event);
+  const circuit = await findCircuitByName(event.circuit?.name, season.year).catch(() => null);
+
+  return {
+    source: 'external',
+    round: cleanRound,
+    raceName: event.sponsored_name?.trim() || event.name,
+    circuitName: event.circuit?.name ?? '—',
+    circuitSvgUrl: circuit?.svgUrl ?? null,
+    sessions: (() => {
+      const seen = new Set();
+      const out = [];
+      for (const s of sessions) {
+        const sessionKey = pulseSessionToKey(s);
+        if (seen.has(sessionKey)) continue;
+        seen.add(sessionKey);
+        out.push({
+          sessionKey,
+          label: pulseSessionLabel(s),
+          date: s.date ?? null,
+          status: s.status ?? null,
+          hasResults: sessionHasResults(s),
+        });
+      }
+      return out;
+    })(),
+  };
+};
+
+export const getRaceResultsByRound = async (round, sessionKey = 'race') => {
   const cleanRound = Number.parseInt(round, 10);
   if (!Number.isInteger(cleanRound) || cleanRound < 1) {
     throw new Error('Invalid race round');
@@ -471,40 +612,55 @@ export const getRaceResultsByRound = async (round) => {
     const event = events[cleanRound - 1];
     if (!event) throw new Error(`No MotoGP event for round ${cleanRound}`);
 
-    const sessions = asList(
-      await pulseliveClient.get(
-        `/results/sessions?eventUuid=${event.id}&categoryUuid=${MOTOGP_CATEGORY_UUID}`,
-      ),
-    );
-    const raceSession = pickMainRaceSession(sessions);
-    if (!raceSession?.id) throw new Error('No race session');
+    const sessions = await fetchEventSessions(event);
+    const session = resolvePulseSession(sessions, sessionKey) ?? pickMainRaceSession(sessions);
+    if (!session?.id) throw new Error('No session for round');
 
-    const cls = await pulseliveClient.get(
-      `/results/session/${raceSession.id}/classification?seasonYear=${season.year}&test=false`,
-    );
-
-    const enriched = await enrichRaceResultsHeadshots(normalizeClassification(cls));
     const circuit = await findCircuitByName(event.circuit?.name, season.year).catch(() => null);
-
-    return {
+    const base = {
       source: 'external',
       round: cleanRound,
       raceName: event.sponsored_name?.trim() || event.name,
       circuitName: event.circuit?.name ?? '—',
       circuitSvgUrl: circuit?.svgUrl ?? null,
-      date: event.date_start?.slice(0, 10) ?? '',
+      date: session.date?.slice(0, 10) ?? event.date_start?.slice(0, 10) ?? '',
+      sessionKey: pulseSessionToKey(session),
+      sessionLabel: pulseSessionLabel(session),
+      sessionStatus: session.status ?? null,
+      sessionPending: !sessionHasResults(session),
+      results: [],
+    };
+
+    if (!sessionHasResults(session)) {
+      return base;
+    }
+
+    const cls = await pulseliveClient.get(
+      `/results/session/${session.id}/classification?seasonYear=${season.year}&test=false`,
+    );
+
+    const enriched = await enrichRaceResultsHeadshots(
+      normalizeClassification(cls, session),
+      season.year,
+    );
+
+    return {
+      ...base,
+      sessionPending: false,
       results: enriched.map((r) => ({
         position: r.position,
         driver: r.driver,
         driverId: r.driverId,
         team: r.team,
         constructorId: r.constructorId,
+        teamColor: r.teamColor ?? null,
         headshotUrl: r.headshotUrl ?? null,
-        grid: 0,
-        laps: 0,
-        status: 'Finished',
+        grid: r.grid ?? r.position,
+        laps: r.laps,
+        status: r.status,
         points: r.points,
         time: r.time,
+        number: r.number ?? null,
       })),
     };
   } catch (err) {

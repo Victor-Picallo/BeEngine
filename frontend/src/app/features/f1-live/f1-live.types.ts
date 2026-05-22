@@ -326,7 +326,9 @@ export interface JolpikaLastRaceResult {
   driverId?: string | null;
   team: string;
   constructorId?: string | null;
+  teamColor?: string | null;
   headshotUrl?: string | null;
+  number?: number | null;
   grid: number;
   laps: number;
   status: string;
@@ -346,7 +348,27 @@ export interface JolpikaLastRace {
   circuitSvgUrl?: string | null;
 }
 
-export type JolpikaRaceResult = JolpikaLastRace;
+export interface JolpikaRaceResult extends JolpikaLastRace {
+  sessionKey?: string;
+  sessionLabel?: string;
+  sessionStatus?: string | null;
+  sessionPending?: boolean;
+}
+
+export interface MotogpRoundSessionsPayload {
+  source: string;
+  round: number;
+  raceName: string;
+  circuitName: string;
+  circuitSvgUrl?: string | null;
+  sessions: {
+    sessionKey: string;
+    label: string;
+    date: string | null;
+    status: string | null;
+    hasResults: boolean;
+  }[];
+}
 
 export type TireType = 's' | 'm' | 'h' | 'i' | 'w';
 export type SectorColor = 'sec-purple' | 'sec-yellow' | 'sec-green' | 'sec-white';

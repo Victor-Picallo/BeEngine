@@ -1,0 +1,304 @@
+<div class="cl-page">
+  <app-header></app-header>
+
+  <div class="cl-body">
+    <app-side></app-side>
+
+    <main class="cl-main">
+      @if (loading()) {
+        <div class="cl-loading">Cargando clasificación…</div>
+      } @else if (error(); as err) {
+        <div class="cl-error">{{ err }}</div>
+      } @else {
+        <!-- Hero -->
+        <div class="cl-hero">
+          <div class="cl-hero-accent"></div>
+          <div class="cl-hero-glow"></div>
+          <div class="cl-hero-inner">
+            <div class="cl-hero-copy">
+              <div class="cl-hero-kicker">CAMPEONATO DEL MUNDO</div>
+              <h1 class="cl-hero-title">
+                Clasificación<br />
+                <span class="cl-hero-title-accent">{{ view() === 'constructors' ? 'Equipos' : 'Pilotos' }}</span>
+                <span class="cl-hero-title-year">MotoGP 2026</span>
+              </h1>
+            </div>
+
+            <div class="cl-hero-cards">
+              @if (leader(); as ld) {
+              <div class="cl-hero-card">
+                <div class="cl-hero-card-label">LÍDER ACTUAL</div>
+                <div class="cl-hero-leader-name">{{ leaderDisplayName(ld) }}</div>
+                <div class="cl-hero-leader-pts">
+                  <span class="cl-hero-pts-val">{{ ld.pts }}</span>
+                  <span class="cl-hero-pts-sub">
+                    puntos@if (ld.wins > 0) { · {{ ld.wins }} {{ ld.wins === 1 ? 'victoria' : 'victorias' }} }
+                  </span>
+                </div>
+                <div class="cl-hero-leader-team">
+                  <span class="cl-team-bar" [style.background]="ld.teamColor"></span>
+                  <span>{{ ld.team }}</span>
+                </div>
+              </div>
+              }
+
+              @if (teamLeader(); as lc) {
+                <div class="cl-hero-card">
+                  <div class="cl-hero-card-label">EQUIPO LÍDER</div>
+                  <div class="cl-hero-leader-name">{{ teamLeaderDisplayName(lc) }}</div>
+                  <div class="cl-hero-leader-pts">
+                    <span class="cl-hero-pts-val">{{ lc.pts }}</span>
+                    <span class="cl-hero-pts-sub">
+                      puntos@if (lc.wins > 0) { · {{ lc.wins }} {{ lc.wins === 1 ? 'victoria' : 'victorias' }} }
+                    </span>
+                  </div>
+                  <div class="cl-hero-leader-team">
+                    <span class="cl-team-bar" [style.background]="lc.teamColor"></span>
+                    @if (lc.drivers.length) {
+                      <span>{{ lc.drivers.join(' · ') }}</span>
+                    } @else {
+                      <span>{{ lc.team }}</span>
+                    }
+                  </div>
+                </div>
+              }
+
+              <div class="cl-hero-card cl-hero-card--season">
+                <div class="cl-hero-card-label">TEMPORADA</div>
+                <div class="cl-hero-season-num">
+                  {{ season().done }}<span>/{{ season().total }}</span>
+                </div>
+                <div class="cl-hero-season-sub">Rondas completadas</div>
+                <div class="cl-season-dots">
+                  @for (i of seasonDots(); track i) {
+                    <span class="cl-season-dot" [class.cl-season-dot--on]="i < season().done"></span>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="cl-tabs">
+          <button
+            type="button"
+            class="cl-tab"
+            [class.cl-tab--on]="view() === 'drivers'"
+            (click)="setView('drivers')"
+          >Pilotos</button>
+          <button
+            type="button"
+            class="cl-tab"
+            [class.cl-tab--on]="view() === 'constructors'"
+            (click)="setView('constructors')"
+          >Equipos</button>
+        </div>
+
+        @if (view() === 'constructors') {
+          <div class="cl-panel">
+            <div class="cl-panel-head">
+              <span class="cl-panel-bar"></span>
+              <span class="cl-panel-title">Clasificación Equipos</span>
+            </div>
+            @for (c of teamRows(); track c.constructorId ?? c.team; let i = $index) {
+              <a
+                class="cl-const-row"
+                [class.cl-const-row--top]="c.pos === 1"
+                [routerLink]="c.constructorId ? ['/motogp', 'escuderias', c.constructorId] : null"
+                appReturnNav
+                [style.--cl-team]="c.teamColor"
+                [style.cursor]="c.constructorId ? 'pointer' : 'default'"
+              >
+                <span class="cl-const-pos" [style.color]="c.pos <= 3 ? c.teamColor : null">{{ c.pos }}</span>
+                <span class="cl-const-stripe" [style.background]="c.teamColor"></span>
+                <div class="cl-const-car" [style.--cl-team]="c.teamColor">
+                  @if (teamLogoImage(c); as imgUrl) {
+                    <img
+                      class="cl-const-car-img"
+                      [src]="imgUrl"
+                      [alt]="'Logo ' + c.team"
+                      loading="lazy"
+                      (error)="teamImgError(c)"
+                    />
+                  } @else {
+                    <span class="cl-const-car-fallback" aria-hidden="true"></span>
+                  }
+                </div>
+                <div class="cl-const-info">
+                  <span class="cl-const-name">{{ c.team }}</span>
+                  @if (c.drivers.length) {
+                    <span class="cl-const-drivers">{{ c.drivers.join(' · ') }}</span>
+                  }
+                </div>
+                <div class="cl-const-bar-wrap">
+                  <div class="cl-const-bar-track">
+                    <div class="cl-const-bar-fill" [style.width.%]="c.barPct" [style.background]="c.teamColor"></div>
+                  </div>
+                  <span class="cl-const-pct">{{ c.pctLabel }}% del líder</span>
+                </div>
+                <div class="cl-const-pts">
+                  <span [style.color]="c.pos === 1 ? c.teamColor : null">{{ c.pts }}</span>
+                  <small>pts</small>
+                </div>
+              </a>
+            }
+          </div>
+        } @else {
+          <!-- Table -->
+          <div class="cl-table-wrap">
+            <div class="cl-table-head">
+              @for (h of ['POS','','#','PILOTO','PUNTOS','GAP','VIC.','POD.','POLES','','EVOLUCIÓN']; track $index) {
+                <span>{{ h }}</span>
+              }
+            </div>
+
+            @for (d of driverRows(); track d.driverId; let i = $index) {
+              <a
+                class="cl-row"
+                [class.cl-row--top3]="d.pos <= 3"
+                [style.--cl-team]="d.teamColor"
+                [style.animation-delay.ms]="rowDelay(i)"
+                [routerLink]="d.driverId ? ['/motogp', 'pilotos', d.driverId] : null"
+                appReturnNav
+              >
+                <div class="cl-row-pos">
+                  <span class="cl-pos-num" [style.color]="d.pos <= 3 ? posColor(d.pos) : null">{{ d.pos }}</span>
+                  @if (d.change === 0) {
+                    <span class="cl-change cl-change--flat">—</span>
+                  } @else if (d.change > 0) {
+                    <span class="cl-change cl-change--up">▲ {{ d.change }}</span>
+                  } @else {
+                    <span class="cl-change cl-change--down">▼ {{ -d.change }}</span>
+                  }
+                </div>
+
+                <div class="cl-row-photo">
+                  <div
+                    class="cl-photo-wrap"
+                    [class.cl-photo-wrap--motogp]="true"
+                    [style.--cl-team]="d.teamColor"
+                  >
+                    <div class="cl-photo-fallback" [attr.aria-hidden]="d.headshotUrl ? 'true' : null">
+                      <span>{{ initials(d.name) }}</span>
+                    </div>
+                    @if (d.headshotUrl) {
+                      <img
+                        class="cl-photo-img"
+                        [class.cl-photo-img--motogp]="true"
+                        [src]="d.headshotUrl"
+                        [alt]="d.name"
+                        loading="lazy"
+                        (load)="photoLoaded($event)"
+                        (error)="imgError($event, d)"
+                      />
+                    }
+                  </div>
+                </div>
+
+                <div class="cl-row-num" [style.--cl-team]="d.teamColor">
+                  @if (d.num != null) {
+                    <span class="cl-dorsal">{{ d.num }}</span>
+                  }
+                </div>
+
+                <div class="cl-row-driver">
+                  <div class="cl-driver-nat">
+                    @if (d.flagUrl) {
+                      <img class="cl-flag-img" [src]="d.flagUrl" [alt]="d.country" width="16" height="12" />
+                    } @else if (d.flagEmoji) {
+                      <span>{{ d.flagEmoji }}</span>
+                    }
+                    {{ d.country }}
+                  </div>
+                  <div class="cl-driver-names">
+                    <span class="cl-driver-first">{{ d.first }}</span>
+                    <span class="cl-driver-last">{{ d.last }}</span>
+                  </div>
+                  <div class="cl-driver-team">
+                    <span class="cl-team-bar" [style.background]="d.teamColor"></span>
+                    <span>{{ d.team }}</span>
+                  </div>
+                </div>
+
+                <div class="cl-row-pts">
+                  <div class="cl-pts-top">
+                    <span class="cl-pts-val" [style.color]="d.pos <= 3 ? posColor(d.pos) : null">{{ d.pts }}</span>
+                    <span class="cl-pts-label">pts</span>
+                  </div>
+                  <div class="cl-pts-bar-track">
+                    <div class="cl-pts-bar-fill" [style.width.%]="d.barPct"></div>
+                  </div>
+                  @if (d.gap !== '—') {
+                    <span class="cl-pts-gap">{{ d.gap }} pts del líder</span>
+                  }
+                </div>
+
+                <div class="cl-row-gap">
+                  @if (d.gap === '—') {
+                    <span class="cl-leader-tag">LÍDER</span>
+                  } @else {
+                    {{ d.gap }}
+                  }
+                </div>
+
+                <div class="cl-stat">
+                  <span [style.color]="d.wins > 0 ? d.teamColor : null">{{ d.wins }}</span>
+                  <small>Vic.</small>
+                </div>
+                <div class="cl-stat">
+                  <span [class.cl-stat--muted]="d.podiums === 0">{{ d.podiums }}</span>
+                  <small>Pod.</small>
+                </div>
+                <div class="cl-stat">
+                  <span [class.cl-stat--pole]="d.poles > 0">{{ d.poles }}</span>
+                  <small>Poles</small>
+                </div>
+
+                <div class="cl-row-spark">
+                  @if (d.cumPts.length >= 2) {
+                    <svg width="76" height="28" class="cl-spark-svg" aria-hidden="true">
+                      <polyline
+                        [attr.points]="sparkPts(d)"
+                        fill="none"
+                        [attr.stroke]="d.teamColor"
+                        stroke-width="1.8"
+                        stroke-linejoin="round"
+                        stroke-linecap="round"
+                        opacity="0.7"
+                      />
+                      @if (sparkDot(d); as dot) {
+                        <circle [attr.cx]="dot.cx" [attr.cy]="dot.cy" r="2.5" [attr.fill]="d.teamColor" />
+                      }
+                    </svg>
+                  }
+                </div>
+              </a>
+            }
+          </div>
+
+          @if (legendLastGp()) {
+            <div class="cl-legend">
+              <span class="cl-legend-title">Leyenda:</span>
+              <span><strong>▲ Verde</strong> → Subida en clasificación</span>
+              <span><strong>▼ Rojo</strong> → Bajada en clasificación</span>
+              <span><strong>— Gris</strong> → Sin cambio</span>
+              <span><strong>Gráfica</strong> → Puntos acumulados por carrera</span>
+              <span class="cl-legend-meta">{{ legendLastGp() }}</span>
+            </div>
+          }
+        }
+
+        <footer class="cl-foot">
+          <span>BeEngine · Clasificación MotoGP 2026</span>
+          <nav class="cl-foot-nav">
+            <a [routerLink]="homePath">← Inicio</a>
+            <a routerLink="/motogp/calendario">Calendario</a>
+            <a routerLink="/motogp/pilotos">Pilotos</a>
+            <a routerLink="/motogp/escuderias">Equipos</a>
+          </nav>
+        </footer>
+      }
+    </main>
+  </div>
+</div>

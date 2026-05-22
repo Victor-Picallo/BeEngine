@@ -86,7 +86,7 @@ export class BackNavigationService {
     if (path === '/f2' || path === '/f3' || path === '/motogp') return 'Inicio';
     if (
       /\/f[23]\/calendario\/[^/]+\/race/.test(path) ||
-      /\/motogp\/calendario\/[^/]+\/race/.test(path) ||
+      /\/motogp\/calendario\/[^/]+\/[^/]+/.test(path) ||
       /\/f1\/calendario\/[^/]+\//.test(path)
     ) {
       return 'Carrera';

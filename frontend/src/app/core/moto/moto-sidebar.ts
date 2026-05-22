@@ -6,7 +6,7 @@ export const MOTO_SECTION_LABELS = [
   'Noticias',
   'Calendario',
   'Pilotos',
-  'Escuderías',
+  'Equipos',
   'Clasificación',
 ] as const;
 
@@ -24,7 +24,7 @@ export function motoSectionPath(cat: MotoCategoryId, label: string): string | nu
       return `${MOTO_PREFIX}/calendario`;
     case 'Pilotos':
       return `${MOTO_PREFIX}/pilotos`;
-    case 'Escuderías':
+    case 'Equipos':
       return `${MOTO_PREFIX}/escuderias`;
     case 'Clasificación':
       return `${MOTO_PREFIX}/clasificacion`;

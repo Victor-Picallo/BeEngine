@@ -14,6 +14,7 @@ import {
   JolpikaDriverStanding,
   JolpikaLastRace,
   JolpikaRaceResult,
+  MotogpRoundSessionsPayload,
   OpenF1Driver,
   OpenF1Interval,
   OpenF1Lap,
@@ -192,7 +193,23 @@ export class F1LiveService {
     return this.api.get<JolpikaLastRace>(`${this.racingApi(seriesId)}/last-race`);
   }
 
-  getRaceResults(round: number, seriesId?: SeriesId): Observable<JolpikaRaceResult> {
-    return this.api.get<JolpikaRaceResult>(`${this.racingApi(seriesId)}/results/${round}`);
+  getRaceResults(
+    round: number,
+    seriesId?: SeriesId,
+    sessionKey?: string,
+  ): Observable<JolpikaRaceResult> {
+    const sid = this.seriesId(seriesId);
+    const base = `${this.racingApi(sid)}/results/${round}`;
+    const q =
+      sid === 'motogp' && sessionKey
+        ? `?session=${encodeURIComponent(sessionKey)}`
+        : '';
+    return this.api.get<JolpikaRaceResult>(`${base}${q}`);
+  }
+
+  getRoundSessions(round: number, seriesId?: SeriesId): Observable<MotogpRoundSessionsPayload> {
+    return this.api.get<MotogpRoundSessionsPayload>(
+      `${this.racingApi(seriesId)}/results/${round}/sessions`,
+    );
   }
 }

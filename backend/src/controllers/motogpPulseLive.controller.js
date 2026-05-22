@@ -1,10 +1,12 @@
 import {
   getDriverStandings,
   getConstructorStandings,
+  getOfficialTeamsGrid,
   getCalendar,
   getLastRace,
   getNextRaceSessions,
   getRaceResultsByRound,
+  getRoundSessions,
   getWeekendSessions,
 } from '../services/motogpPulseLive.service.js';
 import {
@@ -36,6 +38,16 @@ export const driverStandings = async (_req, res) => {
 export const constructorStandings = async (_req, res) => {
   try {
     const data = await getConstructorStandings();
+    success(res, data, 200, { 'Cache-Control': CACHE_STANDINGS });
+  } catch (err) {
+    error(res, err.message);
+  }
+};
+
+/** Los 11 equipos del grid (Pulse /teams) con puntos agregados al equipo oficial. */
+export const officialTeamsGrid = async (_req, res) => {
+  try {
+    const data = await getOfficialTeamsGrid();
     success(res, data, 200, { 'Cache-Control': CACHE_STANDINGS });
   } catch (err) {
     error(res, err.message);
@@ -78,9 +90,19 @@ export const weekendSessions = async (_req, res) => {
   }
 };
 
+export const roundSessions = async (req, res) => {
+  try {
+    const data = await getRoundSessions(req.params.round);
+    success(res, data);
+  } catch (err) {
+    error(res, err.message);
+  }
+};
+
 export const raceResults = async (req, res) => {
   try {
-    const data = await getRaceResultsByRound(req.params.round);
+    const sessionKey = req.query.session ?? 'race';
+    const data = await getRaceResultsByRound(req.params.round, sessionKey);
     success(res, data);
   } catch (err) {
     error(res, err.message);
@@ -109,7 +131,9 @@ export const driverProfileAggregates = async (req, res) => {
 
 export const constructorProfile = async (req, res) => {
   try {
-    const data = await getConstructorProfile(req.params.constructorId);
+    const data = await getConstructorProfile(req.params.constructorId, {
+      careerPage: req.query.careerPage,
+    });
     success(res, data, 200, { 'Cache-Control': CACHE_PROFILE });
   } catch (err) {
     if (err.code === 'NOT_FOUND') return error(res, err.message, 404);
@@ -159,6 +183,10 @@ export const circuitDetail = async (req, res) => {
 
 export const teams = async (req, res) => {
   try {
+    if (req.query.grid === 'official') {
+      const data = await getOfficialTeamsGrid();
+      return success(res, data, 200, { 'Cache-Control': CACHE_STANDINGS });
+    }
     const idx = await getTeamsIndex(req.query.seasonYear);
     success(res, { source: 'pulselive-motogp', items: idx.list }, 200, {
       'Cache-Control': CACHE_CALENDAR,

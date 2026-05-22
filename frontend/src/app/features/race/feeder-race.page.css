@@ -2,6 +2,58 @@
   --fr-accent: #0090ff;
 }
 
+.fr-session-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #e8e7e2;
+  border-radius: 8px;
+}
+
+.fr-session-bar-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #999;
+  margin-right: 4px;
+}
+
+.fr-session-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid #e5e5e5;
+  background: #fafaf8;
+  color: #555;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.fr-session-tab:hover {
+  border-color: var(--fr-accent);
+  color: #111;
+}
+
+.fr-session-tab--active,
+.fr-session-tab.fr-session-tab--active {
+  background: var(--fr-accent);
+  border-color: var(--fr-accent);
+  color: #fff;
+}
+
+.fr-session-tab--done:not(.fr-session-tab--active) {
+  border-color: color-mix(in srgb, var(--fr-accent) 35%, #ddd);
+}
+
 .fr-crumb {
   display: flex;
   align-items: center;
@@ -302,4 +354,150 @@ a.fr-podium-driver:hover {
   .fr-podium {
     grid-template-columns: 1fr;
   }
+}
+
+/* ── MotoGP: misma UI que F1 live (fl-root), acento de serie ─────────────── */
+
+.fl-root--motogp {
+  --fl-accent: #0052cc;
+}
+
+.fl-root--motogp .fl-live-header {
+  border-bottom-color: color-mix(in srgb, var(--fl-accent) 35%, #e5e5e7);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--fl-accent) 8%, #fff), #fafafa 45%, #fff);
+}
+
+.fl-root--motogp .fl-header-accent-line {
+  background: linear-gradient(90deg, transparent, var(--fl-accent), transparent);
+}
+
+.fl-root--motogp .fl-header-scan {
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--fl-accent) 35%, transparent), transparent);
+}
+
+.fl-root--motogp .fl-header-glow {
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--fl-accent) 12%, transparent) 0%, transparent 70%);
+}
+
+.fl-root--motogp .fl-header-pulse,
+.fl-root--motogp .fl-session-live-dot {
+  background: var(--fl-accent);
+}
+
+.fl-root--motogp .fl-header-title-big span {
+  color: var(--fl-accent);
+}
+
+.fl-root--motogp .fl-session-btn.active {
+  background: var(--fl-accent);
+  border-color: var(--fl-accent);
+  color: #fff;
+}
+
+.fl-root--motogp .fl-champ-tab.active {
+  color: var(--fl-accent);
+  border-bottom-color: var(--fl-accent);
+}
+
+.fl-root--motogp .fl-timing-row.leader {
+  background: color-mix(in srgb, var(--fl-accent) 10%, transparent);
+  border-left-color: var(--fl-accent);
+}
+
+.fl-root--motogp .fl-cell-pos.top3 {
+  color: var(--fl-accent);
+}
+
+.fl-root--motogp .fl-cell-gap.leader-gap,
+.fl-root--motogp .fl-p1 {
+  color: var(--fl-accent);
+  font-weight: 600;
+}
+
+.fl-root--motogp .fl-tt-bar {
+  background: var(--fl-accent);
+}
+
+.fl-root--motogp .fl-timing-header-row.fl-timing--moto,
+.fl-root--motogp .fl-timing-row.fl-timing--moto {
+  grid-template-columns: 40px 48px minmax(160px, 1fr) 88px 100px 56px;
+}
+
+.fl-root--motogp .fl-timing-header-row.fl-timing--moto.fl-timing--moto-pts,
+.fl-root--motogp .fl-timing-row.fl-timing--moto.fl-timing--moto-pts {
+  grid-template-columns: 40px 48px minmax(160px, 1fr) 88px 100px 56px 64px;
+}
+
+.fl-root--motogp .fl-driver-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.fl-root--motogp .fl-driver-link:hover {
+  color: var(--fl-accent);
+}
+
+.fl-root--motogp .fl-moto-circuit-panel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: #111;
+  min-height: 0;
+}
+
+.fl-root--motogp .fl-moto-circuit-img {
+  max-width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+}
+
+.fl-root--motogp .fl-moto-summary {
+  padding: 12px 14px;
+  font-size: 12px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.fl-root--motogp .fl-moto-podium-mini {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #e5e5e7;
+}
+
+.fl-root--motogp .fl-moto-podium-line {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 11px;
+}
+
+.fl-root--motogp .fl-timing-card--loading .fl-timing-header-row,
+.fl-root--motogp .fl-timing-card--loading .fl-timing-scroll {
+  opacity: 0.5;
+  transition: opacity 0.12s ease;
+}
+
+.fl-root--motogp .fl-moto-podium-time {
+  font-variant-numeric: tabular-nums;
+  color: #666;
+}
+
+.fr-fl-notfound {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.fr-fl-notfound h1 {
+  margin: 0 0 12px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 22px;
 }

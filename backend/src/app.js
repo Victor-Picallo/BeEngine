@@ -2,15 +2,24 @@ import express       from 'express';
 import compression   from 'compression';
 import helmet        from 'helmet';
 import morgan        from 'morgan';
+import path          from 'path';
+import { fileURLToPath } from 'url';
 import corsMiddleware       from './middlewares/cors.middleware.js';
 import { errorHandler }    from './middlewares/error.middleware.js';
 import { notFoundHandler } from './middlewares/notFound.middleware.js';
 import apiRoutes           from './routes/index.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const motogpTeamLogosDir = path.resolve(__dirname, '../../frontend/public/motogp/teams');
+
 const app = express();
 
 // ── Security ──────────────────────────────────────────────
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  }),
+);
 app.use(compression());
 app.use(corsMiddleware);
 
@@ -20,6 +29,19 @@ app.use(morgan('dev'));
 // ── Body parsing ──────────────────────────────────────────
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Logos MotoGP (el dev server de Angular no siempre sirve /public)
+app.use(
+  '/motogp/teams',
+  express.static(motogpTeamLogosDir, {
+    maxAge: '7d',
+    fallthrough: true,
+    setHeaders(res) {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    },
+  }),
+);
 
 // ── Routes ────────────────────────────────────────────────
 app.get('/', (_req, res) => {
