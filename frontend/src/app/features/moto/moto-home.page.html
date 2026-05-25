@@ -7,7 +7,7 @@
     [categories]="categories"
     [activeCat]="topbarActiveCat()"
     [accent]="accent()"
-    [homeLink]="homeLink"
+    [homeLink]="homeLink()"
     (catChange)="setTopCat($event)">
   </app-topbar>
 
@@ -137,7 +137,7 @@
                 @for (c of d.constructors; track c.team) {
                   <a
                     class="hm-constructor-row"
-                    [routerLink]="c.constructorId ? ['/motogp', 'escuderias', c.constructorId] : null"
+                    [routerLink]="c.constructorId ? seriesLink('escuderias', c.constructorId) : null"
                     [style.cursor]="c.constructorId ? 'pointer' : 'default'"
                   >
                     <span class="hm-constructor-pos">{{ c.pos }}</span>
@@ -156,7 +156,7 @@
                   </a>
                 }
                 <div class="hm-constructors-foot">
-                  <a routerLink="/motogp/escuderias">Ver todos los equipos →</a>
+                  <a [routerLink]="seriesLink('escuderias')">Ver todos los equipos →</a>
                 </div>
               </div>
             </div>

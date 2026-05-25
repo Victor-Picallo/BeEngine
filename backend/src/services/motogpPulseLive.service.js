@@ -1,6 +1,8 @@
 import {
   pulseliveClient,
   MOTOGP_CATEGORY_UUID,
+  MOTO2_CATEGORY_UUID,
+  MOTO3_CATEGORY_UUID,
 } from '../external/motogp/pulselive.client.js';
 import motogpMock from '../data/motogp.data.js';
 import { getRidersIndex } from './motogp/motogpRiders.service.js';
@@ -17,6 +19,14 @@ import {
   resolvePulseSession,
   sessionHasResults,
 } from './motogp/motogpSessions.util.js';
+
+const CATEGORY_UUIDS = {
+  motogp: MOTOGP_CATEGORY_UUID,
+  moto2:  MOTO2_CATEGORY_UUID,
+  moto3:  MOTO3_CATEGORY_UUID,
+};
+
+const categoryUuidFor = (id) => CATEGORY_UUIDS[id] ?? MOTOGP_CATEGORY_UUID;
 
 export const getCurrentSeasonYear = async () => {
   const season = await getCurrentSeason();
@@ -177,14 +187,14 @@ const normalizeCalendar = (events) =>
     eventId: e.id,
   }));
 
-const enrichRaceResultsHeadshots = async (rows, seasonYear) => {
+const enrichRaceResultsHeadshots = async (rows, seasonYear, categoryId = 'motogp') => {
   try {
     const year =
       Number.parseInt(String(seasonYear ?? new Date().getFullYear()), 10) ||
       new Date().getFullYear();
     const [ridersIdx, teamsIdx] = await Promise.all([
       getRidersIndex(),
-      getTeamsIndex(year),
+      getTeamsIndex(year, categoryId),
     ]);
     return rows.map((r) => {
       const rider =
@@ -246,11 +256,11 @@ const normalizeClassification = (cls, session) => {
   }));
 };
 
-const fetchEventSessions = async (event) => {
+const fetchEventSessions = async (event, categoryId = 'motogp') => {
   if (!event?.id) return [];
   return asList(
     await pulseliveClient.get(
-      `/results/sessions?eventUuid=${event.id}&categoryUuid=${MOTOGP_CATEGORY_UUID}`,
+      `/results/sessions?eventUuid=${event.id}&categoryUuid=${categoryUuidFor(categoryId)}`,
     ),
   );
 };
@@ -314,15 +324,16 @@ const fallbackLastRace = () => ({
 
 // ── Public API ───────────────────────────────────────────────
 
-export const getDriverStandings = async () => {
+export const getDriverStandings = async (categoryId = 'motogp') => {
   try {
     const season = await getCurrentSeason();
     const raw = await pulseliveClient.get(
-      `/results/standings?seasonUuid=${season.id}&categoryUuid=${MOTOGP_CATEGORY_UUID}`,
+      `/results/standings?seasonUuid=${season.id}&categoryUuid=${categoryUuidFor(categoryId)}`,
     );
     const items = await enrichDriversWithTeamsAndPortraits(
       normalizeDriverStandings(raw),
       season.year,
+      categoryId,
     );
     return { source: 'external', items };
   } catch {
@@ -330,11 +341,11 @@ export const getDriverStandings = async () => {
   }
 };
 
-const enrichDriversWithTeamsAndPortraits = async (items, seasonYear) => {
+const enrichDriversWithTeamsAndPortraits = async (items, seasonYear, categoryId = 'motogp') => {
   try {
     const [ridersIdx, teamsIdx] = await Promise.all([
       getRidersIndex(),
-      getTeamsIndex(seasonYear),
+      getTeamsIndex(seasonYear, categoryId),
     ]);
     return items.map((row) => {
       const rider =
@@ -354,14 +365,14 @@ const enrichDriversWithTeamsAndPortraits = async (items, seasonYear) => {
   }
 };
 
-export const getConstructorStandings = async () => {
+export const getConstructorStandings = async (categoryId = 'motogp') => {
   try {
     const season = await getCurrentSeason();
     const [raw, teamsIdx] = await Promise.all([
       pulseliveClient.get(
-        `/results/standings?seasonUuid=${season.id}&categoryUuid=${MOTOGP_CATEGORY_UUID}`,
+        `/results/standings?seasonUuid=${season.id}&categoryUuid=${categoryUuidFor(categoryId)}`,
       ),
-      getTeamsIndex(season.year),
+      getTeamsIndex(season.year, categoryId),
     ]);
     let items = normalizeConstructorStandingsByTeam(raw?.classification ?? []);
     items = mergeTeamsGridIntoStandings(items, teamsIdx);
@@ -394,14 +405,14 @@ const aggregateStandingsByOfficialTeam = (classificationRows) => {
   return bySlug;
 };
 
-export const getOfficialTeamsGrid = async () => {
+export const getOfficialTeamsGrid = async (categoryId = 'motogp') => {
   try {
     const season = await getCurrentSeason();
     const [raw, teamsIdx] = await Promise.all([
       pulseliveClient.get(
-        `/results/standings?seasonUuid=${season.id}&categoryUuid=${MOTOGP_CATEGORY_UUID}`,
+        `/results/standings?seasonUuid=${season.id}&categoryUuid=${categoryUuidFor(categoryId)}`,
       ),
-      getTeamsIndex(season.year),
+      getTeamsIndex(season.year, categoryId),
     ]);
     const agg = aggregateStandingsByOfficialTeam(raw?.classification ?? []);
     const items = teamsIdx.list
@@ -459,7 +470,7 @@ export const getCalendar = async () => {
   }
 };
 
-export const getLastRace = async () => {
+export const getLastRace = async (categoryId = 'motogp') => {
   try {
     const season = await getCurrentSeason();
     const events = await getRaceEvents();
@@ -469,7 +480,7 @@ export const getLastRace = async () => {
 
     const sessions = asList(
       await pulseliveClient.get(
-        `/results/sessions?eventUuid=${last.id}&categoryUuid=${MOTOGP_CATEGORY_UUID}`,
+        `/results/sessions?eventUuid=${last.id}&categoryUuid=${categoryUuidFor(categoryId)}`,
       ),
     );
     const raceSession = pickMainRaceSession(sessions);
@@ -481,6 +492,7 @@ export const getLastRace = async () => {
     const results = await enrichRaceResultsHeadshots(
       normalizeClassification(cls, raceSession),
       season.year,
+      categoryId,
     );
     const round = finished.length;
     const circuit = await findCircuitByName(last.circuit?.name, season.year).catch(() => null);
@@ -500,7 +512,7 @@ export const getLastRace = async () => {
 };
 
 /** Sessions del próximo GP (para la tarjeta de carrera en home). */
-export const getNextRaceSessions = async () => {
+export const getNextRaceSessions = async (categoryId = 'motogp') => {
   try {
     const events = await getRaceEvents();
     const next = events.find((e) => e.status !== 'FINISHED');
@@ -508,7 +520,7 @@ export const getNextRaceSessions = async () => {
 
     const sessions = asList(
       await pulseliveClient.get(
-        `/results/sessions?eventUuid=${next.id}&categoryUuid=${MOTOGP_CATEGORY_UUID}`,
+        `/results/sessions?eventUuid=${next.id}&categoryUuid=${categoryUuidFor(categoryId)}`,
       ),
     );
 
@@ -560,7 +572,7 @@ export const getNextRaceSessions = async () => {
   }
 };
 
-export const getRoundSessions = async (round) => {
+export const getRoundSessions = async (round, categoryId = 'motogp') => {
   const cleanRound = Number.parseInt(round, 10);
   if (!Number.isInteger(cleanRound) || cleanRound < 1) {
     throw new Error('Invalid race round');
@@ -571,7 +583,7 @@ export const getRoundSessions = async (round) => {
   const event = events[cleanRound - 1];
   if (!event) throw new Error(`No MotoGP event for round ${cleanRound}`);
 
-  const sessions = await fetchEventSessions(event);
+  const sessions = await fetchEventSessions(event, categoryId);
   const circuit = await findCircuitByName(event.circuit?.name, season.year).catch(() => null);
 
   return {
@@ -581,13 +593,14 @@ export const getRoundSessions = async (round) => {
     circuitName: event.circuit?.name ?? '—',
     circuitSvgUrl: circuit?.svgUrl ?? null,
     sessions: (() => {
-      const seen = new Set();
-      const out = [];
+      // Use a Map keyed by sessionKey so that when a race is red-flagged and
+      // restarted (two RAC sessions), we show only the final/restart session.
+      // Map preserves insertion order of keys, and later .set() calls update
+      // the value while keeping the original key position in the list.
+      const byKey = new Map();
       for (const s of sessions) {
         const sessionKey = pulseSessionToKey(s);
-        if (seen.has(sessionKey)) continue;
-        seen.add(sessionKey);
-        out.push({
+        byKey.set(sessionKey, {
           sessionKey,
           label: pulseSessionLabel(s),
           date: s.date ?? null,
@@ -595,12 +608,12 @@ export const getRoundSessions = async (round) => {
           hasResults: sessionHasResults(s),
         });
       }
-      return out;
+      return [...byKey.values()];
     })(),
   };
 };
 
-export const getRaceResultsByRound = async (round, sessionKey = 'race') => {
+export const getRaceResultsByRound = async (round, sessionKey = 'race', categoryId = 'motogp') => {
   const cleanRound = Number.parseInt(round, 10);
   if (!Number.isInteger(cleanRound) || cleanRound < 1) {
     throw new Error('Invalid race round');
@@ -612,7 +625,7 @@ export const getRaceResultsByRound = async (round, sessionKey = 'race') => {
     const event = events[cleanRound - 1];
     if (!event) throw new Error(`No MotoGP event for round ${cleanRound}`);
 
-    const sessions = await fetchEventSessions(event);
+    const sessions = await fetchEventSessions(event, categoryId);
     const session = resolvePulseSession(sessions, sessionKey) ?? pickMainRaceSession(sessions);
     if (!session?.id) throw new Error('No session for round');
 
@@ -642,6 +655,7 @@ export const getRaceResultsByRound = async (round, sessionKey = 'race') => {
     const enriched = await enrichRaceResultsHeadshots(
       normalizeClassification(cls, session),
       season.year,
+      categoryId,
     );
 
     return {
@@ -669,8 +683,8 @@ export const getRaceResultsByRound = async (round, sessionKey = 'race') => {
 };
 
 /** OpenF1-shaped sessions para la home (próximo GP). */
-export const getWeekendSessions = async () => {
-  const payload = await getNextRaceSessions();
+export const getWeekendSessions = async (categoryId = 'motogp') => {
+  const payload = await getNextRaceSessions(categoryId);
   const ev = payload.event;
   if (!ev) return { source: payload.source, items: [] };
 

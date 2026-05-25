@@ -10,9 +10,10 @@ import { filter, map, startWith } from 'rxjs/operators';
 import { TopbarComponent } from '../topbar/topbar.component';
 import { HEADER_CATEGORIES } from '../../../data/sports.data';
 import { SeriesContextService } from '../../../core/series/series-context.service';
+import { MotoContextService } from '../../../core/moto/moto-context.service';
 import { homePathForSeries, newsPathForSeries } from '../../../core/series/series.config';
 import { isFormulaAppRoute } from '../../../core/series/formula-route';
-import { isMotoAppRoute, isMotoCategory, MOTO_HOME_PATH } from '../../../core/moto/moto-categories';
+import { isMotoAppRoute, isMotoCategory } from '../../../core/moto/moto-categories';
 
 @Component({
   selector: 'app-header',
@@ -32,6 +33,7 @@ import { isMotoAppRoute, isMotoCategory, MOTO_HOME_PATH } from '../../../core/mo
 export class AppHeaderComponent {
   private readonly router = inject(Router);
   readonly seriesCtx = inject(SeriesContextService);
+  private readonly motoCtx = inject(MotoContextService);
 
   private readonly urlPath = toSignal(
     this.router.events.pipe(
@@ -49,7 +51,7 @@ export class AppHeaderComponent {
   readonly displayCategories = computed(() => HEADER_CATEGORIES);
 
   readonly homeLink = computed(() =>
-    this.inMotoApp() ? MOTO_HOME_PATH : this.seriesCtx.homePath(),
+    this.inMotoApp() ? this.motoCtx.homePath() : this.seriesCtx.homePath(),
   );
 
   readonly activeCat = computed(() => {
@@ -64,14 +66,13 @@ export class AppHeaderComponent {
     return 'f1';
   });
 
-  readonly accent = computed(() => {
-    const cat = HEADER_CATEGORIES.find((c) => c.id === this.activeCat());
-    return cat?.accent ?? '#FFD100';
-  });
+  readonly accent = computed(() =>
+    this.inMotoApp() ? this.motoCtx.config().accent : this.seriesCtx.config().accent,
+  );
 
   onCatChange(id: string): void {
     if (id === 'motogp') {
-      void this.router.navigateByUrl(MOTO_HOME_PATH);
+      void this.router.navigateByUrl('/motogp');
       return;
     }
     if (id === 'f1') {

@@ -2,7 +2,7 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { SUB_CATEGORIES } from '../../data/sports.data';
-import { isMotoCategory, MOTO_HOME_PATH, type MotoCategoryId } from './moto-categories';
+import { isMotoCategory, type MotoCategoryId } from './moto-categories';
 
 export interface MotoConfig {
   id: MotoCategoryId;
@@ -16,7 +16,7 @@ export class MotoContextService {
   private readonly router = inject(Router);
 
   readonly id = signal<MotoCategoryId>('motogp');
-  readonly homePath = MOTO_HOME_PATH;
+  readonly homePath = computed(() => `/${this.id()}`);
 
   readonly config = computed<MotoConfig>(() => {
     const cat = SUB_CATEGORIES['motogp'].find((c) => c.id === this.id()) ?? SUB_CATEGORIES['motogp'][0];
@@ -43,12 +43,12 @@ export class MotoContextService {
   }
 
   path(...segments: string[]): (string | number)[] {
-    const root = MOTO_HOME_PATH;
+    const root = `/${this.id()}`;
     return segments.length ? [root, ...segments] : [root];
   }
 
   urlPath(...segments: string[]): string {
-    const parts = ['motogp', ...segments].filter(Boolean);
+    const parts = [this.id(), ...segments].filter(Boolean);
     return `/${parts.join('/')}`;
   }
 
@@ -65,8 +65,9 @@ export class MotoContextService {
       this.id.set(cat);
       return;
     }
-    if (path === MOTO_HOME_PATH || path.startsWith(`${MOTO_HOME_PATH}/`)) {
-      this.id.set('motogp');
+    const firstSeg = path.split('/')[1];
+    if (firstSeg && isMotoCategory(firstSeg)) {
+      this.id.set(firstSeg as MotoCategoryId);
     }
   }
 }

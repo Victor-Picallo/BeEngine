@@ -1,4 +1,3 @@
-import { MOTO_HOME_PATH } from './moto-categories';
 import type { MotoCategoryId } from './moto-categories';
 
 export const MOTO_SECTION_LABELS = [
@@ -12,22 +11,21 @@ export const MOTO_SECTION_LABELS = [
 
 export type MotoSectionLabel = (typeof MOTO_SECTION_LABELS)[number];
 
-const MOTO_PREFIX = MOTO_HOME_PATH;
-
 export function motoSectionPath(cat: MotoCategoryId, label: string): string | null {
+  const prefix = `/${cat}`;
   switch (label as MotoSectionLabel) {
     case 'Inicio':
-      return MOTO_PREFIX;
+      return prefix;
     case 'Noticias':
-      return `${MOTO_PREFIX}/noticias${cat !== 'motogp' ? `?cat=${cat}` : ''}`;
+      return `${prefix}/noticias`;
     case 'Calendario':
-      return `${MOTO_PREFIX}/calendario`;
+      return `${prefix}/calendario`;
     case 'Pilotos':
-      return `${MOTO_PREFIX}/pilotos`;
+      return `${prefix}/pilotos`;
     case 'Equipos':
-      return `${MOTO_PREFIX}/escuderias`;
+      return `${prefix}/escuderias`;
     case 'Clasificación':
-      return `${MOTO_PREFIX}/clasificacion`;
+      return `${prefix}/clasificacion`;
     default:
       return null;
   }

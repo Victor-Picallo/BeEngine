@@ -37,7 +37,7 @@ export class SidebarComponent {
   pilotosLink(fav: Favorite): (string | number)[] | null {
     if (!fav.driverId) return null;
     if (this.motoMode()) {
-      return ['/motogp', 'pilotos', fav.driverId];
+      return [`/${this.motoSectionCat()}`, 'pilotos', fav.driverId];
     }
     return this.seriesCtx.path('pilotos', fav.driverId);
   }

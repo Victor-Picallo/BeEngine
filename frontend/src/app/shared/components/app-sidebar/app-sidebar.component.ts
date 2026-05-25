@@ -10,7 +10,7 @@ import {
   isMotoAppRoute,
   isMotoCategory,
   isMotoNewsRoute,
-  MOTO_HOME_PATH,
+  motoCategoryFromUrl,
   MOTO_SIDEBAR_CATEGORIES,
   type MotoCategoryId,
 } from '../../../core/moto/moto-categories';
@@ -99,8 +99,7 @@ export class AppSidebarComponent {
   readonly motoSectionCat = computed((): MotoCategoryId => {
     const fromInput = this.newsCat();
     if (fromInput && isMotoCategory(fromInput)) return fromInput;
-    const cat = this.routeNewsCat();
-    return cat && isMotoCategory(cat) ? cat : 'motogp';
+    return motoCategoryFromUrl(`${this.urlPath()}?cat=${this.routeNewsCat() ?? ''}`);
   });
 
   readonly activeCat = computed(() => {
@@ -117,13 +116,7 @@ export class AppSidebarComponent {
 
   onCategoryChange(id: string): void {
     if (isMotoCategory(id)) {
-      if (id === 'motogp') {
-        void this.router.navigateByUrl(MOTO_HOME_PATH);
-        return;
-      }
-      void this.router.navigate(['/motogp/noticias'], {
-        queryParams: { cat: id, page: null },
-      });
+      void this.router.navigateByUrl(`/${id}`);
       return;
     }
 

@@ -11,10 +11,12 @@ export function isMotoCategory(id: string): id is MotoCategoryId {
   return (MOTO_CATEGORY_IDS as readonly string[]).includes(id);
 }
 
-/** Rutas de la sección MotoGP (`/motogp`, noticias bajo el mismo prefijo). */
+/** Rutas de la sección MotoGP/Moto2/Moto3. */
 export function isMotoAppRoute(url: string): boolean {
   const path = url.split('?')[0];
-  return path === MOTO_HOME_PATH || path.startsWith(`${MOTO_HOME_PATH}/`);
+  return MOTO_CATEGORY_IDS.some(
+    (id) => path === `/${id}` || path.startsWith(`/${id}/`),
+  );
 }
 
 /** Noticias moto en `/motogp/noticias` o legado `/noticias?cat=moto*`. */
@@ -28,5 +30,7 @@ export function motoCategoryFromUrl(url: string): MotoCategoryId {
   const [path, query = ''] = url.split('?');
   const cat = new URLSearchParams(query).get('cat');
   if (cat && isMotoCategory(cat)) return cat;
+  const firstSeg = path.split('/')[1];
+  if (firstSeg && isMotoCategory(firstSeg)) return firstSeg as MotoCategoryId;
   return 'motogp';
 }

@@ -17,9 +17,7 @@ import { AppHeaderComponent } from '../../shared/components/app-header/app-heade
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
 import { SeriesAccentDirective } from '../../core/series/series-accent.directive';
 import { countryCodesFromNationality, flagCdnUrl, teamColor } from '../drivers/drivers-shared';
-import { MOTO_HOME_PATH } from '../../core/moto/moto-categories';
-
-const MOTO_ACCENT = '#0052CC';
+import { MotoContextService } from '../../core/moto/moto-context.service';
 
 export interface MotogpTeamCard {
   pos: number;
@@ -74,9 +72,10 @@ function buildCards(rows: MotogpTeamStanding[]): MotogpTeamCard[] {
 export class MotogpTeamsPageComponent {
   private readonly moto = inject(MotoLiveService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly motoCtx = inject(MotoContextService);
 
-  readonly homePath = MOTO_HOME_PATH;
-  readonly accent = MOTO_ACCENT;
+  readonly homePath = computed(() => this.motoCtx.homePath());
+  readonly accent = computed(() => this.motoCtx.config().accent);
   readonly flagImgUrl = flagCdnUrl;
   loading = signal(true);
   error = signal<string | null>(null);
@@ -119,7 +118,7 @@ export class MotogpTeamsPageComponent {
   }
 
   teamLink(card: MotogpTeamCard): string[] {
-    return ['/motogp', 'escuderias', card.constructorId];
+    return [`/${this.motoCtx.id()}`, 'escuderias', card.constructorId];
   }
 
   teamLogoClass(card: MotogpTeamCard): string {

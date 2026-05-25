@@ -292,10 +292,10 @@
         <footer class="cl-foot">
           <span>BeEngine · Clasificación MotoGP 2026</span>
           <nav class="cl-foot-nav">
-            <a [routerLink]="homePath">← Inicio</a>
-            <a routerLink="/motogp/calendario">Calendario</a>
-            <a routerLink="/motogp/pilotos">Pilotos</a>
-            <a routerLink="/motogp/escuderias">Equipos</a>
+            <a [routerLink]="homePath()">← Inicio</a>
+            <a [routerLink]="homePath() + '/calendario'">Calendario</a>
+            <a [routerLink]="homePath() + '/pilotos'">Pilotos</a>
+            <a [routerLink]="homePath() + '/escuderias'">Equipos</a>
           </nav>
         </footer>
       }

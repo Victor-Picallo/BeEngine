@@ -39,7 +39,7 @@ import { StandingsTableComponent } from '../../shared/components/standings-table
 import { NewsListComponent } from '../../shared/components/news-list/news-list.component';
 import { RightRailComponent } from '../../shared/components/right-rail/right-rail.component';
 import { NewsImageComponent } from '../news/news-image/news-image.component';
-import { MOTO_HOME_PATH, MOTO_SIDEBAR_CATEGORIES, isMotoCategory } from '../../core/moto/moto-categories';
+import { MOTO_SIDEBAR_CATEGORIES, isMotoCategory } from '../../core/moto/moto-categories';
 import { MotoContextService } from '../../core/moto/moto-context.service';
 import { MOTO_SECTION_LABELS } from '../../core/moto/moto-sidebar';
 import { accentForeground, accentPodiumHighlight } from '../../core/series/series-accent.utils';
@@ -82,7 +82,7 @@ export class MotoHomePageComponent implements OnInit, OnDestroy {
   readonly categories = HEADER_CATEGORIES;
   readonly sidebarSections = [...MOTO_SECTION_LABELS];
   readonly sidebarCategories = MOTO_SIDEBAR_CATEGORIES;
-  readonly homeLink = MOTO_HOME_PATH;
+  readonly homeLink = computed(() => this.motoCtx.homePath());
 
   loading = signal(true);
   refreshing = signal(false);
@@ -164,11 +164,7 @@ export class MotoHomePageComponent implements OnInit, OnDestroy {
       return;
     }
     if (isMotoCategory(id)) {
-      if (id === 'motogp') {
-        void this.router.navigateByUrl(MOTO_HOME_PATH);
-        return;
-      }
-      void this.router.navigate(['/motogp/noticias'], { queryParams: { cat: id, page: null } });
+      void this.router.navigateByUrl(`/${id}`);
     }
   }
 
@@ -177,7 +173,12 @@ export class MotoHomePageComponent implements OnInit, OnDestroy {
   }
 
   newsLink(articleId?: string): (string | number)[] {
-    return articleId ? ['/motogp/noticias', articleId] : ['/motogp/noticias'];
+    const base = `/${this.motoCtx.id()}/noticias`;
+    return articleId ? [base, articleId] : [base];
+  }
+
+  seriesLink(...segments: string[]): string[] {
+    return [`/${this.motoCtx.id()}`, ...segments];
   }
 
   private loadAll(): void {

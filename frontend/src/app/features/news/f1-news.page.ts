@@ -18,11 +18,11 @@ import { isFormulaAppRoute } from '../../core/series/formula-route';
 import {
   isMotoAppRoute,
   isMotoCategory,
-  MOTO_HOME_PATH,
   motoCategoryFromUrl,
 } from '../../core/moto/moto-categories';
 import { newsPathForSeries, seriesFromUrl } from '../../core/series/series.config';
 import { SeriesContextService } from '../../core/series/series-context.service';
+import { MotoContextService } from '../../core/moto/moto-context.service';
 import { NewsService } from './news.service';
 import { NewsImageComponent } from './news-image/news-image.component';
 import { NEWS_PAGE_CATEGORIES, NEWS_PAGE_SIZE, type NewsArticle } from './news.types';
@@ -43,6 +43,7 @@ export class F1NewsPageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   readonly seriesCtx = inject(SeriesContextService);
+  private readonly motoCtx = inject(MotoContextService);
 
   readonly categories = NEWS_PAGE_CATEGORIES;
   readonly pageSize = NEWS_PAGE_SIZE;
@@ -73,7 +74,7 @@ export class F1NewsPageComponent implements OnInit {
   readonly motoSidebar = computed(() => this.inMotoApp());
 
   readonly homePath = computed(() =>
-    this.inMotoApp() ? MOTO_HOME_PATH : this.seriesCtx.homePath(),
+    this.inMotoApp() ? this.motoCtx.homePath() : this.seriesCtx.homePath(),
   );
 
   accent = computed(

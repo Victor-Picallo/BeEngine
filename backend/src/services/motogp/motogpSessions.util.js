@@ -31,7 +31,10 @@ export const pulseSessionToKey = (s) => {
 
 export const resolvePulseSession = (sessions, sessionKey) => {
   const key = String(sessionKey || 'race').toLowerCase();
-  return sessions.find((s) => pulseSessionToKey(s) === key) ?? null;
+  // Use findLast so that when a race is red-flagged and restarted (two RAC sessions),
+  // we always return the final/restart session, not the interrupted one.
+  const matches = sessions.filter((s) => pulseSessionToKey(s) === key);
+  return matches.length ? matches[matches.length - 1] : null;
 };
 
 export const sessionHasResults = (s) =>

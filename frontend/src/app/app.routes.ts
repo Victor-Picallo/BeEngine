@@ -45,8 +45,10 @@ export const routes: Routes = [
   { path: 'f2', ...FORMULA_SERIES_PARENT_ROUTE },
   { path: 'f3', ...FORMULA_SERIES_PARENT_ROUTE },
 
-  // MotoGP — paridad con F1 bajo `/motogp`
+  // MotoGP / Moto2 / Moto3 — cada categoría bajo su prefijo
   { path: 'motogp', ...MOTO_SERIES_PARENT_ROUTE },
+  { path: 'moto2',  ...MOTO_SERIES_PARENT_ROUTE },
+  { path: 'moto3',  ...MOTO_SERIES_PARENT_ROUTE },
 
   {
     path: 'noticias',

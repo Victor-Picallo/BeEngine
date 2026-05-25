@@ -250,13 +250,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     () => this.data().lastRace.podium[0]?.driver ?? '—',
   );
 
-  currentFavorites = computed((): Favorite[] =>
-    this.data().standings.slice(0, 2).map(d => ({
-      name: d.driver,
-      sub: d.team,
-      driverId: d.driverId,
-    })),
-  );
+  readonly currentFavorites: Favorite[] = [];
 
   maxConstructorPoints = computed(() => {
     const c = this.data().constructors;

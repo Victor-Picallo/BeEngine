@@ -13,6 +13,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, EMPTY, finalize, map, of, switchMap, tap } from 'rxjs';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
 import { MotoLiveService } from '../moto-live/moto-live.service';
+import { MotoContextService } from '../../core/moto/moto-context.service';
 import type {
   MotogpTeamProfile,
   MotogpTeamProfileCareerRow,
@@ -29,8 +30,6 @@ import {
   teamColor,
 } from '../drivers/drivers-shared';
 
-const MOTO_ACCENT = '#0052CC';
-const TEAMS_PATH = '/motogp/escuderias';
 
 @Component({
   selector: 'app-motogp-team-profile-page',
@@ -56,9 +55,10 @@ export class MotogpTeamProfilePageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly location = inject(Location);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly motoCtx = inject(MotoContextService);
 
-  readonly accent = MOTO_ACCENT;
-  readonly teamsPath = TEAMS_PATH;
+  readonly accent = computed(() => this.motoCtx.config().accent);
+  readonly teamsPath = computed(() => `${this.motoCtx.homePath()}/escuderias`);
   readonly flagImgUrl = flagCdnUrl;
 
   loading = signal(true);

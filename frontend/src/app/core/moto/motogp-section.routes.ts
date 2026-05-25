@@ -23,13 +23,13 @@ export const MOTOGP_OWN_SECTION_ROUTES: Routes = [
     path: 'calendario',
     pathMatch: 'full',
     loadComponent: () =>
-      import('../../features/calendar/f1-calendar.page').then((m) => m.F1CalendarPageComponent),
+      import('../../features/moto/moto-calendar.page').then((m) => m.MotoCalendarPageComponent),
   },
   {
     path: 'pilotos',
     pathMatch: 'full',
     loadComponent: () =>
-      import('../../features/drivers/f1-drivers.page').then((m) => m.F1DriversPageComponent),
+      import('../../features/moto/moto-pilotos.page').then((m) => m.MotoPilotosPageComponent),
   },
   {
     path: 'pilotos/:driverId',

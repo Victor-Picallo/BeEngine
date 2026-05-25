@@ -5,6 +5,10 @@ export const MOTOGP_PULSELIVE_BASE_URL =
 
 /** MotoGP™ category UUID (2026+). */
 export const MOTOGP_CATEGORY_UUID = 'e8c110ad-64aa-4e8e-8a86-f2f152f6a942';
+/** Moto2 category UUID (2026+). */
+export const MOTO2_CATEGORY_UUID = '549640b8-fd9c-4245-acfd-60e4bc38b25c';
+/** Moto3 category UUID (2026+). */
+export const MOTO3_CATEGORY_UUID = '954f7e65-2ef2-4423-b949-4961cc603e45';
 
 const FRESH_TTL_MS = 60_000;
 const STALE_TTL_MS = 30 * 60_000;

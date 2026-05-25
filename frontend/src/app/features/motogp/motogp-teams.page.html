@@ -131,9 +131,9 @@
         <footer class="fc-footer">
           <span>BeEngine · Equipos MotoGP 2026</span>
           <div class="fc-footer-links">
-            <a [routerLink]="homePath">← Inicio</a>
-            <a routerLink="/motogp/pilotos">Pilotos →</a>
-            <a routerLink="/motogp/calendario">Calendario →</a>
+            <a [routerLink]="homePath()">← Inicio</a>
+            <a [routerLink]="homePath() + '/pilotos'">Pilotos →</a>
+            <a [routerLink]="homePath() + '/calendario'">Calendario →</a>
           </div>
         </footer>
       }

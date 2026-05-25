@@ -8,6 +8,8 @@ import f1Routes         from './f1.routes.js';
 import f2Routes         from './f2.routes.js';
 import f3Routes         from './f3.routes.js';
 import motogpRoutes     from './motogp.routes.js';
+import moto2Routes      from './moto2.routes.js';
+import moto3Routes      from './moto3.routes.js';
 
 const router = Router();
 
@@ -22,5 +24,7 @@ router.use('/jolpica',    f1Routes);
 router.use('/f2',         f2Routes);
 router.use('/f3',         f3Routes);
 router.use('/motogp',     motogpRoutes);
+router.use('/moto2',      moto2Routes);
+router.use('/moto3',      moto3Routes);
 
 export default router;

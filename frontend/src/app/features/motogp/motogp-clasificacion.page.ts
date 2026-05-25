@@ -32,9 +32,7 @@ import {
   buildMotogpTeamRows,
   MotogpTeamClRow,
 } from './motogp-clasificacion-build';
-import { MOTO_HOME_PATH } from '../../core/moto/moto-categories';
-
-const MOTO_ACCENT = '#0052CC';
+import { MotoContextService } from '../../core/moto/moto-context.service';
 
 @Component({
   selector: 'app-motogp-clasificacion-page',
@@ -47,9 +45,10 @@ const MOTO_ACCENT = '#0052CC';
 export class MotogpClasificacionPageComponent {
   private readonly moto = inject(MotoLiveService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly motoCtx = inject(MotoContextService);
 
-  readonly homePath = MOTO_HOME_PATH;
-  readonly accent = MOTO_ACCENT;
+  readonly homePath = computed(() => this.motoCtx.homePath());
+  readonly accent = computed(() => this.motoCtx.config().accent);
 
   loading = signal(true);
   error = signal<string | null>(null);

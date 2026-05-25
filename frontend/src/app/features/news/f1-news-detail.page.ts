@@ -19,7 +19,7 @@ import { SeriesContextService } from '../../core/series/series-context.service';
 import type { SeriesId } from '../../core/series/series.types';
 import { NewsService } from './news.service';
 import { NewsImageComponent } from './news-image/news-image.component';
-import { isMotoCategory, MOTO_HOME_PATH } from '../../core/moto/moto-categories';
+import { isMotoCategory } from '../../core/moto/moto-categories';
 import { NEWS_PAGE_CATEGORIES, type NewsArticle } from './news.types';
 
 const FORMULA_NEWS_IDS = new Set<string>(['f1', 'f2', 'f3']);
@@ -46,9 +46,13 @@ export class F1NewsDetailPageComponent implements OnInit {
     return art?.cat != null && isMotoCategory(art.cat);
   });
 
-  readonly homePath = computed(() =>
-    this.inMotoApp() ? MOTO_HOME_PATH : this.seriesCtx.homePath(),
-  );
+  readonly homePath = computed(() => {
+    if (this.inMotoApp()) {
+      const cat = this.article()?.cat;
+      return (cat && isMotoCategory(cat)) ? `/${cat}` : '/motogp';
+    }
+    return this.seriesCtx.homePath();
+  });
 
   newsListFallback = computed(() => {
     const art = this.article();
