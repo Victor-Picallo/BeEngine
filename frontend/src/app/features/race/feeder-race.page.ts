@@ -76,7 +76,8 @@ export class FeederRacePageComponent implements OnInit {
   pageLoading = signal(true);
   /** Solo al cambiar pestaña de sesión — no vacía el layout. */
   sessionLoading = signal(false);
-  private loadedRaceSlug = signal<string | null>(null);
+  /** Serie + slug para no reutilizar calendario/resultados entre F2↔F3 con el mismo slug. */
+  private loadedRaceKey = signal<string | null>(null);
   error = signal<string | null>(null);
   calendar = signal<JolpikaCalendarRace[]>([]);
   raceResult = signal<JolpikaRaceResult | null>(null);
@@ -280,7 +281,7 @@ export class FeederRacePageComponent implements OnInit {
 
   constructor() {
     bindSeriesLoad((seriesId) => {
-      this.loadedRaceSlug.set(null);
+      this.loadedRaceKey.set(null);
       return this.loadRace(seriesId);
     }, this.destroyRef);
 
@@ -290,7 +291,8 @@ export class FeederRacePageComponent implements OnInit {
         switchMap((params) => {
           const seriesId = this.seriesCtx.id();
           const slug = params.get('race') ?? '';
-          if (this.loadedRaceSlug() === slug && this.calendar().length) {
+          const key = this.raceLoadKey(seriesId, slug);
+          if (this.loadedRaceKey() === key && this.calendar().length) {
             return this.reloadSessionResults(seriesId);
           }
           return this.loadRace(seriesId);
@@ -375,6 +377,10 @@ export class FeederRacePageComponent implements OnInit {
     };
   }
 
+  private raceLoadKey(seriesId: SeriesId, slug: string): string {
+    return `${seriesId}:${slug}`;
+  }
+
   private reloadSessionResults(seriesId: SeriesId) {
     const slug = this.route.snapshot.paramMap.get('race') ?? '';
     const rawSession = this.route.snapshot.paramMap.get('session') ?? 'race';
@@ -406,7 +412,8 @@ export class FeederRacePageComponent implements OnInit {
       seriesId === 'motogp' && isMotogpSessionKey(rawSession)
         ? rawSession
         : 'race';
-    const isNewRace = this.loadedRaceSlug() !== slug;
+    const loadKey = this.raceLoadKey(seriesId, slug);
+    const isNewRace = this.loadedRaceKey() !== loadKey;
 
     this.pageLoading.set(isNewRace || !this.calendar().length);
     this.sessionLoading.set(false);
@@ -430,7 +437,7 @@ export class FeederRacePageComponent implements OnInit {
         if (!race) {
           this.error.set('No hemos encontrado esta ronda en el calendario.');
           this.pageLoading.set(false);
-          this.loadedRaceSlug.set(null);
+          this.loadedRaceKey.set(null);
           return of(null);
         }
 
@@ -462,7 +469,7 @@ export class FeederRacePageComponent implements OnInit {
                 Number.isFinite(raceTime.getTime()) && raceTime < new Date();
               if (!past) {
                 this.pageLoading.set(false);
-                this.loadedRaceSlug.set(slug);
+                this.loadedRaceKey.set(loadKey);
                 return of(null);
               }
             }
@@ -476,14 +483,14 @@ export class FeederRacePageComponent implements OnInit {
       tap((result) => {
         if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return;
         if (result) this.raceResult.set(result);
-        this.loadedRaceSlug.set(slug);
+        this.loadedRaceKey.set(loadKey);
         this.pageLoading.set(false);
       }),
       catchError(() => {
         if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return of(null);
         this.error.set('No se pudo cargar la información de la carrera.');
         this.pageLoading.set(false);
-        this.loadedRaceSlug.set(null);
+        this.loadedRaceKey.set(null);
         return of(null);
       }),
       map(() => undefined),

@@ -1,3 +1,23 @@
+/* Shell F2/F3 (mismo layout que calendario; fc-body no puede depender del CSS encapsulado del calendario). */
+.fc-root.fr-root {
+  min-height: 100vh;
+  background: #f2f1ee;
+  color: #111;
+  font-family: 'Barlow', system-ui, sans-serif;
+  font-size: 14px;
+}
+
+.fc-root.fr-root .fc-body {
+  display: flex;
+  align-items: stretch;
+}
+
+.fc-root.fr-root .fc-shell {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 20px;
+}
+
 .fr-root {
   --fr-accent: #0090ff;
 }
@@ -135,15 +155,97 @@
   min-height: 200px;
 }
 
-.fc-circuit-svg--img {
+/* Mapa del circuito — trazo con acento de categoría (antes solo en f1-calendar.page.css). */
+.fr-hero .fc-grid-pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  background-image:
+    linear-gradient(to right, var(--fr-accent) 0.5px, transparent 0.5px),
+    linear-gradient(to bottom, var(--fr-accent) 0.5px, transparent 0.5px);
+  background-size: 18px 18px;
+  pointer-events: none;
+}
+
+.fr-hero .fr-circuit-svg-wrap,
+.fr-hero .fc-circuit-svg-wrap {
+  position: absolute;
+  inset: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fr-hero .fc-circuit-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.fr-hero .fc-circuit-svg--img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--fr-accent) 45%, transparent));
 }
 
-.fr-circuit-svg-wrap {
+.fr-hero .fc-circuit-glow {
+  fill: none;
+  stroke: var(--fr-accent);
+  stroke-width: 9;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.14;
+}
+
+.fr-hero .fc-circuit-asphalt {
+  fill: none;
+  stroke: #0a0a0a;
+  stroke-width: 6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.fr-hero .fc-circuit-line {
+  fill: none;
+  stroke: var(--fr-accent);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.95;
+}
+
+.fr-hero .fc-circuit-dash {
+  fill: none;
+  stroke: color-mix(in srgb, var(--fr-accent) 25%, transparent);
+  stroke-width: 0.7;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 5 8;
+}
+
+.fr-hero .fc-start-outer {
+  fill: var(--fr-accent);
+  opacity: 0.95;
+}
+
+.fr-hero .fc-start-inner {
+  fill: #fff;
+  opacity: 0.85;
+}
+
+.fr-hero .fc-round {
   position: absolute;
-  inset: 12% 8%;
+  top: 10px;
+  left: 10px;
+  background: var(--fr-accent);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #000;
+  z-index: 1;
 }
 
 .fr-hero-body {

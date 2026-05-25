@@ -12,7 +12,7 @@ import { HEADER_CATEGORIES } from '../../../data/sports.data';
 import { SeriesContextService } from '../../../core/series/series-context.service';
 import { MotoContextService } from '../../../core/moto/moto-context.service';
 import { homePathForSeries, newsPathForSeries } from '../../../core/series/series.config';
-import { isFormulaAppRoute } from '../../../core/series/formula-route';
+import { formulaSeriesFromUrl, isFormulaAppRoute } from '../../../core/series/formula-route';
 import { isMotoAppRoute, isMotoCategory } from '../../../core/moto/moto-categories';
 
 @Component({
@@ -56,7 +56,7 @@ export class AppHeaderComponent {
 
   readonly activeCat = computed(() => {
     if (this.inMotoApp()) return 'motogp';
-    if (this.inFormulaApp()) return 'f1';
+    if (this.inFormulaApp()) return formulaSeriesFromUrl(this.urlPath());
     const path = this.urlPath();
     if (path.startsWith('/noticias')) {
       const q = new URLSearchParams(this.router.url.split('?')[1] ?? '');

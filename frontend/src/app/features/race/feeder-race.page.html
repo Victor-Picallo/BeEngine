@@ -347,7 +347,7 @@
     }
   </div>
 } @else {
-  <div class="fc-root fr-root">
+  <div class="fc-root fr-root" [style.--fr-accent]="accent()">
     <app-header></app-header>
 
     <div class="fc-body">
@@ -391,6 +391,7 @@
                     <path class="fc-circuit-glow" [attr.d]="circuitSvg().circuitPath"></path>
                     <path class="fc-circuit-asphalt" [attr.d]="circuitSvg().circuitPath"></path>
                     <path class="fc-circuit-line" [attr.d]="circuitSvg().circuitPath"></path>
+                    <path class="fc-circuit-dash" [attr.d]="circuitSvg().circuitPath"></path>
                     <circle
                       class="fc-start-outer"
                       [attr.cx]="circuitSvg().startX"
