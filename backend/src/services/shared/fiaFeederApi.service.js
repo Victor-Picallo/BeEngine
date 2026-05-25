@@ -51,12 +51,12 @@ export const createFiaFeederApi = (config) => {
     return { items };
   };
 
-  const getRaceResultsByRound = async (round) => {
+  const getRaceResultsByRound = async (round, options = {}) => {
     const { items } = await getCalendar();
     const race = items.find((r) => r.round === round);
     if (!race?.fiaRaceId) throw new Error(`No FIA race id for round ${round}`);
     const pageData = await fetchResultsPage(race.fiaRaceId);
-    return normalizeFeatureRaceResults(pageData, resolveDriverId, resolveConstructorId);
+    return normalizeFeatureRaceResults(pageData, resolveDriverId, resolveConstructorId, options);
   };
 
   const getLastRace = async () => {

@@ -9,7 +9,18 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { catchError, combineLatest, forkJoin, interval, map, of, skip, switchMap, tap } from 'rxjs';
+import {
+  catchError,
+  combineLatest,
+  filter,
+  forkJoin,
+  interval,
+  map,
+  of,
+  skip,
+  switchMap,
+  tap,
+} from 'rxjs';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { bindSeriesLoad, isSeriesStillActive } from '../../core/series/bind-series-load';
 import { isFormulaFeederSeries } from '../../core/series/series.config';
@@ -47,6 +58,24 @@ const driverShort = (name: string): string => {
   return (parts[0][0] + parts[parts.length - 1]).toUpperCase();
 };
 
+const RACE_LIVE_BUFFER_MS = 15 * 60 * 1000;
+const DEFAULT_RACE_MS = 90 * 60 * 1000;
+
+/** Ventana en la que la feature race F2 se considera “en directo”. */
+export const isRaceInLiveWindow = (race: JolpikaCalendarRace, now: Date): boolean => {
+  const startRaw = race.raceSessionStart ?? (race.date && race.time ? `${race.date}T${race.time}` : null);
+  if (!startRaw) return false;
+  const start = new Date(startRaw).getTime();
+  if (!Number.isFinite(start)) return false;
+  const endRaw = race.raceSessionEnd;
+  const end = endRaw
+    ? new Date(endRaw).getTime()
+    : start + DEFAULT_RACE_MS;
+  if (!Number.isFinite(end)) return false;
+  const t = now.getTime();
+  return t >= start - RACE_LIVE_BUFFER_MS && t <= end + RACE_LIVE_BUFFER_MS;
+};
+
 @Component({
   selector: 'app-feeder-race-page',
   standalone: true,
@@ -71,6 +100,14 @@ export class FeederRacePageComponent implements OnInit {
   readonly seriesCtx = inject(SeriesContextService);
   readonly accent = computed(() => this.seriesCtx.config().accent);
   readonly isMotogp = computed(() => this.seriesCtx.id() === 'motogp');
+  readonly isF2 = computed(() => this.seriesCtx.id() === 'f2');
+
+  /** F2: UI en directo (solo carrera, sin FP/sprint). */
+  readonly useF2LiveLayout = computed(
+    () =>
+      this.isF2() &&
+      (this.isRaceLiveWindow() || this.raceResult()?.live === true || this.raceResult()?.sessionPending === true),
+  );
 
   returnUrl = signal<string | null>(null);
   /** Carga completa (cambio de GP o primera entrada). */
@@ -120,6 +157,7 @@ export class FeederRacePageComponent implements OnInit {
   });
 
   sessionDisplayLabel = computed(() => {
+    if (this.useF2LiveLayout()) return 'CARRERA';
     const key = this.sessionKey();
     if (this.isMotogp() && isMotogpSessionKey(key)) {
       return MOTOGP_SESSION_CONFIGS[key].label;
@@ -142,6 +180,12 @@ export class FeederRacePageComponent implements OnInit {
   }));
 
   raceStatus = computed<'live' | 'upcoming' | 'done'>(() => {
+    if (this.useF2LiveLayout()) {
+      const race = this.currentRace();
+      if (race?.resultsAvailable === true && !this.raceResult()?.sessionPending) return 'done';
+      if (this.isRaceLiveWindow() || this.raceResult()?.live) return 'live';
+      return 'upcoming';
+    }
     const tab = this.sessionTabs().find((t) => t.sessionKey === this.sessionKey());
     if (tab?.hasResults && this.resultRows().length) return 'done';
     const race = this.currentRace();
@@ -153,15 +197,26 @@ export class FeederRacePageComponent implements OnInit {
 
   statusBadges = computed(() => {
     const badges: { label: string; variant: string }[] = [];
-    if (this.raceStatus() === 'done') {
+    const status = this.raceStatus();
+    if (status === 'live') {
+      badges.push({ label: 'EN DIRECTO', variant: 'red' });
+    } else if (status === 'done') {
       badges.push({ label: 'FINALIZADA', variant: 'green' });
     } else {
       badges.push({ label: 'PROGRAMADA', variant: 'grey' });
     }
-    if (this.resultRows().length) {
+    if (this.raceResult()?.sessionPending) {
+      badges.push({ label: 'PROVISIONAL', variant: 'yellow' });
+    } else if (this.resultRows().length && status === 'done') {
       badges.push({ label: 'RESULTADOS OFICIALES', variant: 'yellow' });
     }
     return badges;
+  });
+
+  isRaceLiveWindow = computed(() => {
+    const race = this.currentRace();
+    if (!race) return false;
+    return isRaceInLiveWindow(race, this.now());
   });
 
   /** Fecha/hora de la carrera ya pasó (independiente de si hay datos mock). */
@@ -181,10 +236,15 @@ export class FeederRacePageComponent implements OnInit {
     return this.isPastByDate();
   });
 
-  racePhase = computed<'upcoming' | 'awaiting' | 'done'>(() => {
+  racePhase = computed<'upcoming' | 'awaiting' | 'live' | 'done'>(() => {
     const race = this.currentRace();
     if (!race) return 'upcoming';
     const sid = this.seriesCtx.id();
+    if (sid === 'f2') {
+      if (race.resultsAvailable === true && !this.raceResult()?.sessionPending) return 'done';
+      if (this.isRaceLiveWindow() || this.raceResult()?.live) return 'live';
+      return this.isPastByDate() ? 'awaiting' : 'upcoming';
+    }
     if (isFormulaFeederSeries(sid)) {
       if (race.resultsAvailable === true) return 'done';
       return this.isPastByDate() ? 'awaiting' : 'upcoming';
@@ -299,6 +359,14 @@ export class FeederRacePageComponent implements OnInit {
     interval(1000)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.now.set(new Date()));
+
+    interval(12_000)
+      .pipe(
+        filter(() => this.isF2() && this.isRaceLiveWindow()),
+        switchMap(() => this.reloadSessionResults('f2')),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe();
   }
 
   constructor() {
@@ -463,6 +531,10 @@ export class FeederRacePageComponent implements OnInit {
           return of(null);
         }
 
+        const f2Live =
+          seriesId === 'f2' &&
+          (race.resultsAvailable === true || isRaceInLiveWindow(race, new Date()));
+
         const extras$ =
           seriesId === 'motogp'
             ? forkJoin({
@@ -472,11 +544,17 @@ export class FeederRacePageComponent implements OnInit {
                 drivers: this.service.getDriverStandings(false, seriesId).pipe(catchError(() => of([]))),
                 teams: this.service.getConstructorStandings(false, seriesId).pipe(catchError(() => of([]))),
               })
-            : of({
-                sessions: { sessions: [] as MotogpWeekendSession[] },
-                drivers: [] as JolpikaDriverStanding[],
-                teams: [] as JolpikaConstructorStanding[],
-              });
+            : f2Live
+              ? forkJoin({
+                  sessions: of({ sessions: [] as MotogpWeekendSession[] }),
+                  drivers: this.service.getDriverStandings(false, seriesId).pipe(catchError(() => of([]))),
+                  teams: this.service.getConstructorStandings(false, seriesId).pipe(catchError(() => of([]))),
+                })
+              : of({
+                  sessions: { sessions: [] as MotogpWeekendSession[] },
+                  drivers: [] as JolpikaDriverStanding[],
+                  teams: [] as JolpikaConstructorStanding[],
+                });
 
         return extras$.pipe(
           switchMap((extras) => {
@@ -486,7 +564,9 @@ export class FeederRacePageComponent implements OnInit {
             this.constructorStands.set(extras.teams);
 
             if (seriesId !== 'motogp') {
-              if (isFormulaFeederSeries(seriesId) && race.resultsAvailable !== true) {
+              const f2InLive =
+                seriesId === 'f2' && isRaceInLiveWindow(race, new Date());
+              if (isFormulaFeederSeries(seriesId) && race.resultsAvailable !== true && !f2InLive) {
                 this.pageLoading.set(false);
                 this.loadedRaceKey.set(loadKey);
                 return of(null);

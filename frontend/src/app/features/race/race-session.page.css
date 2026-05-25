@@ -60,6 +60,7 @@ app-race-session-page ::-webkit-scrollbar-thumb { background: #c0c0c0; border-ra
 .fl-badge-green  { background: rgba(22,163,74,.13);   border: 1px solid rgba(22,163,74,.4);   color: #16a34a; }
 .fl-badge-grey   { background: rgba(0,0,0,.05);       border: 1px solid rgba(0,0,0,.12);     color: #777;    }
 .fl-badge-yellow { background: rgba(255,209,0,.18);   border: 1px solid rgba(255,209,0,.55); color: #FFD100; }
+.fl-badge-red    { background: rgba(220,38,38,.12);   border: 1px solid rgba(220,38,38,.45); color: #dc2626; }
 
 /* ── Logo diamond (clip-path) ──────────────────────────────────────────── */
 .fl-topbar-diamond {

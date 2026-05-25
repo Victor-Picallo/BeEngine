@@ -119,6 +119,13 @@ export const normalizeFeederCalendar = (pageData) => {
       : null;
     const country = r.CountryName ?? '';
 
+    const raceStart = fr?.SessionStartTime ?? null;
+    const raceEnd =
+      fr?.SessionEndTime ??
+      (raceStart
+        ? new Date(new Date(raceStart).getTime() + 90 * 60 * 1000).toISOString()
+        : null);
+
     return {
       round: r.RoundNumber,
       raceName: country ? `${country} Grand Prix` : (r.CircuitName ?? r.CircuitShortName ?? ''),
@@ -127,7 +134,8 @@ export const normalizeFeederCalendar = (pageData) => {
       country,
       date,
       time,
-      sprintDate: sr?.SessionStartTime?.slice(0, 10) ?? null,
+      raceSessionStart: raceStart,
+      raceSessionEnd: raceEnd,
       resultsAvailable: Boolean(fr?.SessionResultsAvailable),
       fiaRaceId: r.RaceId,
     };
@@ -197,10 +205,24 @@ export const normalizeConstructorStandings = (pageData, resolveConstructorId, co
  * @param {ReturnType<typeof buildDriverResolver>} resolveDriverId
  * @param {ReturnType<typeof buildTeamResolver>} resolveConstructorId
  */
-export const normalizeFeatureRaceResults = (pageData, resolveDriverId, resolveConstructorId) => {
+/**
+ * @param {object} pageData
+ * @param {ReturnType<typeof buildDriverResolver>} resolveDriverId
+ * @param {ReturnType<typeof buildTeamResolver>} resolveConstructorId
+ * @param {{ allowLive?: boolean }} [options]
+ */
+export const normalizeFeatureRaceResults = (
+  pageData,
+  resolveDriverId,
+  resolveConstructorId,
+  options = {},
+) => {
+  const { allowLive = false } = options;
   const sessions = pageData?.SessionResults ?? [];
   const fr = sessions.find((s) => s.SessionShortName === 'FR');
-  if (!fr?.SessionResultsAvailable || !fr.Results?.length) {
+  const hasRows = (fr?.Results?.length ?? 0) > 0;
+  const official = Boolean(fr?.SessionResultsAvailable) && hasRows;
+  if (!official && !(allowLive && hasRows)) {
     throw new Error('FIA feature race results not available');
   }
 
@@ -211,14 +233,15 @@ export const normalizeFeatureRaceResults = (pageData, resolveDriverId, resolveCo
 
   const maxLaps = Math.max(...fr.Results.map((r) => r.LapsCompleted ?? 0));
 
-  const results = fr.Results.map((r) => {
+  const results = fr.Results.map((r, idx) => {
     const driverId = resolveDriverId({
       tla: r.TLA,
       forename: r.DriverForename,
       surname: r.DriverSurname,
     });
     const team = normTeam(r.TeamName);
-    const pos = r.FinishPosition ?? parseInt(r.DisplayFinishPosition, 10);
+    let pos = r.FinishPosition ?? Number.parseInt(r.DisplayFinishPosition, 10);
+    if (!Number.isFinite(pos)) pos = 1000 + idx;
 
     return {
       position: pos,
@@ -237,12 +260,19 @@ export const normalizeFeatureRaceResults = (pageData, resolveDriverId, resolveCo
   const frSession = fr;
   const date = (frSession.SessionStartTime ?? pageData.RaceEndDate ?? '').slice(0, 10);
 
+  const sorted = [...results].sort((a, b) => a.position - b.position);
+  sorted.forEach((row, i) => {
+    row.position = i + 1;
+  });
+
   return {
     round: pageData.RoundNumber,
     raceName: `${pageData.CountryName ?? pageData.CircuitInformation?.CircuitShortName} Grand Prix`,
     circuitName: pageData.CircuitInformation?.CircuitName ?? pageData.CircuitInformation?.CircuitShortName ?? '',
     date,
-    results,
+    results: sorted,
+    live: !official,
+    sessionPending: !official,
     fiaRaceId: pageData.RaceId,
   };
 };

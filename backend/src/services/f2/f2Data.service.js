@@ -26,7 +26,26 @@ const fiaApi = createFiaFeederApi({
 });
 
 const stripInternal = (items) =>
-  items.map(({ fiaRaceId, ...race }) => race);
+  items.map(({ fiaRaceId, sprintDate, ...race }) => race);
+
+const raceWindowFromLocal = (race) => {
+  const start =
+    race.date && race.time ? `${race.date}T${race.time}` : null;
+  const end = start
+    ? new Date(new Date(start).getTime() + 90 * 60 * 1000).toISOString()
+    : null;
+  return { raceSessionStart: start, raceSessionEnd: end };
+};
+
+const mapRaceResultsResponse = (race) => ({
+  round: race.round,
+  raceName: race.raceName,
+  circuitName: race.circuitName,
+  date: race.date,
+  results: race.results,
+  live: race.live === true,
+  sessionPending: race.sessionPending === true,
+});
 
 const winsFromResults = (driverId) => {
   let w = 0;
@@ -76,10 +95,14 @@ const fallbackConstructorStandings = () =>
     .map((row, i) => ({ ...row, pos: i + 1 }));
 
 const fallbackCalendar = () =>
-  F2_CALENDAR_2026.map((race) => ({
-    ...race,
-    resultsAvailable: Boolean(F2_RACE_RESULTS_2026[race.round]),
-  }));
+  F2_CALENDAR_2026.map((race) => {
+    const { sprintDate: _s, ...base } = race;
+    return {
+      ...base,
+      ...raceWindowFromLocal(race),
+      resultsAvailable: Boolean(F2_RACE_RESULTS_2026[race.round]),
+    };
+  });
 
 const mapRacePayload = (race) => ({
   round: race.round,
@@ -181,14 +204,8 @@ export const getRaceResultsByRound = async (round) => {
   const cleanRound = Number.parseInt(round, 10);
   if (!FIA_F2_ENABLED) return fallbackRaceResults(cleanRound);
   try {
-    const race = await fiaApi.getRaceResultsByRound(cleanRound);
-    return {
-      round: race.round,
-      raceName: race.raceName,
-      circuitName: race.circuitName,
-      date: race.date,
-      results: race.results,
-    };
+    const race = await fiaApi.getRaceResultsByRound(cleanRound, { allowLive: true });
+    return mapRaceResultsResponse(race);
   } catch {
     return fallbackRaceResults(cleanRound);
   }

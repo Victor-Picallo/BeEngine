@@ -320,6 +320,10 @@ export interface JolpikaCalendarRace {
   circuitImageUrl?: string | null;
   /** F2/F3: true si hay resultados curados en backend para esta ronda. */
   resultsAvailable?: boolean;
+  /** F2: inicio ISO de la carrera (feature race). */
+  raceSessionStart?: string | null;
+  /** F2: fin ISO estimado o oficial de la carrera. */
+  raceSessionEnd?: string | null;
 }
 
 export interface JolpikaLastRaceResult {
@@ -355,6 +359,8 @@ export interface JolpikaRaceResult extends JolpikaLastRace {
   sessionLabel?: string;
   sessionStatus?: string | null;
   sessionPending?: boolean;
+  /** F2: clasificación provisional durante la carrera. */
+  live?: boolean;
 }
 
 export interface MotogpRoundSessionsPayload {

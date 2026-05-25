@@ -1,5 +1,10 @@
-@if (isMotogp()) {
-  <div class="fl-root fl-root--motogp" [style.--fl-accent]="accent()">
+@if (isMotogp() || useF2LiveLayout()) {
+  <div
+    class="fl-root"
+    [class.fl-root--motogp]="isMotogp()"
+    [class.fl-root--f2]="isF2()"
+    [style.--fl-accent]="accent()"
+  >
     <app-header></app-header>
 
     @if (error(); as err) {
@@ -11,6 +16,9 @@
     } @else if (currentRace(); as race) {
       <div class="fl-session-bar">
         <span class="fl-session-label-text">SESIÓN</span>
+        @if (useF2LiveLayout() && !sessionTabs().length) {
+          <span class="fl-session-btn active">CARRERA</span>
+        }
         @for (tab of sessionTabs(); track tab.sessionKey) {
           <a
             [routerLink]="buildSessionLink(tab.sessionKey)"
@@ -418,6 +426,7 @@
               >
                 @switch (racePhase()) {
                   @case ('done') { CARRERA FINALIZADA }
+                  @case ('live') { EN DIRECTO }
                   @case ('awaiting') { RESULTADOS PENDIENTES }
                   @default { PRÓXIMA CARRERA }
                 }
