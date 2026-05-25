@@ -101,12 +101,16 @@ export class FeederRacePageComponent implements OnInit {
   readonly accent = computed(() => this.seriesCtx.config().accent);
   readonly isMotogp = computed(() => this.seriesCtx.id() === 'motogp');
   readonly isF2 = computed(() => this.seriesCtx.id() === 'f2');
+  readonly isF3 = computed(() => this.seriesCtx.id() === 'f3');
+  readonly isFormulaFeeder = computed(() => isFormulaFeederSeries(this.seriesCtx.id()));
 
-  /** F2: UI en directo (solo carrera, sin FP/sprint). */
-  readonly useF2LiveLayout = computed(
+  /** F2/F3: UI en directo (solo carrera, sin FP/sprint). */
+  readonly useFeederLiveLayout = computed(
     () =>
-      this.isF2() &&
-      (this.isRaceLiveWindow() || this.raceResult()?.live === true || this.raceResult()?.sessionPending === true),
+      this.isFormulaFeeder() &&
+      (this.isRaceLiveWindow() ||
+        this.raceResult()?.live === true ||
+        this.raceResult()?.sessionPending === true),
   );
 
   returnUrl = signal<string | null>(null);
@@ -157,7 +161,7 @@ export class FeederRacePageComponent implements OnInit {
   });
 
   sessionDisplayLabel = computed(() => {
-    if (this.useF2LiveLayout()) return 'CARRERA';
+    if (this.useFeederLiveLayout()) return 'CARRERA';
     const key = this.sessionKey();
     if (this.isMotogp() && isMotogpSessionKey(key)) {
       return MOTOGP_SESSION_CONFIGS[key].label;
@@ -180,7 +184,7 @@ export class FeederRacePageComponent implements OnInit {
   }));
 
   raceStatus = computed<'live' | 'upcoming' | 'done'>(() => {
-    if (this.useF2LiveLayout()) {
+    if (this.useFeederLiveLayout()) {
       const race = this.currentRace();
       if (race?.resultsAvailable === true && !this.raceResult()?.sessionPending) return 'done';
       if (this.isRaceLiveWindow() || this.raceResult()?.live) return 'live';
@@ -240,13 +244,9 @@ export class FeederRacePageComponent implements OnInit {
     const race = this.currentRace();
     if (!race) return 'upcoming';
     const sid = this.seriesCtx.id();
-    if (sid === 'f2') {
+    if (isFormulaFeederSeries(sid)) {
       if (race.resultsAvailable === true && !this.raceResult()?.sessionPending) return 'done';
       if (this.isRaceLiveWindow() || this.raceResult()?.live) return 'live';
-      return this.isPastByDate() ? 'awaiting' : 'upcoming';
-    }
-    if (isFormulaFeederSeries(sid)) {
-      if (race.resultsAvailable === true) return 'done';
       return this.isPastByDate() ? 'awaiting' : 'upcoming';
     }
     return this.isPastByDate() ? 'done' : 'upcoming';
@@ -362,8 +362,8 @@ export class FeederRacePageComponent implements OnInit {
 
     interval(12_000)
       .pipe(
-        filter(() => this.isF2() && this.isRaceLiveWindow()),
-        switchMap(() => this.reloadSessionResults('f2')),
+        filter(() => this.isFormulaFeeder() && this.isRaceLiveWindow()),
+        switchMap(() => this.reloadSessionResults(this.seriesCtx.id())),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe();
@@ -531,8 +531,8 @@ export class FeederRacePageComponent implements OnInit {
           return of(null);
         }
 
-        const f2Live =
-          seriesId === 'f2' &&
+        const feederLive =
+          isFormulaFeederSeries(seriesId) &&
           (race.resultsAvailable === true || isRaceInLiveWindow(race, new Date()));
 
         const extras$ =
@@ -544,7 +544,7 @@ export class FeederRacePageComponent implements OnInit {
                 drivers: this.service.getDriverStandings(false, seriesId).pipe(catchError(() => of([]))),
                 teams: this.service.getConstructorStandings(false, seriesId).pipe(catchError(() => of([]))),
               })
-            : f2Live
+            : feederLive
               ? forkJoin({
                   sessions: of({ sessions: [] as MotogpWeekendSession[] }),
                   drivers: this.service.getDriverStandings(false, seriesId).pipe(catchError(() => of([]))),
@@ -564,9 +564,9 @@ export class FeederRacePageComponent implements OnInit {
             this.constructorStands.set(extras.teams);
 
             if (seriesId !== 'motogp') {
-              const f2InLive =
-                seriesId === 'f2' && isRaceInLiveWindow(race, new Date());
-              if (isFormulaFeederSeries(seriesId) && race.resultsAvailable !== true && !f2InLive) {
+              const feederInLive =
+                isFormulaFeederSeries(seriesId) && isRaceInLiveWindow(race, new Date());
+              if (isFormulaFeederSeries(seriesId) && race.resultsAvailable !== true && !feederInLive) {
                 this.pageLoading.set(false);
                 this.loadedRaceKey.set(loadKey);
                 return of(null);

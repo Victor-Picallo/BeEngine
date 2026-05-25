@@ -113,7 +113,7 @@ EXTERNAL_API_TIMEOUT_MS=3500
 
 Si la FIA no responde, se sirven los datos de `data/f2/` y `data/f3/` sin mezclar con los oficiales.
 
-Actualizar mocks F2 tras un GP: `node scripts/sync-f2-data.mjs` (puntos + resultados de la feature race).
+Actualizar mocks tras un GP: `node scripts/sync-f2-data.mjs` / `node scripts/sync-f3-data.mjs` (puntos + resultados feature race).
 
 **F1** usa Jolpica (`JOLPICA_F1_ENABLED`) con el mismo patrón: calendario, standings, última carrera y resultados por ronda; fallback en `data/f1/` (incl. `f1RaceResults2026.js`).
 
