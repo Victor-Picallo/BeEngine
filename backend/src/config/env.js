@@ -20,6 +20,9 @@ const envFlag = (key, defaultOn = true) => {
   return !/^(0|false|no|off)$/i.test(v);
 };
 
+/** F1: Ergast/Jolpica con fallback a mocks en `data/f1/`. */
+export const JOLPICA_F1_ENABLED = envFlag('JOLPICA_F1_ENABLED');
+
 /** F2/F3: datos oficiales FIA (HTML __NEXT_DATA__) con fallback a mocks locales. */
 export const FIA_F2_ENABLED = envFlag('FIA_F2_ENABLED');
 export const FIA_F3_ENABLED = envFlag('FIA_F3_ENABLED');

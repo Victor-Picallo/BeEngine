@@ -27,8 +27,7 @@ import {
   OpenF1Weather,
 } from './f1-live.types';
 
-interface SourceWrapped<T> {
-  source: string;
+interface ItemsWrapped<T> {
   items: T[];
 }
 
@@ -69,7 +68,7 @@ export class F1LiveService {
     const sid = this.seriesId(seriesId);
     if (sid === 'motogp') {
       return this.api
-        .get<SourceWrapped<OpenF1Session>>(`${this.racingApi(sid)}/sessions`)
+        .get<ItemsWrapped<OpenF1Session>>(`${this.racingApi(sid)}/sessions`)
         .pipe(map((res) => res.items ?? []));
     }
     if (!this.openF1Enabled(seriesId)) return of([]);
@@ -128,7 +127,7 @@ export class F1LiveService {
     if (forceRefresh) this.driverStandingsCache.delete(sid);
     if (!this.driverStandingsCache.has(sid)) {
       const obs = this.api
-        .get<SourceWrapped<JolpikaDriverStanding>>(`${this.racingApi(sid)}/driver-standings`)
+        .get<ItemsWrapped<JolpikaDriverStanding>>(`${this.racingApi(sid)}/driver-standings`)
         .pipe(
           map((res) => res.items ?? []),
           shareReplay({ bufferSize: 1, refCount: false }),
@@ -157,7 +156,7 @@ export class F1LiveService {
     if (forceRefresh) this.constructorStandingsCache.delete(sid);
     if (!this.constructorStandingsCache.has(sid)) {
       const obs = this.api
-        .get<SourceWrapped<JolpikaConstructorStanding>>(`${this.racingApi(sid)}/constructor-standings`)
+        .get<ItemsWrapped<JolpikaConstructorStanding>>(`${this.racingApi(sid)}/constructor-standings`)
         .pipe(
           map((res) => res.items ?? []),
           shareReplay({ bufferSize: 1, refCount: false }),
@@ -185,7 +184,7 @@ export class F1LiveService {
 
   getCalendar(seriesId?: SeriesId): Observable<JolpikaCalendarRace[]> {
     return this.api
-      .get<SourceWrapped<JolpikaCalendarRace>>(`${this.racingApi(seriesId)}/calendar`)
+      .get<ItemsWrapped<JolpikaCalendarRace>>(`${this.racingApi(seriesId)}/calendar`)
       .pipe(map((res) => res.items ?? []));
   }
 

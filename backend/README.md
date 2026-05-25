@@ -97,6 +97,10 @@ PORT=3000
 NODE_ENV=development
 FRONTEND_URL=http://localhost:4200
 
+# F1 — Jolpica / Ergast
+JOLPICA_F1_ENABLED=true
+JOLPICA_BASE_URL=https://api.jolpi.ca/ergast/f1
+
 # F2/F3 — sitio oficial FIA (calendario, standings, resultados feature race)
 FIA_F2_ENABLED=true
 FIA_F3_ENABLED=true
@@ -108,6 +112,8 @@ EXTERNAL_API_TIMEOUT_MS=3500
 ```
 
 Si la FIA no responde, se sirven los datos de `data/f2/` y `data/f3/` sin mezclar con los oficiales.
+
+**F1** usa Jolpica (`JOLPICA_F1_ENABLED`) con el mismo patrón: calendario, standings, última carrera y resultados por ronda; fallback en `data/f1/` (incl. `f1RaceResults2026.js`).
 
 ## Migrar a PostgreSQL
 

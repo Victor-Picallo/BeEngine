@@ -117,7 +117,7 @@ export function buildConstructorStandingsFromGrid() {
   return { source, items };
 }
 
-async function fetchLiveConstructorStandings() {
+export async function fetchLiveConstructorStandings() {
   const raw = await jolpicaClient.get('/current/constructorStandings.json', {
     timeoutMs: 12_000,
   });

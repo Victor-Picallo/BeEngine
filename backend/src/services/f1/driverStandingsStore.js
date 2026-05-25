@@ -118,7 +118,7 @@ export function buildDriverStandingsFromGrid() {
   return { source, items };
 }
 
-async function fetchLiveDriverStandings() {
+export async function fetchLiveDriverStandings() {
   const [rawStand, rawSeasonDrivers] = await Promise.all([
     jolpicaClient.get('/current/driverStandings.json', { timeoutMs: 12_000 }),
     jolpicaClient.get('/current/drivers.json', { timeoutMs: 12_000 }).catch(() => null),
