@@ -4,16 +4,16 @@ import {
   getCalendar,
   getLastRace,
   getRaceResultsByRound,
-} from '../services/f1Jolpica.service.js';
+} from '../../services/f1/jolpica.service.js';
 import {
   getDriverProfile,
   getDriverProfileAggregates,
-} from '../services/f1JolpicaDriverProfile.service.js';
+} from '../../services/f1/jolpicaDriverProfile.service.js';
 import {
   getConstructorProfile,
   getConstructorProfileAggregates,
-} from '../services/f1JolpicaConstructorProfile.service.js';
-import { success, error } from '../utils/response.js';
+} from '../../services/f1/jolpicaConstructorProfile.service.js';
+import { success, error } from '../../utils/response.js';
 
 const DRIVER_STANDINGS_CACHE_CONTROL =
   'public, max-age=30, stale-while-revalidate=120';

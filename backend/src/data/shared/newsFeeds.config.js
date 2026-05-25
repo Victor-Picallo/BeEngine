@@ -31,15 +31,6 @@ export const NEWS_FEEDS_BY_CATEGORY = {
     { url: 'https://www.motorsport.com/rss/category/moto3/', source: 'Motorsport.com' },
     { url: 'https://www.crash.net/rss/motogp', source: 'Crash.net', linkIncludes: '/moto3/' },
   ],
-  fe: [
-    { url: 'https://www.crash.net/rss/fe', source: 'Crash.net', linkIncludes: '/fe/' },
-  ],
-  wrc: [
-    { url: 'https://www.motorsport.com/rss/wrc/news/', source: 'Motorsport.com' },
-  ],
-  indycar: [
-    { url: 'https://www.crash.net/rss/indycar', source: 'Crash.net', linkIncludes: '/indycar/' },
-  ],
 };
 
 export const NEWS_TAGS = [

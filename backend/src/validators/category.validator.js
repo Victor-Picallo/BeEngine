@@ -1,5 +1,5 @@
-import { VALID_CATEGORIES } from '../data/categories.data.js';
-import { NEWS_FEEDS_BY_CATEGORY } from '../data/newsFeeds.config.js';
+import { VALID_CATEGORIES } from '../data/shared/categories.data.js';
+import { NEWS_FEEDS_BY_CATEGORY } from '../data/shared/newsFeeds.config.js';
 
 const VALID_NEWS_CATEGORIES = [
   ...new Set([...VALID_CATEGORIES, ...Object.keys(NEWS_FEEDS_BY_CATEGORY)]),

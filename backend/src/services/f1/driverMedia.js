@@ -1,4 +1,4 @@
-import { getDrivers } from './f1OpenF1.service.js';
+import { getDrivers } from './openf1.service.js';
 
 const normalize = (s) =>
   (s || '')

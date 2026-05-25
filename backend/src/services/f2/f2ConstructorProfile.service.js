@@ -1,15 +1,11 @@
 import {
   findConstructorGrid,
+  getCalendar,
   getConstructorStandings,
   getDriversForConstructor,
+  getMaxCompletedRound,
   getRaceResultsByRound,
 } from './f2Data.service.js';
-import { F2_CALENDAR_2026, F2_LAST_COMPLETED_ROUND } from '../../data/f2/f2Calendar2026.js';
-
-const gpLabel = (round) => {
-  const race = F2_CALENDAR_2026.find((c) => c.round === round);
-  return race ? race.raceName.replace(/ Grand Prix$/i, '') : `Ronda ${round}`;
-};
 
 export const getConstructorProfile = async (constructorId, _careerPage = 1) => {
   const grid = findConstructorGrid(constructorId);
@@ -18,9 +14,15 @@ export const getConstructorProfile = async (constructorId, _careerPage = 1) => {
   const standings = await getConstructorStandings();
   const row = standings.items.find((c) => c.constructorId === constructorId);
   const drivers = getDriversForConstructor(constructorId);
+  const calendar = await getCalendar();
+  const maxRound = await getMaxCompletedRound();
+  const gpLabel = (round) => {
+    const race = calendar.items.find((c) => c.round === round);
+    return race ? race.raceName.replace(/ Grand Prix$/i, '') : `Ronda ${round}`;
+  };
 
   const currentSeason = [];
-  for (let r = 1; r <= F2_LAST_COMPLETED_ROUND; r += 1) {
+  for (let r = 1; r <= maxRound; r += 1) {
     let pts = 0;
     let bestPos = 99;
     for (const d of drivers) {
@@ -46,7 +48,6 @@ export const getConstructorProfile = async (constructorId, _careerPage = 1) => {
   }
 
   return {
-    source: 'beengine-f2',
     constructorId: grid.constructorId,
     name: grid.team,
     nationality: grid.nationality,
@@ -56,7 +57,7 @@ export const getConstructorProfile = async (constructorId, _careerPage = 1) => {
       wins: row?.wins ?? 0,
       podiums: 0,
       poles: 0,
-      races: F2_LAST_COMPLETED_ROUND,
+      races: maxRound,
       points: row?.points ?? 0,
     },
     drivers: drivers.map((d) => ({
@@ -70,7 +71,7 @@ export const getConstructorProfile = async (constructorId, _careerPage = 1) => {
       {
         year: 2026,
         team: grid.team,
-        races: F2_LAST_COMPLETED_ROUND,
+        races: maxRound,
         wins: row?.wins ?? 0,
         podiums: 0,
         poles: 0,

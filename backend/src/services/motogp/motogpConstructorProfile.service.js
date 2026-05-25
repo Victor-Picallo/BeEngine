@@ -3,14 +3,14 @@ import {
   getConstructorStandings,
   getRaceResultsByRound,
   getCurrentSeasonYear,
-} from '../motogpPulseLive.service.js';
-import { resolveMotogpTeamLogoUrl } from '../../data/motogpTeamLogos.js';
+} from './pulseLive.service.js';
+import { resolveMotogpTeamLogoUrl } from '../../data/motogp/motogpTeamLogos.js';
 import {
   createDynamicTeamProfileDef,
   getMotogpTeamProfileDef,
   teamSlugMatchesProfile,
-} from '../../data/motogpTeamProfiles.js';
-import { getManufacturerHistorical } from '../../data/motogpManufacturerHistorical.js';
+} from '../../data/motogp/motogpTeamProfiles.js';
+import { getManufacturerHistorical } from '../../data/motogp/motogpManufacturerHistorical.js';
 import {
   buildTeamCareerHistory,
   buildTeamLifetimeStats,

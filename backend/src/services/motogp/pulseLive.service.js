@@ -3,22 +3,22 @@ import {
   MOTOGP_CATEGORY_UUID,
   MOTO2_CATEGORY_UUID,
   MOTO3_CATEGORY_UUID,
-} from '../external/motogp/pulselive.client.js';
-import motogpMock from '../data/motogp.data.js';
-import { getRidersIndex } from './motogp/motogpRiders.service.js';
-import { getCircuits, findCircuitByName } from './motogp/motogpCircuits.service.js';
-import { getTeamsIndex, enrichStandingRow } from './motogp/motogpTeams.service.js';
+} from '../../external/motogp/pulselive.client.js';
+import motogpMock from '../../data/motogp/motogp.data.js';
+import { getRidersIndex } from './motogpRiders.service.js';
+import { getCircuits, findCircuitByName } from './motogpCircuits.service.js';
+import { getTeamsIndex, enrichStandingRow } from './motogpTeams.service.js';
 import {
   resolveMotogpTeamLogoUrl,
   resolveOfficialConstructorSlug,
-} from '../data/motogpTeamLogos.js';
+} from '../../data/motogp/motogpTeamLogos.js';
 import {
   pickMainRaceSession,
   pulseSessionLabel,
   pulseSessionToKey,
   resolvePulseSession,
   sessionHasResults,
-} from './motogp/motogpSessions.util.js';
+} from './motogpSessions.util.js';
 
 const CATEGORY_UUIDS = {
   motogp: MOTOGP_CATEGORY_UUID,

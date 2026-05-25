@@ -5,9 +5,9 @@ import {
 import {
   getManufacturerHistorical,
   isManufacturerChampionYear,
-} from '../../data/motogpManufacturerHistorical.js';
-import { getTeamHistorical } from '../../data/motogpTeamHistorical.js';
-import { getMotogpTeamProfileDef, teamSlugMatchesProfile } from '../../data/motogpTeamProfiles.js';
+} from '../../data/motogp/motogpManufacturerHistorical.js';
+import { getTeamHistorical } from '../../data/motogp/motogpTeamHistorical.js';
+import { getMotogpTeamProfileDef, teamSlugMatchesProfile } from '../../data/motogp/motogpTeamProfiles.js';
 import { CAREER_HISTORY_PAGE_SIZE } from '../../utils/careerPagination.js';
 
 const asList = (raw) => (Array.isArray(raw) ? raw : raw?.value ?? []);

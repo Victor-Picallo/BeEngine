@@ -1,6 +1,6 @@
 import { getNewsArticles, fetchOgImage } from './newsFeed.service.js';
-import { resolveWinnerHeadshotUrl } from './f1DriverMedia.js';
-import { f1TeamCarImageUrl } from './f1TeamMedia.js';
+import { resolveWinnerHeadshotUrl } from '../f1/driverMedia.js';
+import { f1TeamCarImageUrl } from '../f1/teamMedia.js';
 
 const MIN_SCORE_STRICT = 9;
 const MIN_SCORE_OG = 7;

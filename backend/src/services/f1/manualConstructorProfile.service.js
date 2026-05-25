@@ -1,8 +1,8 @@
-import { jolpicaClient } from '../external/jolpica/jolpica.client.js';
+import { jolpicaClient } from '../../external/jolpica/jolpica.client.js';
 import {
   getManualConstructorDef,
   isManualConstructorId,
-} from '../data/f1ManualConstructors.js';
+} from '../../data/f1/f1ManualConstructors.js';
 
 const PROFILE_JOLPICA = { timeoutMs: 10_000 };
 

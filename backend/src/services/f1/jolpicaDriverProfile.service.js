@@ -1,9 +1,9 @@
-import { jolpicaClient } from '../external/jolpica/jolpica.client.js';
-import { CAREER_HISTORY_PAGE_SIZE, paginateCareerHistoryByRecentPage } from '../utils/careerPagination.js';
+import { jolpicaClient } from '../../external/jolpica/jolpica.client.js';
+import { CAREER_HISTORY_PAGE_SIZE, paginateCareerHistoryByRecentPage } from '../../utils/careerPagination.js';
 import {
   getDriverHistoricalStats,
   mergeDriverHistoricalWithLive,
-} from '../data/f1DriverHistoricalStats.js';
+} from '../../data/f1/f1DriverHistoricalStats.js';
 
 /** Driver profile hits Jolpica many times; allow a bit more than the global default. */
 const PROFILE_JOLPICA = { timeoutMs: 8_000 };

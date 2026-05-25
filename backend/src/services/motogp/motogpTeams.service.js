@@ -2,7 +2,7 @@ import {
   pulseliveClient,
   MOTOGP_CATEGORY_UUID,
 } from '../../external/motogp/pulselive.client.js';
-import { resolveMotogpTeamLogoUrl } from '../../data/motogpTeamLogos.js';
+import { resolveMotogpTeamLogoUrl } from '../../data/motogp/motogpTeamLogos.js';
 
 /** Categoría broadcast MotoGP™ (equipos / riders con fotos). */
 export const MOTOGP_BROADCAST_CATEGORY_UUID = '737ab122-76e1-4081-bedb-334caaa18c70';

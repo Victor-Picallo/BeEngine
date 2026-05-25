@@ -12,6 +12,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, combineLatest, forkJoin, interval, map, of, skip, switchMap, tap } from 'rxjs';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { bindSeriesLoad, isSeriesStillActive } from '../../core/series/bind-series-load';
+import { isFormulaFeederSeries } from '../../core/series/series.config';
 import type { SeriesId } from '../../core/series/series.types';
 import { SeriesContextService } from '../../core/series/series-context.service';
 import { SeriesAccentDirective } from '../../core/series/series-accent.directive';
@@ -163,11 +164,32 @@ export class FeederRacePageComponent implements OnInit {
     return badges;
   });
 
-  isPast = computed(() => {
+  /** Fecha/hora de la carrera ya pasó (independiente de si hay datos mock). */
+  isPastByDate = computed(() => {
     const race = this.currentRace();
     if (!race) return false;
     const t = new Date(`${race.date}T${race.time ?? '23:59:59Z'}`);
     return Number.isFinite(t.getTime()) && t < new Date();
+  });
+
+  /** F2/F3: solo “finalizada” si hay resultados curados; F1/MotoGP: por fecha. */
+  isPast = computed(() => {
+    const race = this.currentRace();
+    if (!race) return false;
+    const sid = this.seriesCtx.id();
+    if (isFormulaFeederSeries(sid)) return race.resultsAvailable === true;
+    return this.isPastByDate();
+  });
+
+  racePhase = computed<'upcoming' | 'awaiting' | 'done'>(() => {
+    const race = this.currentRace();
+    if (!race) return 'upcoming';
+    const sid = this.seriesCtx.id();
+    if (isFormulaFeederSeries(sid)) {
+      if (race.resultsAvailable === true) return 'done';
+      return this.isPastByDate() ? 'awaiting' : 'upcoming';
+    }
+    return this.isPastByDate() ? 'done' : 'upcoming';
   });
 
   sessionPending = computed(() => this.raceResult()?.sessionPending === true);
@@ -464,10 +486,15 @@ export class FeederRacePageComponent implements OnInit {
             this.constructorStands.set(extras.teams);
 
             if (seriesId !== 'motogp') {
+              if (isFormulaFeederSeries(seriesId) && race.resultsAvailable !== true) {
+                this.pageLoading.set(false);
+                this.loadedRaceKey.set(loadKey);
+                return of(null);
+              }
               const raceTime = new Date(`${race.date}T${race.time ?? '23:59:59Z'}`);
               const past =
                 Number.isFinite(raceTime.getTime()) && raceTime < new Date();
-              if (!past) {
+              if (!past && !isFormulaFeederSeries(seriesId)) {
                 this.pageLoading.set(false);
                 this.loadedRaceKey.set(loadKey);
                 return of(null);

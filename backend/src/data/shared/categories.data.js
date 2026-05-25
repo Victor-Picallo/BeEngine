@@ -11,9 +11,6 @@ export const CATEGORIES = [
   { id: 'moto3', label: 'Moto 3', short: 'Moto3', accent: '#52C41A' },
   { id: 'f2', label: 'Formula 2', short: 'F2', accent: '#0090FF' },
   { id: 'f3', label: 'Formula 3', short: 'F3', accent: '#9E9E9E' },
-  { id: 'fe', label: 'Formula E', short: 'FE', accent: '#00C8FF' },
-  { id: 'wrc', label: 'WRC', short: 'WRC', accent: '#FF8C00' },
-  { id: 'indycar', label: 'IndyCar', short: 'INDY', accent: '#B8002D' },
 ];
 
 export const VALID_CATEGORIES = CATEGORIES.map((c) => c.id);

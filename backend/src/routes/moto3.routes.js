@@ -13,7 +13,7 @@ import {
   circuits,
   circuitDetail,
   teams,
-} from '../controllers/motogpPulseLive.controller.js';
+} from '../controllers/motogp/pulselive.controller.js';
 
 const router = Router();
 

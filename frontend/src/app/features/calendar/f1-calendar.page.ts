@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { catchError, map, of, tap } from 'rxjs';
 import { bindSeriesLoad, isSeriesStillActive } from '../../core/series/bind-series-load';
+import { isFormulaFeederSeries } from '../../core/series/series.config';
 import type { SeriesId } from '../../core/series/series.types';
 import { SeriesContextService } from '../../core/series/series-context.service';
 import { SeriesAccentDirective } from '../../core/series/series-accent.directive';
@@ -164,8 +165,12 @@ export class F1CalendarPageComponent {
     const results = this.resultsByRound();
     const nextRound = this.nextRace()?.round ?? null;
 
+    const seriesId = this.seriesCtx.id();
     return this.calendar().map(race => {
-      const done = this.isPastRace(race);
+      const datePast = this.isPastRace(race);
+      const done = isFormulaFeederSeries(seriesId)
+        ? race.resultsAvailable === true
+        : datePast;
       const status: CalendarCard['status'] =
         done ? 'done' : race.round === nextRound ? 'next' : 'upcoming';
       const result = results[race.round];
@@ -299,7 +304,9 @@ export class F1CalendarPageComponent {
   }
 
   private loadCompletedResults(calendar: JolpikaCalendarRace[], seriesId: SeriesId): void {
-    const completed = calendar.filter(race => this.isPastRace(race));
+    const completed = calendar.filter((race) =>
+      isFormulaFeederSeries(seriesId) ? race.resultsAvailable === true : this.isPastRace(race),
+    );
     if (!completed.length) return;
 
     const requests = completed.map(race =>

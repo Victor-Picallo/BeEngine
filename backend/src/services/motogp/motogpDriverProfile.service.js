@@ -2,7 +2,7 @@ import {
   getCalendar,
   getDriverStandings,
   getRaceResultsByRound,
-} from '../motogpPulseLive.service.js';
+} from './pulseLive.service.js';
 import {
   findRider,
   getRiderDetail,

@@ -1,6 +1,6 @@
-import { jolpicaClient } from '../external/jolpica/jolpica.client.js';
-import { F1_CONSTRUCTORS_GRID_2026 } from '../data/f1ConstructorsGrid2026.js';
-import { manualConstructorStandingRows } from '../data/f1ManualConstructors.js';
+import { jolpicaClient } from '../../external/jolpica/jolpica.client.js';
+import { F1_CONSTRUCTORS_GRID_2026 } from '../../data/f1/f1ConstructorsGrid2026.js';
+import { manualConstructorStandingRows } from '../../data/f1/f1ManualConstructors.js';
 
 const STANDINGS_FRESH_MS = Math.max(
   60_000,

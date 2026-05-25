@@ -318,6 +318,8 @@ export interface JolpikaCalendarRace {
   circuitId?: string | null;
   circuitSvgUrl?: string | null;
   circuitImageUrl?: string | null;
+  /** F2/F3: true si hay resultados curados en backend para esta ronda. */
+  resultsAvailable?: boolean;
 }
 
 export interface JolpikaLastRaceResult {

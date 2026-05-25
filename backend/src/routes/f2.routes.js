@@ -9,7 +9,7 @@ import {
   driverProfileAggregates,
   constructorProfile,
   constructorProfileAggregates,
-} from '../controllers/f2Jolpica.controller.js';
+} from '../controllers/f2/jolpica.controller.js';
 
 const router = Router();
 

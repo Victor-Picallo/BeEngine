@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import { parseRssItems } from '../utils/rssParser.js';
-import { NEWS_FEEDS_BY_CATEGORY } from '../data/newsFeeds.config.js';
+import { parseRssItems } from '../../utils/rssParser.js';
+import { NEWS_FEEDS_BY_CATEGORY } from '../../data/shared/newsFeeds.config.js';
 
 const CACHE_MS = Math.max(
   60_000,

@@ -19,15 +19,15 @@ export const F2_CONSTRUCTORS_GRID_2026 = [
 ];
 
 export const F2_CONSTRUCTOR_POINTS_2026 = {
-  campos: 56,
+  campos: 72,
+  mp_motorsport: 61,
+  rodin: 59,
   invicta: 50,
-  mp_motorsport: 46,
-  hitech: 32,
+  hitech: 34,
   trident: 26,
-  art: 25,
+  art: 26,
   dams: 22,
-  rodin: 16,
-  prema: 10,
-  van_amersfoort: 5,
-  aix: 0,
+  prema: 20,
+  van_amersfoort: 12,
+  aix: 8,
 };

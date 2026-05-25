@@ -1,4 +1,10 @@
 import {
+  FIA_F2_BASE_URL,
+  FIA_F2_ENABLED,
+  FIA_F2_SEASON_ID,
+} from '../../config/env.js';
+import { createFiaFeederApi } from '../shared/fiaFeederApi.service.js';
+import {
   F2_DRIVERS_GRID_2026,
   F2_DRIVER_POINTS_2026,
 } from '../../data/f2/f2DriversGrid2026.js';
@@ -11,6 +17,16 @@ import {
   F2_LAST_COMPLETED_ROUND,
 } from '../../data/f2/f2Calendar2026.js';
 import { F2_RACE_RESULTS_2026 } from '../../data/f2/f2RaceResults2026.js';
+
+const fiaApi = createFiaFeederApi({
+  baseUrl: FIA_F2_BASE_URL,
+  seasonId: FIA_F2_SEASON_ID,
+  driversGrid: F2_DRIVERS_GRID_2026,
+  constructorsGrid: F2_CONSTRUCTORS_GRID_2026,
+});
+
+const stripInternal = (items) =>
+  items.map(({ fiaRaceId, ...race }) => race);
 
 const winsFromResults = (driverId) => {
   let w = 0;
@@ -30,8 +46,8 @@ const teamWins = (constructorId) => {
   return w;
 };
 
-export const getDriverStandings = async () => {
-  const items = [...F2_DRIVERS_GRID_2026]
+const fallbackDriverStandings = () =>
+  [...F2_DRIVERS_GRID_2026]
     .map((g) => ({
       pos: 0,
       driver: g.driver,
@@ -45,11 +61,8 @@ export const getDriverStandings = async () => {
     .sort((a, b) => b.points - a.points || a.gridOrder - b.gridOrder)
     .map((row, i) => ({ ...row, pos: i + 1 }));
 
-  return { source: 'beengine-f2', items };
-};
-
-export const getConstructorStandings = async () => {
-  const items = [...F2_CONSTRUCTORS_GRID_2026]
+const fallbackConstructorStandings = () =>
+  [...F2_CONSTRUCTORS_GRID_2026]
     .map((g) => ({
       pos: 0,
       team: g.team,
@@ -62,25 +75,46 @@ export const getConstructorStandings = async () => {
     .sort((a, b) => b.points - a.points || a.gridOrder - b.gridOrder)
     .map((row, i) => ({ ...row, pos: i + 1 }));
 
-  return { source: 'beengine-f2', items };
-};
+const fallbackCalendar = () =>
+  F2_CALENDAR_2026.map((race) => ({
+    ...race,
+    resultsAvailable: Boolean(F2_RACE_RESULTS_2026[race.round]),
+  }));
 
-export const getCalendar = async () => ({
-  source: 'beengine-f2',
-  items: [...F2_CALENDAR_2026],
+const mapRacePayload = (race) => ({
+  round: race.round,
+  raceName: race.raceName,
+  circuitName: race.circuitName,
+  date: race.date,
+  imageUrl: null,
+  results: race.results.map((r) => ({
+    position: r.position,
+    driver: r.driver,
+    driverId: r.driverId,
+    team: r.team,
+    constructorId: r.constructorId,
+    grid: r.grid,
+    laps: r.laps,
+    status: r.status,
+    points: r.points,
+    time: r.time,
+  })),
 });
 
-export const getLastRace = async () => {
+const fallbackLastRace = () => {
   const race = F2_RACE_RESULTS_2026[F2_LAST_COMPLETED_ROUND];
   if (!race) throw new Error('No last F2 race data');
+  return mapRacePayload(race);
+};
 
+const fallbackRaceResults = (round) => {
+  const race = F2_RACE_RESULTS_2026[round];
+  if (!race) throw new Error(`No F2 race results for round ${round}`);
   return {
-    source: 'beengine-f2',
     round: race.round,
     raceName: race.raceName,
     circuitName: race.circuitName,
     date: race.date,
-    imageUrl: null,
     results: race.results.map((r) => ({
       position: r.position,
       driver: r.driver,
@@ -94,32 +128,70 @@ export const getLastRace = async () => {
       time: r.time,
     })),
   };
+};
+
+/** Rondas con resultados publicados (FIA o, si falla la API, mocks locales). */
+export const getMaxCompletedRound = async () => {
+  const cal = await getCalendar();
+  const rounds = cal.items.filter((r) => r.resultsAvailable).map((r) => r.round);
+  return rounds.length ? Math.max(...rounds) : 0;
+};
+
+export const getDriverStandings = async () => {
+  if (!FIA_F2_ENABLED) return { items: fallbackDriverStandings() };
+  try {
+    const { items } = await fiaApi.getDriverStandings();
+    return { items };
+  } catch {
+    return { items: fallbackDriverStandings() };
+  }
+};
+
+export const getConstructorStandings = async () => {
+  if (!FIA_F2_ENABLED) return { items: fallbackConstructorStandings() };
+  try {
+    const { items } = await fiaApi.getConstructorStandings();
+    return { items };
+  } catch {
+    return { items: fallbackConstructorStandings() };
+  }
+};
+
+export const getCalendar = async () => {
+  if (!FIA_F2_ENABLED) return { items: fallbackCalendar() };
+  try {
+    const { items } = await fiaApi.getCalendar();
+    return { items: stripInternal(items) };
+  } catch {
+    return { items: fallbackCalendar() };
+  }
+};
+
+export const getLastRace = async () => {
+  if (!FIA_F2_ENABLED) return fallbackLastRace();
+  try {
+    const race = await fiaApi.getLastRace();
+    return mapRacePayload(race);
+  } catch {
+    return fallbackLastRace();
+  }
 };
 
 export const getRaceResultsByRound = async (round) => {
   const cleanRound = Number.parseInt(round, 10);
-  const race = F2_RACE_RESULTS_2026[cleanRound];
-  if (!race) throw new Error(`No F2 race results for round ${cleanRound}`);
-
-  return {
-    source: 'beengine-f2',
-    round: race.round,
-    raceName: race.raceName,
-    circuitName: race.circuitName,
-    date: race.date,
-    results: race.results.map((r) => ({
-      position: r.position,
-      driver: r.driver,
-      driverId: r.driverId,
-      team: r.team,
-      constructorId: r.constructorId,
-      grid: r.grid,
-      laps: r.laps,
-      status: r.status,
-      points: r.points,
-      time: r.time,
-    })),
-  };
+  if (!FIA_F2_ENABLED) return fallbackRaceResults(cleanRound);
+  try {
+    const race = await fiaApi.getRaceResultsByRound(cleanRound);
+    return {
+      round: race.round,
+      raceName: race.raceName,
+      circuitName: race.circuitName,
+      date: race.date,
+      results: race.results,
+    };
+  } catch {
+    return fallbackRaceResults(cleanRound);
+  }
 };
 
 export const findDriverGrid = (driverId) =>

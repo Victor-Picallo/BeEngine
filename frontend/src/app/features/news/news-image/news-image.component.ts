@@ -44,18 +44,6 @@ import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core
                   stroke-linecap="round"
                 />
               }
-              @case ('bolt') {
-                <path d="M46,12 L30,42 L44,42 L34,68 L54,34 L40,34Z" [attr.fill]="accent()" />
-              }
-              @case ('rally') {
-                <path
-                  d="M8,50 L8,34 L16,24 L36,22 L50,28 L64,26 L72,34 L72,50 L64,54 L56,48 L24,48 L16,54Z M18,54 A8,8 0 1,0 18.01,54 M58,54 A8,8 0 1,0 58.01,54"
-                  [attr.fill]="accent()"
-                />
-              }
-              @case ('oval') {
-                <ellipse cx="40" cy="46" rx="28" ry="12" [attr.stroke]="accent()" stroke-width="4" fill="none" />
-              }
               @default {
                 <path
                   d="M10,52 L14,38 L22,34 L28,28 L52,28 L58,34 L66,38 L70,52 L62,54 L58,48 L22,48 L18,54Z M20,54 A6,6 0 1,0 20.01,54 M60,54 A6,6 0 1,0 60.01,54"
@@ -187,13 +175,14 @@ export class NewsImageComponent {
     return this.cat().toUpperCase();
   }
 
-  shape(): 'car' | 'moto' | 'bolt' | 'rally' | 'oval' {
-    const map: Record<string, 'car' | 'moto' | 'bolt' | 'rally' | 'oval'> = {
+  shape(): 'car' | 'moto' {
+    const map: Record<string, 'car' | 'moto'> = {
       f1: 'car',
+      f2: 'car',
+      f3: 'car',
       motogp: 'moto',
-      fe: 'bolt',
-      wrc: 'rally',
-      indycar: 'oval',
+      moto2: 'moto',
+      moto3: 'moto',
     };
     return map[this.cat()] ?? 'car';
   }

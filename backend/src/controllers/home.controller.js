@@ -1,4 +1,4 @@
-import { getHomeByCategory } from '../services/home.service.js';
+import { getHomeByCategory } from '../services/shared/home.service.js';
 import { success, error } from '../utils/response.js';
 import { HTTP_STATUS } from '../constants/http.js';
 

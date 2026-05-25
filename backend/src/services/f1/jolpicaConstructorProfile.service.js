@@ -1,14 +1,14 @@
-import { jolpicaClient } from '../external/jolpica/jolpica.client.js';
-import { CAREER_HISTORY_PAGE_SIZE } from '../utils/careerPagination.js';
+import { jolpicaClient } from '../../external/jolpica/jolpica.client.js';
+import { CAREER_HISTORY_PAGE_SIZE } from '../../utils/careerPagination.js';
 import {
   getManualConstructorProfile,
   getManualConstructorProfileAggregates,
   isManualConstructorId,
-} from './f1ManualConstructorProfile.service.js';
+} from './manualConstructorProfile.service.js';
 import {
   getConstructorHistoricalStats,
   mergeHistoricalWithLive,
-} from '../data/f1ConstructorHistoricalStats.js';
+} from '../../data/f1/f1ConstructorHistoricalStats.js';
 
 const PROFILE_JOLPICA = { timeoutMs: 10_000 };
 

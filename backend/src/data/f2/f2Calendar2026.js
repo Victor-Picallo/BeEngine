@@ -22,4 +22,4 @@ export const F2_CALENDAR_2026 = [
 ];
 
 /** Última ronda con resultados registrados en BeEngine. */
-export const F2_LAST_COMPLETED_ROUND = 2;
+export const F2_LAST_COMPLETED_ROUND = 3;

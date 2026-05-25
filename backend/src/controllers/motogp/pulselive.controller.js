@@ -8,19 +8,19 @@ import {
   getRaceResultsByRound,
   getRoundSessions,
   getWeekendSessions,
-} from '../services/motogpPulseLive.service.js';
+} from '../../services/motogp/pulseLive.service.js';
 import {
   getDriverProfile,
   getDriverProfileAggregates,
-} from '../services/motogp/motogpDriverProfile.service.js';
+} from '../../services/motogp/motogpDriverProfile.service.js';
 import {
   getConstructorProfile,
   getConstructorProfileAggregates,
-} from '../services/motogp/motogpConstructorProfile.service.js';
-import { getRidersIndex } from '../services/motogp/motogpRiders.service.js';
-import { getCircuits, getCircuitById } from '../services/motogp/motogpCircuits.service.js';
-import { getTeamsIndex } from '../services/motogp/motogpTeams.service.js';
-import { success, error } from '../utils/response.js';
+} from '../../services/motogp/motogpConstructorProfile.service.js';
+import { getRidersIndex } from '../../services/motogp/motogpRiders.service.js';
+import { getCircuits, getCircuitById } from '../../services/motogp/motogpCircuits.service.js';
+import { getTeamsIndex } from '../../services/motogp/motogpTeams.service.js';
+import { success, error } from '../../utils/response.js';
 
 const CACHE_STANDINGS = 'public, max-age=30, stale-while-revalidate=120';
 const CACHE_CALENDAR = 'public, max-age=60, stale-while-revalidate=300';

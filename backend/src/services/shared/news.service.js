@@ -1,4 +1,4 @@
-import { findNewsByCategory } from '../repositories/news.repository.js';
+import { findNewsByCategory } from '../../repositories/news.repository.js';
 import {
   getNewsArticles,
   getNewsArticleById,

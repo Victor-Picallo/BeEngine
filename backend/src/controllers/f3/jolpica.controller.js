@@ -4,16 +4,16 @@ import {
   getCalendar,
   getLastRace,
   getRaceResultsByRound,
-} from '../services/f3/f3Data.service.js';
+} from '../../services/f3/f3Data.service.js';
 import {
   getDriverProfile,
   getDriverProfileAggregates,
-} from '../services/f3/f3DriverProfile.service.js';
+} from '../../services/f3/f3DriverProfile.service.js';
 import {
   getConstructorProfile,
   getConstructorProfileAggregates,
-} from '../services/f3/f3ConstructorProfile.service.js';
-import { success, error } from '../utils/response.js';
+} from '../../services/f3/f3ConstructorProfile.service.js';
+import { success, error } from '../../utils/response.js';
 
 const CACHE = 'public, max-age=60, stale-while-revalidate=300';
 
@@ -58,7 +58,8 @@ export const raceResults = async (req, res) => {
     const data = await getRaceResultsByRound(req.params.round);
     success(res, data);
   } catch (err) {
-    error(res, err.message);
+    const status = /no f3 race results/i.test(err.message) ? 404 : 500;
+    error(res, err.message, status);
   }
 };
 

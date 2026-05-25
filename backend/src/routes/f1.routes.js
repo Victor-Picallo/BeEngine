@@ -9,7 +9,7 @@ import {
   driverProfileAggregates,
   constructorProfile,
   constructorProfileAggregates,
-} from '../controllers/f1Jolpica.controller.js';
+} from '../controllers/f1/jolpica.controller.js';
 import {
   sessions,
   drivers,
@@ -21,7 +21,7 @@ import {
   raceControl,
   teamRadio,
   location,
-} from '../controllers/f1OpenF1.controller.js';
+} from '../controllers/f1/openf1.controller.js';
 
 const router = Router();
 

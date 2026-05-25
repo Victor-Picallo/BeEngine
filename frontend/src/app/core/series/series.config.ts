@@ -84,6 +84,11 @@ export function isFeederSeries(id: SeriesId): boolean {
   return id === 'f2' || id === 'f3' || id === 'motogp';
 }
 
+/** Solo F2/F3: `resultsAvailable` viene del calendario API (FIA) o del fallback local. */
+export function isFormulaFeederSeries(id: SeriesId): boolean {
+  return id === 'f2' || id === 'f3';
+}
+
 export function isMotoSeries(id: SeriesId): boolean {
   return id === 'motogp';
 }

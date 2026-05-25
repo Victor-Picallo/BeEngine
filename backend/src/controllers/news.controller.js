@@ -2,8 +2,8 @@ import {
   getNewsByCategory,
   getNewsArticles,
   getNewsArticleById,
-} from '../services/news.service.js';
-import { NEWS_TAGS } from '../data/newsFeeds.config.js';
+} from '../services/shared/news.service.js';
+import { NEWS_TAGS } from '../data/shared/newsFeeds.config.js';
 import { success, error } from '../utils/response.js';
 import { HTTP_STATUS } from '../constants/http.js';
 

@@ -3,7 +3,7 @@ import { PORT, NODE_ENV } from './config/env.js';
 import {
   warmConstructorStandingsCache,
   warmDriverStandingsCache,
-} from './services/f1Jolpica.service.js';
+} from './services/f1/jolpica.service.js';
 
 const server = app.listen(PORT);
 

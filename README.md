@@ -35,7 +35,7 @@ Inspired by the best sports apps in the world — Formula 1 App, SofaScore, OneF
 |---|---|
 | **Premium UX** | A UI that feels native, fast, and visually modern — not a generic sports site |
 | **Data-first** | Standings, calendars, results, statistics — always structured and accessible |
-| **Multi-category** | Start with F1 + MotoGP, scale to Formula E, WRC, IndyCar and beyond |
+| **Multi-category** | F1, F2, F3, MotoGP, Moto2 and Moto3 |
 | **Real-time ready** | Architecture prepared for live timing, lap data, and push updates |
 | **Developer friendly** | Clean separation of concerns, typed contracts, easy to extend |
 
@@ -156,7 +156,7 @@ BeEngine/
 
 | Feature | Status | Notes |
 |---|---|---|
-| Category switching (F1, MotoGP, FE, WRC, IndyCar) | ✅ Live | Real-time UI switch with accent colors |
+| Category switching (F1, F2, F3, MotoGP, Moto2, Moto3) | ✅ Live | Real-time UI switch with accent colors |
 | Next race countdown | ✅ Live | Ticking timer, updates per second |
 | Driver standings | ✅ Live | Per-category, toggle full list |
 | Constructor standings | ✅ Live | Progress bars with team colors |
@@ -179,7 +179,7 @@ BeEngine/
 | `GET` | `/api/news/:category` | News by category |
 | `GET` | `/api/calendar/:category` | Upcoming sessions |
 
-**Valid categories:** `f1` · `motogp` · `fe` · `wrc` · `indycar`
+**Valid categories:** `f1` · `f2` · `f3` · `motogp` · `moto2` · `moto3`
 
 **Response format:**
 ```json
@@ -332,10 +332,11 @@ BeEngine is built around a set of visual and architectural principles that separ
 | Category | Accent | Hex |
 |---|---|---|
 | Formula 1 | Gold Yellow | `#FFD100` |
+| Formula 2 | Blue | `#0090FF` |
+| Formula 3 | Grey | `#9E9E9E` |
 | MotoGP | Racing Blue | `#0052CC` |
-| Formula E | Electric Cyan | `#00C8FF` |
-| WRC | Rally Orange | `#FF8C00` |
-| IndyCar | Indianapolis Red | `#B8002D` |
+| Moto2 | Orange | `#FF6B35` |
+| Moto3 | Green | `#52C41A` |
 
 **Typography as sport.** [Barlow Condensed](https://fonts.google.com/specimen/Barlow+Condensed) for headers, numbers, and labels — tight, fast, confident. Barlow for body copy.
 

@@ -1,4 +1,4 @@
-import { openF1Client } from '../external/openf1/openf1.client.js';
+import { openF1Client } from '../../external/openf1/openf1.client.js';
 
 // ── Normalizers ───────────────────────────────────────────
 

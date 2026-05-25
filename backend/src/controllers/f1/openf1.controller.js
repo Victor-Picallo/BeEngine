@@ -9,8 +9,8 @@ import {
   getRaceControl,
   getTeamRadio,
   getLocation,
-} from '../services/f1OpenF1.service.js';
-import { success, error } from '../utils/response.js';
+} from '../../services/f1/openf1.service.js';
+import { success, error } from '../../utils/response.js';
 
 // OpenF1 accepts numeric session keys or the literal "latest" alias.
 const parseSessionKey = (raw) => {

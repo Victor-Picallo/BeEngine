@@ -413,10 +413,14 @@
             <div class="fr-hero-body">
               <div
                 class="fr-status"
-                [class.fr-status--done]="isPast()"
-                [class.fr-status--next]="!isPast()"
+                [class.fr-status--done]="racePhase() === 'done'"
+                [class.fr-status--next]="racePhase() !== 'done'"
               >
-                {{ isPast() ? 'CARRERA FINALIZADA' : 'PRÓXIMA CARRERA' }}
+                @switch (racePhase()) {
+                  @case ('done') { CARRERA FINALIZADA }
+                  @case ('awaiting') { RESULTADOS PENDIENTES }
+                  @default { PRÓXIMA CARRERA }
+                }
               </div>
               <h1>{{ raceResult()?.raceName ?? race.raceName }}</h1>
               <p class="fr-meta">{{ race.circuitName }} · {{ race.locality }}, {{ race.country }}</p>
@@ -424,7 +428,7 @@
             </div>
           </header>
 
-          @if (!isPast()) {
+          @if (racePhase() === 'upcoming') {
             <section class="fr-upcoming">
               <p>
                 Esta ronda aún no se ha disputado. Vuelve cuando termine el fin de semana para ver el podio y la
@@ -432,9 +436,22 @@
               </p>
               <a [routerLink]="seriesCtx.path('calendario')" class="fr-cta">Ver calendario</a>
             </section>
+          } @else if (racePhase() === 'awaiting') {
+            <section class="fr-upcoming">
+              <p>
+                Esta ronda ya está en el calendario, pero aún no hemos publicado la clasificación en BeEngine.
+                Prueba con una ronda anterior desde el calendario.
+              </p>
+              <a [routerLink]="seriesCtx.path('calendario')" class="fr-cta">Ver calendario</a>
+            </section>
+          } @else if (sessionLoading()) {
+            <section class="fr-upcoming">
+              <p>Cargando resultados…</p>
+            </section>
           } @else if (!raceResult() && !resultRows().length) {
             <section class="fr-upcoming">
-              <p>Resultados en sincronización.</p>
+              <p>No se pudieron cargar los resultados de esta ronda.</p>
+              <a [routerLink]="seriesCtx.path('calendario')" class="fr-cta">Volver al calendario</a>
             </section>
           } @else if (resultRows().length) {
             @if (podium().length) {

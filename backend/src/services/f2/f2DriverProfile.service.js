@@ -1,9 +1,9 @@
 import {
   findDriverGrid,
   getDriverStandings,
+  getMaxCompletedRound,
   getRaceResultsByRound,
 } from './f2Data.service.js';
-import { F2_LAST_COMPLETED_ROUND } from '../../data/f2/f2Calendar2026.js';
 
 const splitName = (driver) => {
   const parts = driver.driver.split(/\s+/).filter(Boolean);
@@ -23,8 +23,9 @@ export const getDriverProfile = async (driverId, _careerPage = 1) => {
   const standings = await getDriverStandings();
   const row = standings.items.find((d) => d.driverId === driverId);
 
+  const maxRound = await getMaxCompletedRound();
   const currentSeason = [];
-  for (let r = 1; r <= F2_LAST_COMPLETED_ROUND; r += 1) {
+  for (let r = 1; r <= maxRound; r += 1) {
     try {
       const race = await getRaceResultsByRound(r);
       const result = race.results.find((x) => x.driverId === driverId);
@@ -48,7 +49,6 @@ export const getDriverProfile = async (driverId, _careerPage = 1) => {
   const { givenName, familyName } = splitName(grid);
 
   return {
-    source: 'beengine-f2',
     driverId: grid.driverId,
     givenName,
     familyName,
@@ -84,7 +84,6 @@ export const getDriverProfile = async (driverId, _careerPage = 1) => {
       },
     ],
     careerHistoryPagination: null,
-    statsSource: 'local',
   };
 };
 

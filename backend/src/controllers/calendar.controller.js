@@ -1,4 +1,4 @@
-import { getCalendarByCategory } from '../services/calendar.service.js';
+import { getCalendarByCategory } from '../services/shared/calendar.service.js';
 import { success, error } from '../utils/response.js';
 import { HTTP_STATUS } from '../constants/http.js';
 

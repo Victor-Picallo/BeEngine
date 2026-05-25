@@ -4,16 +4,16 @@ import {
   getCalendar,
   getLastRace,
   getRaceResultsByRound,
-} from '../services/f2/f2Data.service.js';
+} from '../../services/f2/f2Data.service.js';
 import {
   getDriverProfile,
   getDriverProfileAggregates,
-} from '../services/f2/f2DriverProfile.service.js';
+} from '../../services/f2/f2DriverProfile.service.js';
 import {
   getConstructorProfile,
   getConstructorProfileAggregates,
-} from '../services/f2/f2ConstructorProfile.service.js';
-import { success, error } from '../utils/response.js';
+} from '../../services/f2/f2ConstructorProfile.service.js';
+import { success, error } from '../../utils/response.js';
 
 const CACHE = 'public, max-age=60, stale-while-revalidate=300';
 
@@ -58,7 +58,8 @@ export const raceResults = async (req, res) => {
     const data = await getRaceResultsByRound(req.params.round);
     success(res, data);
   } catch (err) {
-    error(res, err.message);
+    const status = /no f2 race results/i.test(err.message) ? 404 : 500;
+    error(res, err.message, status);
   }
 };
 
