@@ -109,7 +109,11 @@ export class BackNavigationService {
       path === '/f3/noticias' ||
       path.startsWith('/f3/noticias/') ||
       path === '/motogp/noticias' ||
-      path.startsWith('/motogp/noticias/')
+      path.startsWith('/motogp/noticias/') ||
+      path === '/moto2/noticias' ||
+      path.startsWith('/moto2/noticias/') ||
+      path === '/moto3/noticias' ||
+      path.startsWith('/moto3/noticias/')
     ) {
       return 'Noticias';
     }

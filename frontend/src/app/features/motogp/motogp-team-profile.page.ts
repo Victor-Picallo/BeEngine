@@ -12,8 +12,8 @@ import { DecimalPipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, EMPTY, finalize, map, of, switchMap, tap } from 'rxjs';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
-import { MotoLiveService } from '../moto-live/moto-live.service';
-import { MotoContextService } from '../../core/moto/moto-context.service';
+import { MotogpPulseService } from './motogp-pulse.service';
+import { SeriesContextService } from '../../core/series/series-context.service';
 import type {
   MotogpTeamProfile,
   MotogpTeamProfileCareerRow,
@@ -51,14 +51,14 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MotogpTeamProfilePageComponent {
-  private readonly moto = inject(MotoLiveService);
+  private readonly motogp = inject(MotogpPulseService);
   private readonly route = inject(ActivatedRoute);
   private readonly location = inject(Location);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly motoCtx = inject(MotoContextService);
+  readonly seriesCtx = inject(SeriesContextService);
 
-  readonly accent = computed(() => this.motoCtx.config().accent);
-  readonly teamsPath = computed(() => `${this.motoCtx.homePath()}/escuderias`);
+  readonly accent = computed(() => this.seriesCtx.config().accent);
+  readonly teamsPath = computed(() => this.seriesCtx.urlPath('escuderias'));
   readonly flagImgUrl = flagCdnUrl;
 
   loading = signal(true);
@@ -139,14 +139,14 @@ export class MotogpTeamProfilePageComponent {
           this.lastLoadedConstructorId = '';
           this.loading.set(true);
           this.error.set(null);
-          return this.moto.getTeamProfile(id, 1).pipe(
+          return this.motogp.getTeamProfile(id, 1).pipe(
             switchMap((p) => {
               if (!p) return of(null);
               this.lastLoadedConstructorId = id;
               this.profile.set(p);
               this.loading.set(false);
               if (!p.aggregatesPending) return of(null);
-              return this.moto.getTeamProfileAggregates(id).pipe(
+              return this.motogp.getTeamProfileAggregates(id).pipe(
                 tap((agg) => {
                   const cur = this.profile();
                   if (!cur) return;
@@ -196,7 +196,7 @@ export class MotogpTeamProfilePageComponent {
 
     const gen = ++this.careerLoadGen;
     this.careerHistoryLoading.set(true);
-    this.moto
+    this.motogp
       .getTeamProfile(id, page)
       .pipe(
         catchError(() => EMPTY),

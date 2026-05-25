@@ -40,7 +40,12 @@ import type {
 } from '../../f1-live/f1-live.types';
 import { AppHeaderComponent } from '../../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../../shared/components/app-sidebar/app-sidebar.component';
-import { isFeederSeries } from '../../../core/series/series.config';
+import {
+  isFeederSeries,
+  isMotoFeederSeries,
+  isMotoPulseSeries,
+} from '../../../core/series/series.config';
+import type { SeriesId } from '../../../core/series/series.types';
 import { SeriesContextService } from '../../../core/series/series-context.service';
 import { SeriesAccentDirective } from '../../../core/series/series-accent.directive';
 import {
@@ -86,6 +91,15 @@ function matchOpenF1Driver(profile: JolpikaDriverProfile, open: OpenF1Driver[]):
     const oLast = parts[parts.length - 1] ?? '';
     return oLast === jLast;
   });
+}
+
+function bioCategoryLabel(sid: SeriesId): string {
+  if (sid === 'f2') return 'Fórmula 2';
+  if (sid === 'f3') return 'Fórmula 3';
+  if (sid === 'moto2') return 'Moto2';
+  if (sid === 'moto3') return 'Moto3';
+  if (sid === 'motogp') return 'MotoGP';
+  return 'Fórmula 1';
 }
 
 function formatBirthEs(iso: string | null): string {
@@ -158,8 +172,9 @@ export class F1DriverProfilePageComponent {
     const p = this.profile();
     const full = p ? `${p.givenName} ${p.familyName}`.trim() : '';
     const sid = this.seriesCtx.id();
-    const mediaUrl =
-      sid === 'motogp' ? p?.headshotUrl : this.openf1()?.headshotUrl;
+    const mediaUrl = isMotoPulseSeries(sid)
+      ? p?.headshotUrl
+      : this.openf1()?.headshotUrl;
     return resolveDriverHeadshotUrl(p?.driverId ?? '', full, mediaUrl, {
       // F2/F3: «card» = imagen completa; «large» solo en clasificación.
       ...(sid === 'f2' || sid === 'f3' ? { size: 'card' as const } : {}),
@@ -198,17 +213,22 @@ export class F1DriverProfilePageComponent {
   bioText = computed(() => {
     const p = this.profile();
     if (!p) return '';
+    const sid = this.seriesCtx.id();
     const name = `${p.givenName} ${p.familyName}`;
     const nat = NAT_ES[p.nationality] ?? p.nationality;
     const born = formatBirthEs(p.dateOfBirth);
     const num = this.displayNumber();
     const s = p.stats;
+    const category = bioCategoryLabel(sid);
+    const raceWord = isMotoPulseSeries(sid) ? 'carreras' : 'grandes premios';
+    const numBit = num !== '—' ? ` con el dorsal ${num}` : '';
     return (
-      `${name} (${nat}, nacido el ${born}) compite en Fórmula 1${num !== '—' ? ` con el dorsal ${num}` : ''}. ` +
+      `${name} (${nat}, nacido el ${born}) compite en ${category}${numBit}. ` +
       `Debutó en ${p.debut}. ` +
-      `Ha disputado ${s.races} grandes premios, con ${s.wins} victorias, ${s.podiums} podios y ${s.poles} poles. ` +
+      `Ha disputado ${s.races} ${raceWord}, con ${s.wins} victorias, ${s.podiums} podios` +
+      `${isMotoPulseSeries(sid) ? '' : ` y ${s.poles} poles`}. ` +
       `En lo que va de la temporada ${p.currentSeasonYear} lleva ${s.winsCurrentSeason} victorias. ` +
-      `Suma más de ${Math.floor(s.points)} puntos en su trayectoria en la categoría reina del automovilismo.`
+      `Suma ${Math.floor(s.points)} puntos en su trayectoria en la categoría.`
     );
   });
 
@@ -442,12 +462,23 @@ export class F1DriverProfilePageComponent {
     const el = ev.target;
     if (!(el instanceof HTMLImageElement)) return;
     const sid = this.seriesCtx.id();
-    if (isFeederSeries(sid) && !el.dataset['f2Retry'] && el.classList.contains('dp-headshot')) {
-      const raw = resolveDriverHeadshotRawUrl(this.profile()?.driverId ?? '', sid);
-      if (raw) {
-        el.dataset['f2Retry'] = '1';
-        el.src = raw;
-        return;
+    if (!el.dataset['portraitRetry'] && el.classList.contains('dp-headshot')) {
+      const id = this.profile()?.driverId ?? '';
+      if (isFeederSeries(sid) && !isMotoFeederSeries(sid)) {
+        const raw = resolveDriverHeadshotRawUrl(id, sid);
+        if (raw) {
+          el.dataset['portraitRetry'] = '1';
+          el.src = raw;
+          return;
+        }
+      }
+      if (sid === 'moto2') {
+        const local = resolveDriverHeadshotUrl(id, '', null, { seriesId: 'moto2' });
+        if (local && local !== el.src) {
+          el.dataset['portraitRetry'] = '1';
+          el.src = local;
+          return;
+        }
       }
     }
     el.style.display = 'none';

@@ -10,6 +10,16 @@ export const SERIES_SECTION_LABELS = [
   'Clasificación',
 ] as const;
 
+/** Labels del menú moto (misma ruta que «Escuderías»). */
+export const MOTO_SECTION_LABELS = [
+  'Inicio',
+  'Noticias',
+  'Calendario',
+  'Pilotos',
+  'Equipos',
+  'Clasificación',
+] as const;
+
 export type SeriesSectionLabel = (typeof SERIES_SECTION_LABELS)[number];
 
 const SECTION_PATHS: Record<SeriesSectionLabel, (prefix: string, home: string) => string | null> = {
@@ -21,13 +31,20 @@ const SECTION_PATHS: Record<SeriesSectionLabel, (prefix: string, home: string) =
   Clasificación: (p) => `${p}/clasificacion`,
 };
 
+function normalizeSectionLabel(label: string): SeriesSectionLabel | null {
+  if (label === 'Equipos') return 'Escuderías';
+  if ((SERIES_SECTION_LABELS as readonly string[]).includes(label)) {
+    return label as SeriesSectionLabel;
+  }
+  return null;
+}
+
 export function seriesSectionPath(seriesId: SeriesId, label: string): string | null {
-  const key = label as SeriesSectionLabel;
+  const key = normalizeSectionLabel(label);
+  if (!key) return null;
   const fn = SECTION_PATHS[key];
-  if (!fn) return null;
   const cfg = SERIES_CONFIG[seriesId];
-  const home =
-    seriesId === 'f1' ? '/' : seriesId === 'motogp' ? '/motogp' : cfg.routePrefix;
+  const home = seriesId === 'f1' ? '/' : cfg.routePrefix;
   const prefix = seriesId === 'f1' ? '/f1' : cfg.routePrefix;
   return fn(prefix, home);
 }

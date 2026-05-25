@@ -65,9 +65,9 @@ export const officialTeamsGrid = async (req, res) => {
   }
 };
 
-export const calendar = async (_req, res) => {
+export const calendar = async (req, res) => {
   try {
-    const data = await getCalendar();
+    const data = await getCalendar(getCategoryId(req));
     success(res, data, 200, { 'Cache-Control': CACHE_CALENDAR });
   } catch (err) {
     error(res, err.message);
@@ -122,7 +122,9 @@ export const raceResults = async (req, res) => {
 
 export const driverProfile = async (req, res) => {
   try {
-    const data = await getDriverProfile(req.params.driverId);
+    const data = await getDriverProfile(req.params.driverId, {
+      categoryId: getCategoryId(req),
+    });
     success(res, data, 200, { 'Cache-Control': CACHE_PROFILE });
   } catch (err) {
     if (err.code === 'NOT_FOUND') return error(res, err.message, 404);
@@ -132,7 +134,9 @@ export const driverProfile = async (req, res) => {
 
 export const driverProfileAggregates = async (req, res) => {
   try {
-    const data = await getDriverProfileAggregates(req.params.driverId);
+    const data = await getDriverProfileAggregates(req.params.driverId, {
+      categoryId: getCategoryId(req),
+    });
     success(res, data, 200, { 'Cache-Control': CACHE_PROFILE });
   } catch (err) {
     if (err.code === 'NOT_FOUND') return error(res, err.message, 404);
@@ -144,6 +148,7 @@ export const constructorProfile = async (req, res) => {
   try {
     const data = await getConstructorProfile(req.params.constructorId, {
       careerPage: req.query.careerPage,
+      categoryId: getCategoryId(req),
     });
     success(res, data, 200, { 'Cache-Control': CACHE_PROFILE });
   } catch (err) {
@@ -154,7 +159,9 @@ export const constructorProfile = async (req, res) => {
 
 export const constructorProfileAggregates = async (req, res) => {
   try {
-    const data = await getConstructorProfileAggregates(req.params.constructorId);
+    const data = await getConstructorProfileAggregates(req.params.constructorId, {
+      categoryId: getCategoryId(req),
+    });
     success(res, data, 200, { 'Cache-Control': CACHE_PROFILE });
   } catch (err) {
     if (err.code === 'NOT_FOUND') return error(res, err.message, 404);

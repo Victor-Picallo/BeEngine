@@ -14,7 +14,6 @@ export class SeriesContextService {
   readonly routePrefix = computed(() => this.config().routePrefix);
   readonly homePath = computed(() => {
     if (this.id() === 'f1') return '/';
-    if (this.id() === 'motogp') return '/motogp';
     return this.routePrefix();
   });
 
@@ -42,7 +41,7 @@ export class SeriesContextService {
     if (this.id() === 'f1') {
       return segments.length ? ['/f1', ...segments] : ['/'];
     }
-    const root = this.id() === 'motogp' ? '/motogp' : `/${this.id()}`;
+    const root = `/${this.id()}`;
     return segments.length ? [root, ...segments] : [root];
   }
 

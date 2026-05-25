@@ -1,8 +1,17 @@
 import {
+  MOTO2_CATEGORY_UUID,
+  MOTO3_CATEGORY_UUID,
+  MOTOGP_CATEGORY_UUID,
+} from '../../external/motogp/pulselive.client.js';
+import {
   getCalendar,
   getDriverStandings,
   getRaceResultsByRound,
 } from './pulseLive.service.js';
+import {
+  findMoto2DriverGrid,
+  MOTO2_DRIVER_PORTRAIT_URL,
+} from '../moto2/moto2Data.service.js';
 import {
   findRider,
   getRiderDetail,
@@ -10,27 +19,56 @@ import {
   getRiderStatisticsBySeason,
 } from './motogpRiders.service.js';
 
-const mgpCategoryId = 'e8c110ad-64aa-4e8e-8a86-f2f152f6a942';
-
-const countMgp = (block) => {
-  const cats = block?.categories ?? [];
-  const mgp = cats.find((c) => c.category?.id === mgpCategoryId);
-  return mgp?.count ?? block?.total ?? 0;
+const CATEGORY_META = {
+  motogp: {
+    pulseId: MOTOGP_CATEGORY_UUID,
+    label: 'MotoGP',
+    source: 'pulselive-motogp',
+  },
+  moto2: {
+    pulseId: MOTO2_CATEGORY_UUID,
+    label: 'Moto2',
+    source: 'pulselive-moto2',
+  },
+  moto3: {
+    pulseId: MOTO3_CATEGORY_UUID,
+    label: 'Moto3',
+    source: 'pulselive-moto3',
+  },
 };
 
-const debutYearFromStats = (stats, seasonRows) => {
+const resolveCategoryId = (raw) =>
+  raw === 'moto2' || raw === 'moto3' ? raw : 'motogp';
+
+const countForCategory = (block, pulseId) => {
+  const cats = block?.categories ?? [];
+  const hit = cats.find((c) => c.category?.id === pulseId);
+  return hit?.count ?? block?.total ?? 0;
+};
+
+const seasonMatchesCategory = (row, label) => {
+  const c = String(row?.category || '').toLowerCase();
+  const key = label.toLowerCase();
+  return c.includes(key);
+};
+
+const debutYearFromStats = (stats, seasonRows, pulseId) => {
   const seasons = seasonRows
     .map((r) => parseInt(String(r.season), 10))
     .filter((y) => Number.isFinite(y));
   if (seasons.length) return String(Math.min(...seasons));
-  const first = stats?.first_grand_prix?.find(
-    (x) => x.category?.id === mgpCategoryId,
-  );
+  const first = stats?.first_grand_prix?.find((x) => x.category?.id === pulseId);
   return first?.event?.season ? String(first.event.season) : String(new Date().getFullYear());
 };
 
-export const getDriverProfile = async (driverId) => {
-  const row = (await getDriverStandings()).items.find((d) => d.driverId === driverId);
+export const getDriverProfile = async (driverId, opts = {}) => {
+  const categoryId = resolveCategoryId(opts.categoryId);
+  const meta = CATEGORY_META[categoryId];
+  const localGrid =
+    categoryId === 'moto2' ? findMoto2DriverGrid(driverId) : null;
+
+  const standings = await getDriverStandings(categoryId);
+  const row = standings.items.find((d) => d.driverId === driverId);
   const rider = (await findRider(driverId)) ?? (await getRiderDetail(driverId));
   if (!row && !rider) {
     const err = new Error('Driver not found');
@@ -45,20 +83,18 @@ export const getDriverProfile = async (driverId) => {
     getCalendar(),
   ]);
 
-  const mgpSeasons = seasonStats.filter(
-    (s) => String(s.category || '').includes('MotoGP'),
-  );
+  const categorySeasons = seasonStats.filter((s) => seasonMatchesCategory(s, meta.label));
   const currentYear = new Date().getFullYear();
   const currentSeasonYear =
-    mgpSeasons.find((s) => parseInt(s.season, 10) === currentYear)?.season != null
+    categorySeasons.find((s) => parseInt(s.season, 10) === currentYear)?.season != null
       ? currentYear
-      : parseInt(mgpSeasons[0]?.season ?? String(currentYear), 10) || currentYear;
+      : parseInt(categorySeasons[0]?.season ?? String(currentYear), 10) || currentYear;
 
   const totalRounds = calendar.items?.length ?? 22;
   const id = row?.driverId ?? rider?.id ?? driverId;
   const racePayloads = await Promise.all(
     Array.from({ length: totalRounds }, (_, i) =>
-      getRaceResultsByRound(i + 1).catch(() => null),
+      getRaceResultsByRound(i + 1, 'race', categoryId).catch(() => null),
     ),
   );
   const currentSeason = racePayloads
@@ -80,7 +116,7 @@ export const getDriverProfile = async (driverId) => {
     })
     .filter(Boolean);
 
-  const careerHistory = mgpSeasons
+  const careerHistory = categorySeasons
     .map((s) => {
       const year = parseInt(s.season, 10);
       if (!Number.isFinite(year)) return null;
@@ -101,8 +137,8 @@ export const getDriverProfile = async (driverId) => {
     .filter(Boolean)
     .sort((a, b) => b.year - a.year);
 
-  const championships = countMgp(stats?.world_championship_wins);
-  const careerWins = countMgp(stats?.grand_prix_victories);
+  const championships = countForCategory(stats?.world_championship_wins, meta.pulseId);
+  const careerWins = countForCategory(stats?.grand_prix_victories, meta.pulseId);
   const careerPodiums = stats?.podiums?.total ?? 0;
   const careerPoles = stats?.poles?.total ?? 0;
 
@@ -110,7 +146,7 @@ export const getDriverProfile = async (driverId) => {
   const familyName = rider?.familyName ?? row?.driver?.split(' ').pop() ?? '';
 
   return {
-    source: 'pulselive-motogp',
+    source: meta.source,
     driverId: row?.driverId ?? rider?.id ?? driverId,
     givenName,
     familyName,
@@ -118,16 +154,23 @@ export const getDriverProfile = async (driverId) => {
     number: rider?.number ?? null,
     dateOfBirth: rider?.birthDate ?? null,
     nationality: rider?.nationality ?? row?.nationality ?? '',
-    headshotUrl: rider?.portraitUrl ?? row?.headshotUrl ?? null,
+    headshotUrl:
+      rider?.portraitUrl ??
+      row?.headshotUrl ??
+      (categoryId === 'moto2'
+        ? MOTO2_DRIVER_PORTRAIT_URL[row?.driverId ?? rider?.id ?? driverId]
+        : null) ??
+      localGrid?.headshotUrl ??
+      null,
     championships,
-    debut: debutYearFromStats(stats, mgpSeasons),
+    debut: debutYearFromStats(stats, categorySeasons, meta.pulseId),
     currentSeasonYear,
     stats: {
       wins: careerWins || row?.wins || 0,
       podiums: careerPodiums,
       poles: careerPoles,
       fastestLaps: 0,
-      races: mgpSeasons.reduce((n, s) => n + (s.starts ?? 0), 0),
+      races: categorySeasons.reduce((n, s) => n + (s.starts ?? 0), 0),
       points: row?.points ?? careerHistory[0]?.pts ?? 0,
       winsCurrentSeason: row?.wins ?? currentSeason.filter((x) => x.pos === 1).length,
     },
@@ -153,8 +196,8 @@ export const getDriverProfile = async (driverId) => {
   };
 };
 
-export const getDriverProfileAggregates = async (driverId) => {
-  const profile = await getDriverProfile(driverId);
+export const getDriverProfileAggregates = async (driverId, opts = {}) => {
+  const profile = await getDriverProfile(driverId, opts);
   const maxCareerPts = profile.careerHistory.length
     ? Math.max(...profile.careerHistory.map((r) => r.pts))
     : profile.stats.points;

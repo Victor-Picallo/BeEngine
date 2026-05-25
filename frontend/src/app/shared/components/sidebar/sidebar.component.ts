@@ -4,9 +4,8 @@ import { RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../../core/directives/return-nav.directive';
 import { Category, Favorite } from '../../../data/sports.data';
 import { SeriesContextService } from '../../../core/series/series-context.service';
-import { motoSectionPath } from '../../../core/moto/moto-sidebar';
-import type { MotoCategoryId } from '../../../core/moto/moto-categories';
-import { seriesSectionPath } from '../../f1-sidebar-sections';
+import { seriesSectionPath } from '../../../core/series/series-sidebar';
+import type { SeriesId } from '../../../core/series/series.types';
 
 @Component({
   selector: 'app-sidebar',
@@ -23,23 +22,22 @@ export class SidebarComponent {
   accent     = input.required<string>();
   favorites  = input.required<Favorite[]>();
   sections   = input.required<string[]>();
-  /** Enlaces de sección para MotoGP (`/motogp`, noticias, …). */
-  motoMode   = input(false);
-  motoSectionCat = input<MotoCategoryId>('motogp');
+  /** Serie activa para enlaces (p. ej. `moto2` en noticias moto con `?cat=moto2`). */
+  sectionSeriesId = input<SeriesId | null>(null);
+
+  private activeSeriesId(): SeriesId {
+    return this.sectionSeriesId() ?? this.seriesCtx.id();
+  }
 
   sectionPath(label: string): string | null {
-    if (this.motoMode()) {
-      return motoSectionPath(this.motoSectionCat(), label);
-    }
-    return seriesSectionPath(this.seriesCtx.id(), label);
+    return seriesSectionPath(this.activeSeriesId(), label);
   }
 
   pilotosLink(fav: Favorite): (string | number)[] | null {
     if (!fav.driverId) return null;
-    if (this.motoMode()) {
-      return [`/${this.motoSectionCat()}`, 'pilotos', fav.driverId];
-    }
-    return this.seriesCtx.path('pilotos', fav.driverId);
+    const sid = this.activeSeriesId();
+    if (sid === 'f1') return this.seriesCtx.path('pilotos', fav.driverId);
+    return [`/${sid}`, 'pilotos', fav.driverId];
   }
 
   catChange = output<string>();

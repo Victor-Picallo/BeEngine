@@ -3,6 +3,7 @@ import {
   MOTOGP_CATEGORY_UUID,
 } from '../../external/motogp/pulselive.client.js';
 import { resolveMotogpTeamLogoUrl } from '../../data/motogp/motogpTeamLogos.js';
+import { resolveMoto2TeamLogoUrl } from '../../data/moto2/moto2TeamLogos.js';
 
 /** Categoría broadcast MotoGP™ (equipos / riders con fotos). */
 export const MOTOGP_BROADCAST_CATEGORY_UUID = '737ab122-76e1-4081-bedb-334caaa18c70';
@@ -29,6 +30,15 @@ const TEAM_COLOR_OVERRIDES = {
   'trackhouse-motogp-team':            '#0057B8', // Trackhouse azul eléctrico
   'castrol-honda-lcr':                 '#009343', // LCR Honda verde Castrol oficial
   'lcr-honda':                         '#009343',
+  'blu-cru-pramac-yamaha-moto2':       '#5B2D8E',
+  'cfmoto-aspar-team':                 '#E30613',
+  'elf-marc-vds-racing-team':          '#00A651',
+  'liqui-moly-dynavolt-intact-gp':     '#FFD100',
+  'red-bull-ktm-ajo':                  '#FF6600',
+  'reds-fantic-racing':                '#E4002B',
+  'speedrs-team':                      '#003DA5',
+  'onlyfans-american-racing-team':     '#1E3A8A',
+  'qj-motor-galfer-msi':               '#111111',
 };
 
 const TEAMS_CACHE_MS = 6 * 60 * 60_000;
@@ -73,7 +83,15 @@ const normalizeRider = (r) => ({
 const isBikePicture = (url) =>
   Boolean(url && /\/main-picture\.|FrontalBike_/i.test(String(url)));
 
-const normalizeTeam = (t) => {
+const pickPulseTeamLogo = (t) => {
+  const candidates = [t.logo?.main, t.logo?.secondary, t.picture, t.background_picture];
+  for (const url of candidates) {
+    if (url && !isBikePicture(url)) return url;
+  }
+  return null;
+};
+
+const normalizeTeam = (t, categoryId = 'motogp') => {
   const constructorName = t.constructor?.name ?? '';
   const name = t.name ?? constructorName;
   const slug = slugify(name);
@@ -87,6 +105,12 @@ const normalizeTeam = (t) => {
       : picture ?? bg ?? null;
   const rawColor = t.color ?? null;
   const color = TEAM_COLOR_OVERRIDES[slug] ?? (rawColor && rawColor !== '#262626' ? rawColor : null);
+  const logoUrl =
+    categoryId === 'motogp'
+      ? resolveMotogpTeamLogoUrl(t.id, slug, name)
+      : categoryId === 'moto2'
+        ? resolveMoto2TeamLogoUrl(t.id, slug, name) ?? pickPulseTeamLogo(t)
+        : pickPulseTeamLogo(t);
 
   return {
     teamId: t.id,
@@ -96,7 +120,7 @@ const normalizeTeam = (t) => {
     constructorName,
     color,
     textColor: t.text_color ?? null,
-    logoUrl: resolveMotogpTeamLogoUrl(t.id, slug, name),
+    logoUrl,
     bikeImageUrl,
     nationality: '',
     riders: (t.riders ?? [])
@@ -122,7 +146,9 @@ export const getTeamsIndex = async (seasonYear, categoryId = 'motogp') => {
     `/teams?categoryUuid=${broadcastUuid}&seasonYear=${year}`,
     { freshTtlMs: TEAMS_CACHE_MS },
   );
-  const list = (Array.isArray(raw) ? raw : []).map(normalizeTeam).filter((t) => t.name);
+  const list = (Array.isArray(raw) ? raw : [])
+    .map((t) => normalizeTeam(t, categoryId))
+    .filter((t) => t.name);
 
   const bySlug = new Map();
   const byConstructorSlug = new Map();
@@ -139,10 +165,10 @@ export const getTeamsIndex = async (seasonYear, categoryId = 'motogp') => {
   return index;
 };
 
-export const findTeam = async (key, seasonYear) => {
+export const findTeam = async (key, seasonYear, categoryId = 'motogp') => {
   const k = String(key || '').trim().toLowerCase();
   if (!k) return null;
-  const idx = await getTeamsIndex(seasonYear);
+  const idx = await getTeamsIndex(seasonYear, categoryId);
   return (
     idx.bySlug.get(k) ??
     idx.byConstructorSlug.get(k) ??
@@ -152,10 +178,14 @@ export const findTeam = async (key, seasonYear) => {
   );
 };
 
-export const enrichStandingRow = (row, idx) => {
+export const enrichStandingRow = (row, idx, categoryId = 'motogp') => {
   const rowSlug = slugify(row.team) || row.constructorId || '';
-  const logoUrl =
-    row.logoUrl ?? resolveMotogpTeamLogoUrl(row.teamId, rowSlug, row.team);
+  const resolvedLogo =
+    categoryId === 'motogp'
+      ? resolveMotogpTeamLogoUrl(row.teamId, rowSlug, row.team)
+      : categoryId === 'moto2'
+        ? resolveMoto2TeamLogoUrl(row.teamId, rowSlug, row.team)
+        : null;
 
   const team =
     idx.bySlug.get(rowSlug) ??
@@ -166,16 +196,23 @@ export const enrichStandingRow = (row, idx) => {
     return {
       ...row,
       constructorId: rowSlug,
-      logoUrl,
+      logoUrl: row.logoUrl ?? resolvedLogo ?? null,
     };
   }
+
+  const logoUrl =
+    categoryId === 'motogp'
+      ? row.logoUrl ?? resolvedLogo ?? team.logoUrl
+      : categoryId === 'moto2'
+        ? row.logoUrl ?? resolvedLogo ?? team.logoUrl
+        : row.logoUrl ?? team.logoUrl ?? null;
 
   return {
     ...row,
     constructorId: rowSlug,
     teamId: team.teamId ?? row.teamId,
     teamColor: team.color ?? row.teamColor,
-    logoUrl: logoUrl ?? team.logoUrl,
+    logoUrl,
     bikeImageUrl: team.bikeImageUrl ?? row.bikeImageUrl,
   };
 };

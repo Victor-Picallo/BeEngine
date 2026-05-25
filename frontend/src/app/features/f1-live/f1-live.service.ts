@@ -26,8 +26,6 @@ import {
   OpenF1TeamRadio,
   OpenF1Weather,
 } from './f1-live.types';
-import type { MotogpLiveTimingPayload } from '../moto-live/moto-live.types';
-
 interface ItemsWrapped<T> {
   items: T[];
 }
@@ -53,12 +51,17 @@ export class F1LiveService {
     return `/${this.seriesId(explicit)}`;
   }
 
-  /** F1/F2/F3 → Jolpica o datos locales; MotoGP → Pulse Live únicamente. */
+  /** F1/F2/F3 → Jolpica; MotoGP/Moto2/Moto3 → Pulse Live. */
   private racingApi(explicit?: SeriesId): string {
     const sid = this.seriesId(explicit);
-    return sid === 'motogp'
+    return sid === 'motogp' || sid === 'moto2' || sid === 'moto3'
       ? `${this.prefix(sid)}/pulselive`
       : `${this.prefix(sid)}/jolpica`;
+  }
+
+  private isPulseSeries(explicit?: SeriesId): boolean {
+    const sid = this.seriesId(explicit);
+    return sid === 'motogp' || sid === 'moto2' || sid === 'moto3';
   }
 
   private openF1Enabled(explicit?: SeriesId): boolean {
@@ -201,7 +204,7 @@ export class F1LiveService {
     const sid = this.seriesId(seriesId);
     const base = `${this.racingApi(sid)}/results/${round}`;
     const q =
-      sid === 'motogp' && sessionKey
+      this.isPulseSeries(sid) && sessionKey
         ? `?session=${encodeURIComponent(sessionKey)}`
         : '';
     return this.api.get<JolpikaRaceResult>(`${base}${q}`);
@@ -211,13 +214,5 @@ export class F1LiveService {
     return this.api.get<MotogpRoundSessionsPayload>(
       `${this.racingApi(seriesId)}/results/${round}/sessions`,
     );
-  }
-
-  getLiveTiming(seriesId?: SeriesId): Observable<MotogpLiveTimingPayload> {
-    const sid = this.seriesId(seriesId);
-    if (sid !== 'motogp') {
-      return of({ active: false, categoryId: sid, head: null, riders: [] });
-    }
-    return this.api.get<MotogpLiveTimingPayload>(`${this.racingApi(sid)}/live-timing`);
   }
 }

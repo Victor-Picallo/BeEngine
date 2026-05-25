@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { filter, map, merge, startWith } from 'rxjs';
@@ -10,12 +10,10 @@ import {
   isMotoAppRoute,
   isMotoCategory,
   isMotoNewsRoute,
-  motoCategoryFromUrl,
+  motoSeriesFromUrl,
   MOTO_SIDEBAR_CATEGORIES,
-  type MotoCategoryId,
-} from '../../../core/moto/moto-categories';
-import { MOTO_SECTION_LABELS } from '../../../core/moto/moto-sidebar';
-import { SERIES_SECTION_LABELS } from '../../../core/series/series-sidebar';
+} from '../../../core/series/series-moto';
+import { MOTO_SECTION_LABELS, SERIES_SECTION_LABELS } from '../../../core/series/series-sidebar';
 import type { Category, Favorite } from '../../../data/sports.data';
 import type { SeriesId } from '../../../core/series/series.types';
 
@@ -43,8 +41,7 @@ function queryCatFromRouter(router: Router): string | null {
       [accent]="accent()"
       [favorites]="favorites()"
       [sections]="sections()"
-      [motoMode]="inMotoApp()"
-      [motoSectionCat]="motoSectionCat()"
+      [sectionSeriesId]="sectionSeriesId()"
       (catChange)="onCategoryChange($event)">
     </app-sidebar>
   `,
@@ -58,6 +55,7 @@ export class AppSidebarComponent {
   favorites = input<Favorite[]>([]);
   motoNews = input<boolean | undefined>(undefined);
   newsCat = input<string | undefined>(undefined);
+  catChange = output<string>();
 
   private readonly urlPath = toSignal(
     this.router.events.pipe(
@@ -96,14 +94,15 @@ export class AppSidebarComponent {
     this.inMotoApp() ? [...MOTO_SECTION_LABELS] : [...SERIES_SECTION_LABELS],
   );
 
-  readonly motoSectionCat = computed((): MotoCategoryId => {
+  readonly sectionSeriesId = computed((): SeriesId | null => {
+    if (!this.inMotoApp()) return null;
     const fromInput = this.newsCat();
     if (fromInput && isMotoCategory(fromInput)) return fromInput;
-    return motoCategoryFromUrl(`${this.urlPath()}?cat=${this.routeNewsCat() ?? ''}`);
+    return motoSeriesFromUrl(`${this.urlPath()}?cat=${this.routeNewsCat() ?? ''}`);
   });
 
   readonly activeCat = computed(() => {
-    if (this.inMotoApp()) return this.motoSectionCat();
+    if (this.inMotoApp()) return this.sectionSeriesId() ?? 'motogp';
     return this.seriesCtx.id();
   });
 
@@ -115,6 +114,7 @@ export class AppSidebarComponent {
   });
 
   onCategoryChange(id: string): void {
+    this.catChange.emit(id);
     if (isMotoCategory(id)) {
       void this.router.navigateByUrl(`/${id}`);
       return;

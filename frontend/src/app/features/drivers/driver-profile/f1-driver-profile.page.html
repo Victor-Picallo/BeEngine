@@ -24,6 +24,7 @@
               <div
                 class="dp-photo-wrap"
                 [class.dp-photo-wrap--feeder]="seriesCtx.id() === 'f2' || seriesCtx.id() === 'f3'"
+                [class.dp-photo-wrap--motogp]="seriesCtx.id() === 'motogp' || seriesCtx.id() === 'moto2' || seriesCtx.id() === 'moto3'"
               >
                 <div class="dp-photo-fallback" [style.--dp-team]="teamHue()">
                   <span class="dp-photo-initials">{{ p.code }}</span>
@@ -32,6 +33,7 @@
                   <img
                     class="dp-headshot"
                     [class.dp-headshot--feeder]="seriesCtx.id() === 'f2' || seriesCtx.id() === 'f3'"
+                    [class.dp-headshot--motogp]="seriesCtx.id() === 'motogp' || seriesCtx.id() === 'moto2' || seriesCtx.id() === 'moto3'"
                     [src]="headshotUrl()"
                     [alt]="p.givenName + ' ' + p.familyName"
                     loading="eager"

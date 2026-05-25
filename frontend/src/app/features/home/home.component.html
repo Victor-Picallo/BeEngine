@@ -34,16 +34,7 @@
   }
 
   <div class="hm-layout">
-    <app-sidebar
-      [categories]="sidebarCategories()"
-      [activeCat]="sidebarActiveCat()"
-      [accent]="accent()"
-      [favorites]="currentFavorites"
-      [sections]="sidebarSections"
-      [motoMode]="motoSidebarMode()"
-      [motoSectionCat]="'motogp'"
-      (catChange)="setCat($event)">
-    </app-sidebar>
+    <app-side [favorites]="currentFavorites" (catChange)="setCat($event)"></app-side>
 
     @if (showMainLoading()) {
       <main class="hm-main hm-main--loading">
@@ -197,7 +188,7 @@
         [constructors]="data().constructors"
         [lastRace]="data().lastRace"
         [news]="data().news"
-        [activeCat]="sidebarActiveCat()"
+        [activeCat]="rightRailActiveCat()"
         [accent]="accent()"
         [lastRaceWinner]="lastRaceWinner()">
       </app-right-rail>

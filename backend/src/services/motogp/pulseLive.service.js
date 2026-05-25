@@ -12,6 +12,18 @@ import {
   resolveMotogpTeamLogoUrl,
   resolveOfficialConstructorSlug,
 } from '../../data/motogp/motogpTeamLogos.js';
+import { resolveMoto2TeamLogoUrl } from '../../data/moto2/moto2TeamLogos.js';
+import {
+  enrichMoto2DriverStandings,
+  enrichMoto2TeamStandings,
+  fallbackMoto2DriverStandings,
+  fallbackMoto2ConstructorStandings,
+  fallbackMoto2OfficialTeamsGrid,
+  fallbackMoto2Calendar,
+  fallbackMoto2LastRace,
+  fallbackMoto2RaceResults,
+  MOTO2_DRIVER_PORTRAIT_URL,
+} from '../moto2/moto2Data.service.js';
 import {
   pickMainRaceSession,
   pulseSessionLabel,
@@ -111,7 +123,7 @@ const normalizeDriverStandings = (raw) => {
 };
 
 /** Clasificación por equipo (sponsored team), no solo por fabricante. */
-const normalizeConstructorStandingsByTeam = (classificationRows) => {
+const normalizeConstructorStandingsByTeam = (classificationRows, categoryId = 'motogp') => {
   const byTeam = new Map();
   for (const r of classificationRows) {
     const teamName = r.team?.name ?? r.constructor?.name;
@@ -135,7 +147,12 @@ const normalizeConstructorStandingsByTeam = (classificationRows) => {
         wins: c.wins,
         nationality: '',
         teamColor: null,
-        logoUrl: resolveMotogpTeamLogoUrl(null, constructorId, c.team),
+        logoUrl:
+          categoryId === 'motogp'
+            ? resolveMotogpTeamLogoUrl(null, constructorId, c.team)
+            : categoryId === 'moto2'
+              ? resolveMoto2TeamLogoUrl(null, constructorId, c.team)
+              : null,
       };
     });
 };
@@ -209,14 +226,24 @@ const enrichRaceResultsHeadshots = async (rows, seasonYear, categoryId = 'motogp
           teamColor: null,
         },
         teamsIdx,
+        categoryId,
       );
       return {
         ...r,
-        headshotUrl: rider?.portraitUrl ?? null,
+        headshotUrl:
+          rider?.portraitUrl ??
+          (categoryId === 'moto2' ? MOTO2_DRIVER_PORTRAIT_URL[r.driverId] : null) ??
+          null,
         teamColor: withTeam.teamColor ?? null,
       };
     });
   } catch {
+    if (categoryId === 'moto2') {
+      return rows.map((r) => ({
+        ...r,
+        headshotUrl: MOTO2_DRIVER_PORTRAIT_URL[r.driverId] ?? r.headshotUrl ?? null,
+      }));
+    }
     return rows;
   }
 };
@@ -332,13 +359,19 @@ export const getDriverStandings = async (categoryId = 'motogp') => {
     const raw = await pulseliveClient.get(
       `/results/standings?seasonUuid=${season.id}&categoryUuid=${categoryUuidFor(categoryId)}`,
     );
-    const items = await enrichDriversWithTeamsAndPortraits(
+    let items = await enrichDriversWithTeamsAndPortraits(
       normalizeDriverStandings(raw),
       season.year,
       categoryId,
     );
+    if (categoryId === 'moto2') {
+      items = enrichMoto2DriverStandings(items);
+    }
     return { source: 'external', items };
   } catch {
+    if (categoryId === 'moto2') {
+      return { source: 'local', items: fallbackMoto2DriverStandings() };
+    }
     return { source: 'mock', items: fallbackDriverStandings() };
   }
 };
@@ -354,7 +387,7 @@ const enrichDriversWithTeamsAndPortraits = async (items, seasonYear, categoryId 
         ridersIdx.byId.get(row.driverId) ??
         ridersIdx.bySlug.get(row.driverId) ??
         ridersIdx.bySlug.get(slugify(row.driver));
-      const withTeam = enrichStandingRow(row, teamsIdx);
+      const withTeam = enrichStandingRow(row, teamsIdx, categoryId);
       return {
         ...withTeam,
         headshotUrl: rider?.portraitUrl ?? withTeam.headshotUrl ?? null,
@@ -376,26 +409,36 @@ export const getConstructorStandings = async (categoryId = 'motogp') => {
       ),
       getTeamsIndex(season.year, categoryId),
     ]);
-    let items = normalizeConstructorStandingsByTeam(raw?.classification ?? []);
+    let items = normalizeConstructorStandingsByTeam(raw?.classification ?? [], categoryId);
     items = mergeTeamsGridIntoStandings(items, teamsIdx);
-    items = items.map((row) => enrichStandingRow(row, teamsIdx));
+    items = items.map((row) => enrichStandingRow(row, teamsIdx, categoryId));
+    if (categoryId === 'moto2') {
+      items = enrichMoto2TeamStandings(items);
+    }
     return { source: 'external', items };
   } catch {
+    if (categoryId === 'moto2') {
+      return { source: 'local', items: fallbackMoto2ConstructorStandings() };
+    }
     return { source: 'mock', items: fallbackConstructorStandings() };
   }
 };
 
 /** Parrilla oficial: 11 equipos Pulse + puntos/victorias agregados por equipo del grid. */
-const aggregateStandingsByOfficialTeam = (classificationRows) => {
+const aggregateStandingsByOfficialTeam = (classificationRows, categoryId = 'motogp') => {
   const bySlug = new Map();
   for (const r of classificationRows) {
     const teamName = r.team?.name ?? r.constructor?.name;
     if (!teamName) continue;
-    const officialSlug = resolveOfficialConstructorSlug(
-      r.team?.id ?? r.team?.uuid ?? null,
-      slugify(teamName),
-      teamName,
-    );
+    const officialSlug =
+      categoryId === 'motogp'
+        ? resolveOfficialConstructorSlug(
+            r.team?.id ?? r.team?.uuid ?? null,
+            slugify(teamName),
+            teamName,
+          )
+        : slugify(teamName);
+    if (categoryId === 'motogp' && !officialSlug) continue;
     if (!officialSlug) continue;
     const pts = Number(r.points) || 0;
     const wins = Number(r.race_wins) || 0;
@@ -416,7 +459,7 @@ export const getOfficialTeamsGrid = async (categoryId = 'motogp') => {
       ),
       getTeamsIndex(season.year, categoryId),
     ]);
-    const agg = aggregateStandingsByOfficialTeam(raw?.classification ?? []);
+    const agg = aggregateStandingsByOfficialTeam(raw?.classification ?? [], categoryId);
     const items = teamsIdx.list
       .map((t) => {
         const stats = agg.get(t.constructorId) ?? { points: 0, wins: 0 };
@@ -430,20 +473,30 @@ export const getOfficialTeamsGrid = async (categoryId = 'motogp') => {
           nationality: '',
           teamColor: t.color,
           logoUrl:
-            t.logoUrl ?? resolveMotogpTeamLogoUrl(t.teamId, t.constructorId, t.name),
+            t.logoUrl ??
+            (categoryId === 'motogp'
+              ? resolveMotogpTeamLogoUrl(t.teamId, t.constructorId, t.name)
+              : categoryId === 'moto2'
+                ? resolveMoto2TeamLogoUrl(t.teamId, t.constructorId, t.name)
+                : t.logoUrl),
           bikeImageUrl: t.bikeImageUrl,
         };
       })
       .sort((a, b) => b.points - a.points || a.team.localeCompare(b.team))
       .map((row, i) => ({ ...row, pos: i + 1 }));
-    return { source: 'external', items };
+    const merged =
+      categoryId === 'moto2' ? enrichMoto2TeamStandings(items) : items;
+    return { source: 'external', items: merged };
   } catch {
+    if (categoryId === 'moto2') {
+      return { source: 'local', items: fallbackMoto2OfficialTeamsGrid() };
+    }
     const mock = fallbackConstructorStandings();
     return { source: 'mock', items: mock.slice(0, 11) };
   }
 };
 
-export const getCalendar = async () => {
+export const getCalendar = async (categoryId = 'motogp') => {
   try {
     const season = await getCurrentSeason();
     const events = await getRaceEvents();
@@ -466,8 +519,19 @@ export const getCalendar = async () => {
     } catch {
       /* calendario sin SVG */
     }
+    if (categoryId === 'moto2') {
+      const localCal = fallbackMoto2Calendar();
+      const flags = new Map(localCal.map((r) => [r.round, r.resultsAvailable]));
+      items = items.map((row) => ({
+        ...row,
+        resultsAvailable: flags.get(row.round) ?? false,
+      }));
+    }
     return { source: 'external', items };
   } catch {
+    if (categoryId === 'moto2') {
+      return { source: 'local', items: fallbackMoto2Calendar() };
+    }
     return { source: 'mock', items: fallbackCalendar() };
   }
 };
@@ -509,6 +573,9 @@ export const getLastRace = async (categoryId = 'motogp') => {
       imageUrl: circuit?.imageUrl ?? circuit?.svgUrl ?? null,
     };
   } catch {
+    if (categoryId === 'moto2') {
+      return { source: 'local', ...fallbackMoto2LastRace() };
+    }
     return { source: 'mock', ...fallbackLastRace() };
   }
 };
@@ -690,6 +757,14 @@ export const getRaceResultsByRound = async (round, sessionKey = 'race', category
       })),
     };
   } catch (err) {
+    if (categoryId === 'moto2') {
+      try {
+        const local = fallbackMoto2RaceResults(cleanRound);
+        return { source: 'local', ...local, sessionKey: sessionKey ?? 'race' };
+      } catch {
+        /* no local round */
+      }
+    }
     throw err;
   }
 };

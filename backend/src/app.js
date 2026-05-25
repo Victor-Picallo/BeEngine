@@ -11,6 +11,7 @@ import apiRoutes           from './routes/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const motogpTeamLogosDir = path.resolve(__dirname, '../../frontend/public/motogp/teams');
+const moto2TeamLogosDir = path.resolve(__dirname, '../../frontend/public/moto2/teams');
 
 const app = express();
 
@@ -30,18 +31,21 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Logos MotoGP (el dev server de Angular no siempre sirve /public)
-app.use(
-  '/motogp/teams',
-  express.static(motogpTeamLogosDir, {
-    maxAge: '7d',
-    fallthrough: true,
-    setHeaders(res) {
-      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-      res.setHeader('Access-Control-Allow-Origin', '*');
-    },
-  }),
-);
+// Logos MotoGP / Moto2 (el dev server de Angular no siempre sirve /public)
+const teamLogoStatic = (mount, dir) =>
+  app.use(
+    mount,
+    express.static(dir, {
+      maxAge: '7d',
+      fallthrough: true,
+      setHeaders(res) {
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+      },
+    }),
+  );
+teamLogoStatic('/motogp/teams', motogpTeamLogosDir);
+teamLogoStatic('/moto2/teams', moto2TeamLogosDir);
 
 // ── Routes ────────────────────────────────────────────────
 app.get('/', (_req, res) => {

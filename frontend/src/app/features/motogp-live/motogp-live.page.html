@@ -1,0 +1,390 @@
+<div class="fl-root">
+
+  <app-header></app-header>
+
+  @if (notFound()) {
+    <div style="max-width:560px;margin:80px auto;padding:24px;background:#fff;border:1px solid #e5e5e7;border-radius:8px;text-align:center">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:24px;color:#1a1a1a;margin-bottom:8px">Gran Premio no encontrado</div>
+      <div style="font-size:13px;color:#777;margin-bottom:16px">No hemos localizado esta ronda en el calendario {{ seriesLabel() }}.</div>
+      <a [routerLink]="seriesCtx.homePath() + '/calendario'" style="display:inline-block;padding:8px 20px;background:var(--fl-accent);color:#fff;border-radius:4px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;text-transform:uppercase;text-decoration:none">Ver calendario</a>
+    </div>
+  } @else {
+
+  <div class="fl-session-bar">
+    <a [routerLink]="seriesCtx.homePath() + '/calendario'" class="fl-session-back" (click)="goBack(); $event.preventDefault()">← {{ backLabel() }}</a>
+    <span class="fl-session-label-text">SESIÓN</span>
+    @for (tab of sessionTabs(); track tab.sessionKey) {
+      <a
+        [routerLink]="buildSessionLink(tab.sessionKey)"
+        routerLinkActive="active"
+        class="fl-session-btn"
+        [class.active]="activeSessionKey() === tab.sessionKey">
+        {{ tab.label }}
+        @if (tab.isLive && activeSessionKey() !== tab.sessionKey) {
+          <span class="fl-session-live-dot"></span>
+        }
+      </a>
+    }
+    @if (showLapCounters()) {
+      <div class="fl-session-right">
+        <span class="fl-session-vta-label">VTA</span>
+        <span class="fl-session-vta-num">{{ currentLap() ?? '—' }}</span>
+        <span class="fl-session-vta-slash">/</span>
+        <span class="fl-session-vta-total">{{ totalLapsDisplay() }}</span>
+        <div class="fl-session-divider"></div>
+        <span class="fl-session-elapsed-time">{{ elapsedDisplay() }}</span>
+        <span class="fl-session-elapsed-label">RESTANTE</span>
+      </div>
+    } @else {
+      <div class="fl-session-right">
+        <div class="fl-header-clock">
+          <div class="fl-header-clock-time">
+            <span class="fl-header-clock-tz">UTC+2 · {{ today() }}</span>
+            <span>{{ pad(now().getHours()) }}:{{ pad(now().getMinutes()) }}:{{ pad(now().getSeconds()) }}</span>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="fl-live-header">
+    <div class="fl-header-accent-line" [style.background]="accent()"></div>
+    <div class="fl-header-scan"></div>
+    <div class="fl-header-glow"></div>
+
+    <div class="fl-header-row">
+      <div style="flex-shrink:0">
+        <div class="fl-header-label">
+          @if (racePhase() === 'live') {
+            <div class="fl-header-pulse" [style.background]="accent()"></div>
+            <span class="fl-header-en-directo">EN DIRECTO</span>
+          } @else if (racePhase() === 'done') {
+            <span class="fl-header-en-directo" style="color:#888">RESULTADOS</span>
+          } @else {
+            <span class="fl-header-en-directo" style="color:#888">SESIÓN</span>
+          }
+        </div>
+        <div class="fl-header-title-big">
+          {{ liveHeaderData().raceName }}
+          @if (racePhase() === 'live') { <span>LIVE</span> }
+        </div>
+      </div>
+
+      <div class="fl-header-sep"></div>
+
+      <div class="fl-header-gp">
+        <div class="fl-header-gp-label">GRAN PREMIO</div>
+        <div class="fl-header-race-name">{{ activeSessionLabel() }}</div>
+        <div class="fl-header-circuit-info">
+          <svg width="10" height="12" viewBox="0 0 10 12" fill="#555"><path d="M5 0C2.5 0 0 2.2 0 5C0 8 5 12 5 12S10 8 10 5C10 2.2 7.5 0 5 0ZM5 7A2 2 0 1 1 5 3A2 2 0 0 1 5 7Z"/></svg>
+          <span style="overflow:hidden;text-overflow:ellipsis">{{ liveHeaderData().circuitName }}</span>
+          @if (liveHeaderData().round) {
+            <span style="color:#bbb;flex-shrink:0">· Rda {{ liveHeaderData().round }}/{{ liveHeaderData().totalRounds }}</span>
+          }
+        </div>
+      </div>
+
+      <div class="fl-header-sep"></div>
+
+      @if (currentWeather(); as w) {
+        <div class="fl-header-weather">
+          <div class="fl-weather-stat">
+            <span class="fl-weather-stat-label">PISTA</span>
+            <span class="fl-weather-stat-value" [style.color]="accent()">{{ w.trackTemperature }}°C</span>
+          </div>
+          <div class="fl-weather-stat">
+            <span class="fl-weather-stat-label">AIRE</span>
+            <span class="fl-weather-stat-value" style="color:#22d3ee">{{ w.airTemperature }}°C</span>
+          </div>
+          <div class="fl-weather-stat">
+            <span class="fl-weather-stat-label">HUMEDAD</span>
+            <span class="fl-weather-stat-value" style="color:#888">{{ w.humidity }}%</span>
+          </div>
+          <div class="fl-weather-stat">
+            <span class="fl-weather-stat-label">VIENTO</span>
+            <span class="fl-weather-stat-value" style="color:#888">{{ w.windSpeed }} km/h {{ windDirStr(w.windDirection) }}</span>
+          </div>
+        </div>
+      } @else {
+        <span style="font-size:12px;color:#aaa;flex-shrink:0">Sin condiciones</span>
+      }
+
+      <div class="fl-header-spacer"></div>
+
+      <div class="fl-header-clock">
+        <div class="fl-header-clock-time">{{ pad(now().getHours()) }}:{{ pad(now().getMinutes()) }}:{{ pad(now().getSeconds()) }}</div>
+        <div class="fl-header-clock-date">UTC+2 · {{ today() }}</div>
+      </div>
+    </div>
+
+    <div class="fl-status-strip">
+      <span class="fl-status-strip-label">ESTADO:</span>
+      @for (b of statusBadges(); track b.label) {
+        <span class="fl-badge" [ngClass]="'fl-badge-' + b.variant">{{ b.label }}</span>
+      }
+    </div>
+  </div>
+
+  <div class="fl-ticker">
+    <div class="fl-ticker-inner">
+      @for (rep of [0, 1]; track rep) {
+        @for (d of tickerDrivers(); track d.num) {
+          <span class="fl-ticker-item">
+            <span class="fl-ticker-pos" [style.color]="d.pos <= 3 ? accent() : '#444'">P{{ d.pos }}</span>
+            <span class="fl-ticker-team-bar" [style.background]="d.teamColor"></span>
+            <span class="fl-ticker-driver">{{ d.short }}</span>
+            <span class="fl-ticker-gap" [style.color]="d.pos === 1 ? accent() : '#555'">{{ d.gap }}</span>
+          </span>
+        }
+      }
+    </div>
+  </div>
+
+  @if (error()) {
+    <div style="margin:4px 12px;padding:8px 16px;border-radius:4px;font-size:12px;font-weight:500;flex-shrink:0;background:rgba(0,82,204,.1);border:1px solid rgba(0,82,204,.3);color:var(--fl-accent)">
+      ⚠ {{ error() }}
+    </div>
+  }
+
+  <div class="fl-main-grid">
+
+    <div class="fl-left-col">
+      @if (loading()) {
+        <div class="fl-skeleton" style="flex-shrink:0;border-radius:8px;height:188px"></div>
+        <div class="fl-skeleton" style="border-radius:8px;flex:1;min-height:140px"></div>
+      } @else {
+        <div class="fl-card" style="flex-shrink:0">
+          <div class="fl-card-header">
+            <div class="fl-card-header-bar" style="background:#22d3ee"></div>
+            <span class="fl-card-header-title">CONDICIONES</span>
+            <span class="fl-card-header-status"
+                  [style.color]="(currentWeather()?.rainfall ?? 0) > 0 ? '#60a5fa' : '#4ade80'">
+              {{ (currentWeather()?.rainfall ?? 0) > 0 ? 'MOJADO' : 'SECO' }}
+            </span>
+          </div>
+          @if (currentWeather(); as w) {
+            <div class="fl-cond-body">
+              <div class="fl-cond-row">
+                <span class="fl-cond-row-label">Temp. Pista</span>
+                <span class="fl-cond-row-value" [style.color]="accent()">{{ w.trackTemperature }}°C</span>
+              </div>
+              <div class="fl-cond-row">
+                <span class="fl-cond-row-label">Temp. Aire</span>
+                <span class="fl-cond-row-value" style="color:#22d3ee">{{ w.airTemperature }}°C</span>
+              </div>
+              <div class="fl-cond-row">
+                <span class="fl-cond-row-label">Humedad</span>
+                <span class="fl-cond-row-value" style="color:#60a5fa">{{ w.humidity }}%</span>
+              </div>
+              <div class="fl-cond-row">
+                <span class="fl-cond-row-label">Viento</span>
+                <span class="fl-cond-row-value" style="color:#888">{{ w.windSpeed }} km/h {{ windDirStr(w.windDirection) }}</span>
+              </div>
+              <div class="fl-cond-row">
+                <span class="fl-cond-row-label">Presión</span>
+                <span class="fl-cond-row-value" style="color:#888">{{ w.pressure || '—' }} hPa</span>
+              </div>
+              <div class="fl-cond-row">
+                <span class="fl-cond-row-label">Lluvia</span>
+                <span class="fl-cond-row-value"
+                      [style.color]="w.rainfall > 0 ? '#60a5fa' : '#4ade80'">
+                  {{ w.rainfall > 0 ? (w.rainfall + ' mm') : 'Sin lluvia' }}
+                </span>
+              </div>
+            </div>
+          } @else {
+            <div class="fl-cond-empty">
+              <span style="font-size:11px;color:#aaa">Sin datos de condiciones</span>
+            </div>
+          }
+        </div>
+
+        <div class="fl-card" style="flex:1;min-height:150px;overflow:hidden;display:flex;flex-direction:column">
+          <div class="fl-standings-tabs">
+            <button class="fl-champ-tab" [class.active]="standingsTab() === 'drivers'"
+                    (click)="setStandingsTab('drivers')">PILOTOS</button>
+            <button class="fl-champ-tab" [class.active]="standingsTab() === 'constructors'"
+                    (click)="setStandingsTab('constructors')">EQUIPOS</button>
+          </div>
+          <div class="fl-standings-body">
+            @for (s of activeStandings(); track s.pos) {
+              <div class="fl-standings-row">
+                <span class="fl-standings-pos"
+                      [style.color]="s.pos === 1 ? accent() : '#444'">{{ s.pos }}</span>
+                <div class="fl-standings-team-color" [style.background]="s.color"></div>
+                <span class="fl-standings-name">{{ s.label }}</span>
+                <div class="fl-standings-progress">
+                  <div class="fl-standings-progress-fill"
+                       [style.width.%]="s.widthPct"
+                       [style.background]="s.color"></div>
+                </div>
+                <span class="fl-standings-points">{{ s.points }}</span>
+              </div>
+            }
+            @if (!activeStandings().length) {
+              <div class="fl-standings-empty">Sin datos</div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="fl-center-col">
+      @if (loading() || sessionLoading()) {
+        <div class="fl-skeleton" style="border-radius:8px;flex:1"></div>
+      } @else {
+        <div class="fl-card" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+          <div class="fl-card-header" style="flex-shrink:0">
+            <div class="fl-tt-bar" [style.background]="accent()"></div>
+            <span class="fl-tt-title">TABLA DE TIEMPOS</span>
+            @if (timingPanelLive()) {
+              <div class="fl-tt-live">
+                <div class="fl-panel-live-dot"></div>
+                <span class="fl-tt-live-text">LIVE</span>
+              </div>
+            }
+            <div class="fl-tt-legend">
+              @if (hasSectorData()) {
+                <span [style.color]="accent()">▪ Mejor sector</span>
+                <span style="color:#FFD100">▪ Sectores</span>
+              }
+              <span style="color:#aaa">▪ Pulse Live</span>
+            </div>
+          </div>
+
+          <div class="fl-timing-header-row" style="flex-shrink:0">
+            <div class="fl-th">POS</div>
+            <div class="fl-th">#</div>
+            <div class="fl-th">PILOTO</div>
+            <div class="fl-th fl-th-right">GAP</div>
+            <div class="fl-th fl-th-right">INTERVAL</div>
+            <div class="fl-th fl-th-right">ÚLTIMA V.</div>
+            <div class="fl-th fl-th-right">MEJOR V.</div>
+            <div class="fl-th fl-th-center">LAPS</div>
+            <div class="fl-th fl-th-right">S1</div>
+            <div class="fl-th fl-th-right">S2</div>
+            <div class="fl-th fl-th-right">S3</div>
+            <div class="fl-th fl-th-right">MOTO</div>
+          </div>
+
+          <div style="flex:1;overflow-y:auto;min-height:0">
+            @for (d of timingRows(); track d.num) {
+              <div class="fl-timing-row" [class.leader]="d.pos === 1">
+                <div class="fl-cell-pos" [class.top3]="d.pos <= 3">{{ d.pos }}</div>
+                <div class="fl-cell-num"
+                     [style.background]="d.teamColor + '22'"
+                     [style.border]="'1px solid ' + d.teamColor + '55'">{{ d.num }}</div>
+                <div class="fl-cell-driver">
+                  <div class="fl-driver-team-bar" [style.background]="d.teamColor"></div>
+                  <div>
+                    @if (driverLink(d.driverId); as link) {
+                      <a [routerLink]="link" class="fl-driver-name-main fl-driver-link">{{ d.name }}</a>
+                    } @else {
+                      <div class="fl-driver-name-main">{{ d.name }}</div>
+                    }
+                    <div class="fl-driver-team-label">{{ d.team }}</div>
+                  </div>
+                </div>
+                <div class="fl-cell-gap" [class.leader-gap]="d.pos === 1">{{ d.gap }}</div>
+                <div class="fl-cell-gap">{{ d.interval }}</div>
+                <div class="fl-cell-last" [class.fl-p1]="d.pos === 1">{{ d.lastLap }}</div>
+                <div class="fl-cell-best">{{ d.bestLap }}</div>
+                <div class="fl-cell-laps">{{ d.laps || '—' }}</div>
+                <div class="fl-cell-sector fl-mono" [ngClass]="d.s1c" [style.font-weight]="d.s1c !== 'sec-white' ? 700 : 400">{{ d.s1 }}</div>
+                <div class="fl-cell-sector fl-mono" [ngClass]="d.s2c" [style.font-weight]="d.s2c !== 'sec-white' ? 700 : 400">{{ d.s2 }}</div>
+                <div class="fl-cell-sector fl-mono" [ngClass]="d.s3c" [style.font-weight]="d.s3c !== 'sec-white' ? 700 : 400">{{ d.s3 }}</div>
+                <div class="fl-cell-extra">
+                  <div class="fl-tire-stack">
+                    @if (riderOnPit(d.num)) {
+                      <span class="fl-tire-age">BOX</span>
+                    }
+                    <span class="tire tire-m" [style.font-size]="'9px'">{{ d.bikeLabel ?? '—' }}</span>
+                  </div>
+                </div>
+              </div>
+            }
+            @if (!timingRows().length) {
+              <div class="fl-empty-state">
+                <div class="fl-empty-state-icon">◈</div>
+                <div class="fl-empty-state-title">Sin datos de timing</div>
+                <div class="fl-empty-state-subtitle">{{ timingEmptySubtitle() }}</div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="fl-right-col">
+      @if (loading()) {
+        <div class="fl-skeleton" style="flex-shrink:0;border-radius:8px;height:285px"></div>
+        <div class="fl-skeleton" style="border-radius:8px;flex:1;min-height:120px"></div>
+      } @else {
+        <div class="fl-card" style="height:285px;display:flex;flex-direction:column;flex-shrink:0">
+          <div class="fl-card-header" style="flex-shrink:0">
+            <div class="fl-card-header-bar" [style.background]="accent()"></div>
+            <span class="fl-card-header-title">MAPA DEL CIRCUITO</span>
+            <span class="fl-card-header-status"
+                  [style.color]="timingPanelLive() ? '#16a34a' : '#888'">
+              @if (timingPanelLive()) {
+                ● TRACKING
+              } @else if (racePhase() === 'done') {
+                ○ FINALIZADA
+              } @else {
+                ○ PROGRAMADA
+              }
+            </span>
+          </div>
+          <canvas #mapCanvas width="308" height="218" class="fl-map-canvas" style="flex:1;width:100%;height:auto;display:block"></canvas>
+        </div>
+
+        <div class="fl-card" style="flex:1;overflow:hidden;min-height:120px;display:flex;flex-direction:column">
+          <div class="fl-card-header-col" style="flex-shrink:0">
+            <div class="fl-card-header-col-title">
+              <div class="fl-card-header-bar" style="background:#888"></div>
+              <span class="fl-card-header-title">RACE CONTROL</span>
+            </div>
+            <div class="fl-radio-filters">
+              <button class="fl-radio-filter-btn" [class.active]="radioFilter() === 'all'" (click)="setRadioFilter('all')">Todo</button>
+              <button class="fl-radio-filter-btn" [class.active]="radioFilter() === 'control'" (click)="setRadioFilter('control')">Control</button>
+            </div>
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:4px 0">
+            @if (filteredRadio().length) {
+              @for (m of filteredRadio(); track m.time + m.msg) {
+                <div class="fl-radio-msg"
+                     [class.urgent]="m.urgent"
+                     [class.control]="!m.urgent">
+                  <div class="fl-radio-msg-meta">
+                    <span class="fl-radio-msg-time">{{ m.time }}</span>
+                    <span class="fl-radio-msg-from"
+                          [style.color]="m.urgent ? accent() : '#888'">{{ m.from }}</span>
+                  </div>
+                  <div class="fl-radio-msg-text">{{ m.msg }}</div>
+                </div>
+              }
+            } @else {
+              <div class="fl-empty-state-small">
+                <div class="fl-empty-state-icon" style="font-size:32px">◈</div>
+                <div style="font-size:11px;color:#888">Sin mensajes</div>
+                <div style="font-size:10px;color:#bbb">Esperando actividad de sesión</div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+  </div>
+
+  <footer class="fl-footer">
+    <span class="fl-footer-text">BeEngine · {{ seriesLabel() }} · Pulse Live + Open-Meteo · {{ today() }}</span>
+    <div class="fl-footer-links">
+      <a [routerLink]="seriesCtx.homePath()" class="fl-footer-link">← {{ seriesLabel() }}</a>
+      <a [routerLink]="seriesCtx.homePath() + '/calendario'" class="fl-footer-link">Calendario</a>
+    </div>
+  </footer>
+
+  }
+
+</div>

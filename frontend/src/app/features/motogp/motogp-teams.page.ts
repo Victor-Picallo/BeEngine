@@ -10,14 +10,14 @@ import { RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
 import { catchError, map, of, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { MotoLiveService } from '../moto-live/moto-live.service';
+import { MotogpPulseService } from './motogp-pulse.service';
 import type { MotogpTeamStanding } from './motogp.types';
 import { motogpTeamLogoUrl } from './motogp-media';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
 import { SeriesAccentDirective } from '../../core/series/series-accent.directive';
 import { countryCodesFromNationality, flagCdnUrl, teamColor } from '../drivers/drivers-shared';
-import { MotoContextService } from '../../core/moto/moto-context.service';
+import { SeriesContextService } from '../../core/series/series-context.service';
 
 export interface MotogpTeamCard {
   pos: number;
@@ -70,12 +70,12 @@ function buildCards(rows: MotogpTeamStanding[]): MotogpTeamCard[] {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MotogpTeamsPageComponent {
-  private readonly moto = inject(MotoLiveService);
+  private readonly motogp = inject(MotogpPulseService);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly motoCtx = inject(MotoContextService);
+  readonly seriesCtx = inject(SeriesContextService);
 
-  readonly homePath = computed(() => this.motoCtx.homePath());
-  readonly accent = computed(() => this.motoCtx.config().accent);
+  readonly homePath = computed(() => this.seriesCtx.homePath());
+  readonly accent = computed(() => this.seriesCtx.config().accent);
   readonly flagImgUrl = flagCdnUrl;
   loading = signal(true);
   error = signal<string | null>(null);
@@ -118,7 +118,7 @@ export class MotogpTeamsPageComponent {
   }
 
   teamLink(card: MotogpTeamCard): string[] {
-    return [`/${this.motoCtx.id()}`, 'escuderias', card.constructorId];
+    return this.seriesCtx.path('escuderias', card.constructorId) as string[];
   }
 
   teamLogoClass(card: MotogpTeamCard): string {
@@ -129,7 +129,7 @@ export class MotogpTeamsPageComponent {
   private fetchTeams(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.moto
+    this.motogp
       .getOfficialTeamsGrid(true)
       .pipe(
         tap((rows) => {

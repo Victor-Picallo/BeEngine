@@ -10,7 +10,7 @@ import { RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
 import { catchError, forkJoin, map, of, switchMap, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { MotoLiveService } from '../moto-live/moto-live.service';
+import { MotogpPulseService } from './motogp-pulse.service';
 import type {
   JolpikaCalendarRace,
   JolpikaDriverStanding,
@@ -32,7 +32,7 @@ import {
   buildMotogpTeamRows,
   MotogpTeamClRow,
 } from './motogp-clasificacion-build';
-import { MotoContextService } from '../../core/moto/moto-context.service';
+import { SeriesContextService } from '../../core/series/series-context.service';
 
 @Component({
   selector: 'app-motogp-clasificacion-page',
@@ -43,12 +43,12 @@ import { MotoContextService } from '../../core/moto/moto-context.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MotogpClasificacionPageComponent {
-  private readonly moto = inject(MotoLiveService);
+  private readonly motogp = inject(MotogpPulseService);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly motoCtx = inject(MotoContextService);
+  readonly seriesCtx = inject(SeriesContextService);
 
-  readonly homePath = computed(() => this.motoCtx.homePath());
-  readonly accent = computed(() => this.motoCtx.config().accent);
+  readonly homePath = computed(() => this.seriesCtx.homePath());
+  readonly accent = computed(() => this.seriesCtx.config().accent);
 
   loading = signal(true);
   error = signal<string | null>(null);
@@ -95,14 +95,14 @@ export class MotogpClasificacionPageComponent {
     this.error.set(null);
 
     forkJoin({
-      drivers: this.moto.getDriverStandings(true).pipe(
+      drivers: this.motogp.getDriverStandings(true).pipe(
         catchError(() => of([] as JolpikaDriverStanding[])),
       ),
-      teams: this.moto.getOfficialTeamsGrid(true).pipe(
+      teams: this.motogp.getOfficialTeamsGrid(true).pipe(
         catchError(() => of([] as MotogpTeamStanding[])),
       ),
-      calendar: this.moto.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
-      lastRace: this.moto.getLastRace().pipe(catchError(() => of(null as JolpikaLastRace | null))),
+      calendar: this.motogp.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
+      lastRace: this.motogp.getLastRace().pipe(catchError(() => of(null as JolpikaLastRace | null))),
     })
       .pipe(
         switchMap((base) => {
@@ -114,7 +114,7 @@ export class MotogpClasificacionPageComponent {
           }
           return forkJoin(
             rounds.map((r) =>
-              this.moto.getRaceResults(r).pipe(catchError(() => of(null as JolpikaRaceResult | null))),
+              this.motogp.getRaceResults(r).pipe(catchError(() => of(null as JolpikaRaceResult | null))),
             ),
           ).pipe(
             map((mapResults) => ({

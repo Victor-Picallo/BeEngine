@@ -1,6 +1,7 @@
 import type { SeriesId } from '../../core/series/series.types';
 import type { JolpikaDriverStanding, OpenF1Driver } from '../f1-live/f1-live.types';
 import { f2DriverHeadshotRawUrl, f2DriverHeadshotUrl } from '../f2/f2-media';
+import { moto2DriverHeadshotUrl } from '../moto2/moto2-media';
 import { f3DriverHeadshotRawUrl, f3DriverHeadshotUrl } from '../f3/f3-media';
 
 export const ACCENT = '#FFD100';
@@ -279,7 +280,10 @@ export function resolveDriverHeadshotUrl(
     if (f3) return f3;
   }
   const sid = options?.seriesId as string | undefined;
-  if (sid === 'motogp' || sid === 'moto2' || sid === 'moto3') {
+  if (sid === 'moto2') {
+    return moto2DriverHeadshotUrl(driverId, openF1HeadshotUrl);
+  }
+  if (sid === 'motogp' || sid === 'moto3') {
     const url = (openF1HeadshotUrl && String(openF1HeadshotUrl).trim()) || '';
     return url;
   }

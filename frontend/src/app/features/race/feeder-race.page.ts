@@ -29,7 +29,7 @@ import {
 } from 'rxjs';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { bindSeriesLoad, isSeriesStillActive } from '../../core/series/bind-series-load';
-import { isFormulaFeederSeries } from '../../core/series/series.config';
+import { isFormulaFeederSeries, isMotoFeederSeries } from '../../core/series/series.config';
 import type { SeriesId } from '../../core/series/series.types';
 import { SeriesContextService } from '../../core/series/series-context.service';
 import { SeriesAccentDirective } from '../../core/series/series-accent.directive';
@@ -38,6 +38,8 @@ import { BackNavigationService } from '../../core/services/back-navigation.servi
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
 import { F1LiveService } from '../f1-live/f1-live.service';
+import { MotogpPulseService } from '../motogp/motogp-pulse.service';
+import { Moto2LiveService } from '../moto2/moto2-live.service';
 import { findOfficialCircuit, projectCircuitCoords } from '../calendar/official-circuits';
 import { findRaceBySlug } from './race-slug';
 import {
@@ -51,9 +53,9 @@ import { resolveDriverHeadshotUrl, teamColor } from '../drivers/drivers-shared';
 import {
   startCircuitMapAnimation,
   type CircuitMapAnimationHandle,
-} from '../moto-live/moto-live-map';
-import { pulseLiveSessionKeyFromShort } from '../moto-live/moto-live-session-key';
-import type { MotogpLiveTimingPayload } from '../moto-live/moto-live.types';
+} from '../motogp-live/motogp-live-map';
+import { pulseLiveSessionKeyFromShort } from '../motogp-live/motogp-live-session-key';
+import type { MotogpLiveTimingPayload } from '../motogp-live/motogp-live.types';
 import type {
   JolpikaCalendarRace,
   JolpikaConstructorStanding,
@@ -106,7 +108,9 @@ export const isRaceInLiveWindow = (race: JolpikaCalendarRace, now: Date): boolea
 export class FeederRacePageComponent implements OnInit, OnDestroy {
   readonly mapCanvasRef = viewChild<ElementRef<HTMLCanvasElement>>('mapCanvas');
 
-  private readonly service = inject(F1LiveService);
+  private readonly f1 = inject(F1LiveService);
+  private readonly motogpPulse = inject(MotogpPulseService);
+  private readonly moto2Pulse = inject(Moto2LiveService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly backNav = inject(BackNavigationService);
@@ -119,11 +123,13 @@ export class FeederRacePageComponent implements OnInit, OnDestroy {
   readonly isF2 = computed(() => this.seriesCtx.id() === 'f2');
   readonly isF3 = computed(() => this.seriesCtx.id() === 'f3');
   readonly isFormulaFeeder = computed(() => isFormulaFeederSeries(this.seriesCtx.id()));
+  readonly isMotoFeeder = computed(() => isMotoFeederSeries(this.seriesCtx.id()));
+  readonly isPulseFeeder = computed(() => this.isFormulaFeeder() || this.isMotoFeeder());
 
-  /** F2/F3: UI en directo (solo carrera, sin FP/sprint). */
+  /** F2/F3/Moto2: UI en directo (solo carrera). */
   readonly useFeederLiveLayout = computed(
     () =>
-      this.isFormulaFeeder() &&
+      this.isPulseFeeder() &&
       (this.isRaceLiveWindow() ||
         this.raceResult()?.live === true ||
         this.raceResult()?.sessionPending === true),
@@ -221,7 +227,17 @@ export class FeederRacePageComponent implements OnInit, OnDestroy {
   raceStatus = computed<'live' | 'upcoming' | 'done'>(() => {
     if (this.useFeederLiveLayout()) {
       const race = this.currentRace();
-      if (race?.resultsAvailable === true && !this.raceResult()?.sessionPending) return 'done';
+      const sid = this.seriesCtx.id();
+      if (
+        isFormulaFeederSeries(sid) &&
+        race?.resultsAvailable === true &&
+        !this.raceResult()?.sessionPending
+      ) {
+        return 'done';
+      }
+      if (isMotoFeederSeries(sid) && this.resultRows().length && !this.raceResult()?.sessionPending) {
+        return 'done';
+      }
       if (this.isRaceLiveWindow() || this.raceResult()?.live) return 'live';
       return 'upcoming';
     }
@@ -285,6 +301,9 @@ export class FeederRacePageComponent implements OnInit, OnDestroy {
     if (!race) return false;
     const sid = this.seriesCtx.id();
     if (isFormulaFeederSeries(sid)) return race.resultsAvailable === true;
+    if (isMotoFeederSeries(sid)) {
+      return this.resultRows().length > 0 || this.isPastByDate();
+    }
     return this.isPastByDate();
   });
 
@@ -292,6 +311,11 @@ export class FeederRacePageComponent implements OnInit, OnDestroy {
     const race = this.currentRace();
     if (!race) return 'upcoming';
     const sid = this.seriesCtx.id();
+    if (isMotoFeederSeries(sid)) {
+      if (this.isRaceLiveWindow() || this.raceResult()?.live) return 'live';
+      if (this.resultRows().length) return 'done';
+      return this.isPastByDate() ? 'awaiting' : 'upcoming';
+    }
     if (isFormulaFeederSeries(sid)) {
       if (race.resultsAvailable === true && !this.raceResult()?.sessionPending) return 'done';
       if (this.isRaceLiveWindow() || this.raceResult()?.live) return 'live';
@@ -452,7 +476,7 @@ export class FeederRacePageComponent implements OnInit, OnDestroy {
 
     interval(12_000)
       .pipe(
-        filter(() => this.isFormulaFeeder() && this.isRaceLiveWindow()),
+        filter(() => this.isPulseFeeder() && this.isRaceLiveWindow()),
         switchMap(() => this.reloadSessionResults(this.seriesCtx.id())),
         takeUntilDestroyed(this.destroyRef),
       )
@@ -462,7 +486,7 @@ export class FeederRacePageComponent implements OnInit, OnDestroy {
       .pipe(
         filter(() => this.isMotogp()),
         switchMap(() =>
-          this.service.getLiveTiming('motogp').pipe(
+          this.motogpPulse.getLiveTiming().pipe(
             catchError(() =>
               of({
                 active: false,
@@ -631,7 +655,7 @@ export class FeederRacePageComponent implements OnInit, OnDestroy {
     if (!race) return of(null);
 
     this.sessionLoading.set(true);
-    return this.service.getRaceResults(race.round, seriesId, session).pipe(
+    return this.pulseRaceResults(seriesId, race.round, session).pipe(
       tap((result) => {
         if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return;
         if (result) this.raceResult.set(result);
@@ -670,7 +694,7 @@ export class FeederRacePageComponent implements OnInit, OnDestroy {
       this.returnUrl.set(this.backNav.captureReturnUrl());
     }
 
-    return this.service.getCalendar(seriesId).pipe(
+    return this.pulseCalendar(seriesId).pipe(
       switchMap((cal) => {
         if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return of(null);
         this.calendar.set(cal);
@@ -683,23 +707,24 @@ export class FeederRacePageComponent implements OnInit, OnDestroy {
         }
 
         const feederLive =
-          isFormulaFeederSeries(seriesId) &&
-          (race.resultsAvailable === true || isRaceInLiveWindow(race, new Date()));
+          (isFormulaFeederSeries(seriesId) &&
+            (race.resultsAvailable === true || isRaceInLiveWindow(race, new Date()))) ||
+          (isMotoFeederSeries(seriesId) && isRaceInLiveWindow(race, new Date()));
 
         const extras$ =
           seriesId === 'motogp'
             ? forkJoin({
-                sessions: this.service.getRoundSessions(race.round, seriesId).pipe(
+                sessions: this.motogpPulse.getRoundSessions(race.round).pipe(
                   catchError(() => of({ sessions: [] as MotogpWeekendSession[] })),
                 ),
-                drivers: this.service.getDriverStandings(false, seriesId).pipe(catchError(() => of([]))),
-                teams: this.service.getConstructorStandings(false, seriesId).pipe(catchError(() => of([]))),
+                drivers: this.motogpPulse.getDriverStandings().pipe(catchError(() => of([]))),
+                teams: this.motogpPulse.getTeamStandings().pipe(catchError(() => of([]))),
               })
-            : feederLive
+            : feederLive || isMotoFeederSeries(seriesId)
               ? forkJoin({
                   sessions: of({ sessions: [] as MotogpWeekendSession[] }),
-                  drivers: this.service.getDriverStandings(false, seriesId).pipe(catchError(() => of([]))),
-                  teams: this.service.getConstructorStandings(false, seriesId).pipe(catchError(() => of([]))),
+                  drivers: this.pulseDriverStandings(seriesId).pipe(catchError(() => of([]))),
+                  teams: this.pulseTeamStandings(seriesId).pipe(catchError(() => of([]))),
                 })
               : of({
                   sessions: { sessions: [] as MotogpWeekendSession[] },
@@ -716,7 +741,8 @@ export class FeederRacePageComponent implements OnInit, OnDestroy {
 
             if (seriesId !== 'motogp') {
               const feederInLive =
-                isFormulaFeederSeries(seriesId) && isRaceInLiveWindow(race, new Date());
+                (isFormulaFeederSeries(seriesId) || isMotoFeederSeries(seriesId)) &&
+                isRaceInLiveWindow(race, new Date());
               if (isFormulaFeederSeries(seriesId) && race.resultsAvailable !== true && !feederInLive) {
                 this.pageLoading.set(false);
                 this.loadedRaceKey.set(loadKey);
@@ -725,14 +751,18 @@ export class FeederRacePageComponent implements OnInit, OnDestroy {
               const raceTime = new Date(`${race.date}T${race.time ?? '23:59:59Z'}`);
               const past =
                 Number.isFinite(raceTime.getTime()) && raceTime < new Date();
-              if (!past && !isFormulaFeederSeries(seriesId)) {
+              if (
+                !past &&
+                !isFormulaFeederSeries(seriesId) &&
+                !isMotoFeederSeries(seriesId)
+              ) {
                 this.pageLoading.set(false);
                 this.loadedRaceKey.set(loadKey);
                 return of(null);
               }
             }
 
-            return this.service.getRaceResults(race.round, seriesId, session).pipe(
+            return this.pulseRaceResults(seriesId, race.round, session).pipe(
               catchError(() => of(null)),
             );
           }),
@@ -753,5 +783,29 @@ export class FeederRacePageComponent implements OnInit, OnDestroy {
       }),
       map(() => undefined),
     );
+  }
+
+  private pulseCalendar(seriesId: SeriesId) {
+    if (seriesId === 'motogp') return this.motogpPulse.getCalendar();
+    if (seriesId === 'moto2') return this.moto2Pulse.getCalendar();
+    return this.f1.getCalendar(seriesId);
+  }
+
+  private pulseRaceResults(seriesId: SeriesId, round: number, session: string) {
+    if (seriesId === 'motogp') return this.motogpPulse.getRaceResults(round, session);
+    if (seriesId === 'moto2') return this.moto2Pulse.getRaceResults(round, session);
+    return this.f1.getRaceResults(round, seriesId, session);
+  }
+
+  private pulseDriverStandings(seriesId: SeriesId) {
+    if (seriesId === 'motogp') return this.motogpPulse.getDriverStandings();
+    if (seriesId === 'moto2') return this.moto2Pulse.getDriverStandings();
+    return this.f1.getDriverStandings(false, seriesId);
+  }
+
+  private pulseTeamStandings(seriesId: SeriesId) {
+    if (seriesId === 'motogp') return this.motogpPulse.getTeamStandings();
+    if (seriesId === 'moto2') return this.moto2Pulse.getTeamStandings();
+    return this.f1.getConstructorStandings(false, seriesId);
   }
 }

@@ -1,0 +1,398 @@
+<div class="fc-root fc-constructor-profile">
+  <app-header></app-header>
+
+  <div class="fc-body">
+    <app-side></app-side>
+
+    <main class="fc-shell dp-shell">
+      <button type="button" class="dp-back" (click)="goBack()">← Equipos</button>
+
+      @if (loading()) {
+        <div class="cp-skeleton-hero"></div>
+        <div class="cp-skeleton-grid"></div>
+      } @else if (error(); as err) {
+        <div class="fc-error">{{ err }}</div>
+      } @else if (profile(); as p) {
+        <div class="cp-hero" [style.--cp-team]="teamHue()">
+          <div class="cp-hero-bar"></div>
+          <div class="cp-hero-inner">
+            <div class="cp-hero-copy">
+              @if (p.standing; as st) {
+                <div class="cp-stand-pill">
+                  <span>P{{ st.pos }} equipos</span>
+                  <strong>{{ st.points | number: '1.0-1' }} pts</strong>
+                  @if (st.wins > 0) {
+                    <span class="cp-stand-wins"
+                      >· {{ st.wins }} {{ st.wins === 1 ? 'victoria' : 'victorias' }}</span
+                    >
+                  }
+                </div>
+              }
+              <h1 class="cp-title">{{ p.name }}</h1>
+              <div class="cp-meta-row">
+                @if (p.nationality) {
+                  <span class="cp-meta">{{ p.nationality }}</span>
+                }
+                @if (p.wikiUrl) {
+                  <a class="cp-wiki" [href]="p.wikiUrl" target="_blank" rel="noopener noreferrer"
+                    >Wikipedia</a
+                  >
+                }
+                <span class="cp-meta">· Temporada {{ p.currentSeasonYear }}</span>
+              </div>
+
+              <div class="cp-drivers-block">
+                <div class="cp-drivers-label">Pilotos {{ p.currentSeasonYear }}</div>
+                <div class="cp-drivers-row">
+                  @for (d of p.drivers; track d.driverId) {
+                    <a
+                      class="cp-driver-card"
+                      [routerLink]="['/motogp', 'pilotos', d.driverId]"
+                      appReturnNav
+                      [attr.aria-label]="'Ficha de ' + d.givenName + ' ' + d.familyName"
+                    >
+                      <div class="cp-driver-avatar">
+                        @if (driverHeadshot(d)) {
+                          <img
+                            [src]="driverHeadshot(d)"
+                            alt=""
+                            width="44"
+                            height="44"
+                            loading="lazy"
+                            (error)="imgError($event)"
+                          />
+                        } @else {
+                          <span class="cp-driver-fallback">{{ d.code }}</span>
+                        }
+                      </div>
+                      <div class="cp-driver-text">
+                        <div class="cp-driver-name">{{ d.givenName }} {{ d.familyName }}</div>
+                        <div class="cp-driver-sub">
+                          @if (country2ForDriver(d)) {
+                            <img
+                              class="cp-driver-flag"
+                              [src]="flagImgUrl(country2ForDriver(d))"
+                              width="18"
+                              height="13"
+                              alt=""
+                              (error)="imgError($event)"
+                            />
+                          }
+                          @if (d.number != null) {
+                            <span>#{{ d.number }}</span>
+                          }
+                        </div>
+                      </div>
+                    </a>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="cp-hero-visual">
+              @if (bikeUrl()) {
+                <img
+                  class="cp-car-img"
+                  [src]="bikeUrl()!"
+                  [alt]="'Moto ' + p.name"
+                  loading="eager"
+                  (error)="imgError($event)"
+                />
+              } @else if (logoUrl()) {
+                <img
+                  [class]="profileLogoClass()"
+                  [src]="logoUrl()!"
+                  [alt]="'Logo ' + p.name"
+                  loading="eager"
+                  (error)="imgError($event)"
+                />
+              }
+            </div>
+          </div>
+
+          @if (p.stats.championships > 0) {
+            <div class="cp-champ-banner">
+              <span class="cp-champ-pill">{{ p.stats.championships }}×</span>
+              <span>{{
+                isManufacturerHistory()
+                  ? p.stats.championships === 1
+                    ? 'Campeonato mundial de constructores'
+                    : 'Campeonatos mundiales de constructores'
+                  : p.stats.championships === 1
+                    ? 'Campeonato de equipos'
+                    : 'Campeonatos de equipos'
+              }}</span>
+            </div>
+          }
+          @if (p.stats.championshipYears?.length) {
+            <div class="cp-champ-years">
+              <div class="cp-champ-years-label">Años campeón</div>
+              <div class="cp-champ-years-row">
+                @for (y of p.stats.championshipYears; track y) {
+                  <span class="cp-champ-year-pill">{{ y }}</span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <section class="cp-stats">
+          <div class="cp-section-head">
+            <span class="cp-section-bar"></span>
+            <h2>Resumen</h2>
+          </div>
+          <div class="cp-stat-grid">
+            <div class="cp-stat-card">
+              <div class="cp-stat-label">{{
+                isManufacturerHistory() ? 'Títulos constructores' : 'Títulos equipos'
+              }}</div>
+              <div class="cp-stat-val" [class.cp-accent]="p.stats.championships > 0">
+                @if (p.aggregatesPending && !p.stats.championships) {
+                  …
+                } @else {
+                  {{ p.stats.championships }}
+                }
+              </div>
+            </div>
+            <div class="cp-stat-card">
+              <div class="cp-stat-label">Victorias (hist.)</div>
+              <div class="cp-stat-val" [style.color]="teamHue()">
+                @if (p.aggregatesPending && !p.stats.totalWins) {
+                  …
+                } @else {
+                  {{ p.stats.totalWins }}
+                }
+              </div>
+            </div>
+            <div class="cp-stat-card">
+              <div class="cp-stat-label">Podios (hist.)</div>
+              <div class="cp-stat-val">
+                @if (p.aggregatesPending && !p.stats.totalPodiums) {
+                  …
+                } @else {
+                  {{ p.stats.totalPodiums }}
+                }
+              </div>
+            </div>
+            <div class="cp-stat-card">
+              <div class="cp-stat-label">Pilotos</div>
+              <div class="cp-stat-val">{{ p.drivers.length }}</div>
+            </div>
+          </div>
+          @if (p.linkedManufacturer; as lm) {
+            <div class="cp-linked-mfr">
+              <p class="cp-linked-mfr-title">
+                Motor {{ lm.name }} · {{ lm.championships }} campeonatos mundiales de constructores
+              </p>
+              @if (lm.championshipYears.length) {
+                <div class="cp-champ-years-row">
+                  @for (y of lm.championshipYears; track y) {
+                    <span class="cp-champ-year-pill">{{ y }}</span>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </section>
+
+        @if (p.bioText) {
+          <section class="cp-bio">
+            <div class="cp-section-head">
+              <span class="cp-section-bar"></span>
+              <h2>Sobre el equipo</h2>
+            </div>
+            <p class="cp-bio-text">{{ p.bioText }}</p>
+          </section>
+        }
+
+        @if (p.currentSeason.length) {
+          <section class="cp-season">
+            <div class="cp-section-head">
+              <span class="cp-section-bar"></span>
+              <h2>Temporada {{ p.currentSeasonYear }}</h2>
+              <span class="cp-section-sub">{{ p.currentSeason.length }} carreras</span>
+            </div>
+            <div class="cp-season-bars">
+              @for (r of p.currentSeason; track r.round) {
+                <div class="cp-bar-col" [title]="r.gp + ': ' + r.cumPts + ' pts acum.'">
+                  <div
+                    class="cp-bar-fill"
+                    [style.height.px]="cumBarPx(r.cumPts)"
+                    [style.background]="teamHue()"
+                  ></div>
+                  <span class="cp-bar-r">R{{ r.round }}</span>
+                </div>
+              }
+            </div>
+            <div class="cp-table-wrap">
+              <table class="cp-table">
+                <thead>
+                  <tr>
+                    <th>Rnd</th>
+                    <th>GP</th>
+                    <th>P1</th>
+                    <th>P2</th>
+                    <th>Pts</th>
+                    <th>Acum.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (r of p.currentSeason; track r.round) {
+                    <tr>
+                      <td>R{{ r.round }}</td>
+                      <td>{{ r.gp }}</td>
+                      <td>{{ r.d1Pos != null ? 'P' + r.d1Pos : '—' }}</td>
+                      <td>{{ r.d2Pos != null ? 'P' + r.d2Pos : '—' }}</td>
+                      <td>{{ r.pts | number: '1.0-1' }}</td>
+                      <td class="cp-mono">{{ r.cumPts | number: '1.0-1' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+        }
+
+        @if (p.careerHistory.length) {
+          <section class="dp-career" [class.is-career-loading]="careerHistoryLoading()">
+            <div class="dp-season-card">
+              <div class="dp-season-head">
+                <div class="dp-season-title">
+                  <span class="dp-section-bar" [style.background]="teamHue()"></span>
+                  <h2>Historial de carrera</h2>
+                  <span class="dp-muted"
+                    >· {{ careerSeasonCount(p) }} temporadas
+                    @if (p.careerHistoryPagination; as pag) {
+                      <span> · pág. {{ pag.page }}/{{ pag.totalPages }}</span>
+                    }
+                  </span>
+                </div>
+                @if (p.careerHistoryPagination; as pag) {
+                  <div class="dp-career-pager" role="navigation" aria-label="Paginación del historial">
+                    <button
+                      type="button"
+                      class="dp-career-pager-btn"
+                      [disabled]="pag.page <= 1 || careerHistoryLoading()"
+                      (click)="stepCareerPage(-1)"
+                    >
+                      ← Más recientes
+                    </button>
+                    <button
+                      type="button"
+                      class="dp-career-pager-btn"
+                      [disabled]="pag.page >= pag.totalPages || careerHistoryLoading()"
+                      (click)="stepCareerPage(1)"
+                    >
+                      Más antiguos →
+                    </button>
+                  </div>
+                }
+              </div>
+
+              <div class="dp-career-chart">
+                <div class="dp-chart-label">{{
+                  isManufacturerHistory()
+                    ? 'Puntos por temporada (constructores)'
+                    : 'Puntos por temporada (equipos)'
+                }}</div>
+                <div class="dp-chart-bars">
+                  @for (h of p.careerHistory; track h.year) {
+                    <div class="dp-chart-cell">
+                      @if (constructorChampion(h)) {
+                        <div class="dp-champ-dot"></div>
+                      } @else {
+                        <div class="dp-champ-spacer"></div>
+                      }
+                      <div
+                        class="dp-chart-bar"
+                        [style.height.px]="(h.pts / maxCareerPts()) * 56 + 3"
+                        [style.background]="
+                          constructorChampion(h) ? teamHue() : teamHue() + '44'
+                        "
+                      ></div>
+                      <span class="dp-chart-yr">{{ h.year.toString().slice(2) }}</span>
+                    </div>
+                  }
+                </div>
+                <div class="dp-chart-legend">
+                  <span class="dp-champ-dot inline"></span>
+                  {{
+                    isManufacturerHistory()
+                      ? 'Campeona del mundial de constructores'
+                      : 'P1 en clasificación de equipos (temporada cerrada)'
+                  }}
+                </div>
+              </div>
+
+              <div class="dp-table-wrap">
+                <table class="dp-table dp-table-career">
+                  <thead>
+                    <tr>
+                      <th>AÑO</th>
+                      <th>EQUIPO</th>
+                      <th>CARR.</th>
+                      <th>VIC.</th>
+                      <th>POD.</th>
+                      <th>POLES</th>
+                      <th>PUNTOS</th>
+                      <th>POS.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (h of p.careerHistory; track h.year; let i = $index) {
+                      <tr [class.champ-row]="constructorChampion(h)" [class.alt]="i % 2 === 1">
+                        <td>
+                          @if (constructorChampion(h)) {
+                            <span class="dp-champ-dot inline"></span>
+                          }
+                          <strong [style.color]="constructorChampion(h) ? teamHue() : null">{{
+                            h.year
+                          }}</strong>
+                        </td>
+                        <td class="team-cell">{{ h.name }}</td>
+                        <td class="dp-muted">{{ h.races ?? '—' }}</td>
+                        <td>
+                          <strong [style.color]="h.wins > 0 ? teamHue() : null">{{ h.wins }}</strong>
+                        </td>
+                        <td>{{ h.podiums }}</td>
+                        <td [class.dp-pole]="h.poles > 0">{{ h.poles }}</td>
+                        <td><strong>{{ h.pts | number: '1.0-1' }}</strong></td>
+                        <td>
+                          @if (h.pos != null) {
+                            <span
+                              class="dp-pos-pill"
+                              [class.champ]="constructorChampion(h)"
+                              [style.border-color]="
+                                constructorChampion(h) ? 'transparent' : teamHue() + '44'
+                              "
+                              [style.background]="
+                                constructorChampion(h)
+                                  ? teamHue()
+                                  : h.pos <= 3
+                                    ? 'rgba(0,0,0,.04)'
+                                    : 'transparent'
+                              "
+                              [style.color]="constructorChampion(h) ? '#fff' : teamHue()"
+                            >
+                              P{{ h.pos }}
+                            </span>
+                          } @else {
+                            —
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        }
+
+        <footer class="fc-footer">
+          <a [routerLink]="teamsPath()">← Todos los equipos</a>
+        </footer>
+      }
+    </main>
+  </div>
+</div>

@@ -117,6 +117,8 @@ Actualizar mocks tras un GP: `node scripts/sync-f2-data.mjs` / `node scripts/syn
 
 **Moto (GP / 2 / 3) en directo:** Pulse Live `GET /pulselive/live-feed` (timing + clima + sectores PDF con colores + clasificación provisional + mensajes race control). Misma ruta en `/api/motogp`, `/api/moto2`, `/api/moto3`. Livetiming global solo MotoGP™; Moto2/Moto3 usan resultados + PDF por sesión. Frontend: `/motogp|moto2|moto3/calendario/:gp/:sesión` y `/motogp/live` → hub al GP activo.
 
+**Moto2 datos locales (fallback):** si Pulse falla, BeEngine sirve parrilla, equipos, calendario y resultados desde `src/data/moto2/` (misma idea que F2). Regenerar snapshot: `node scripts/generate-moto2-local-data.mjs` (actualiza backend + `frontend/.../moto2-portraits.data.ts`).
+
 **F1** usa Jolpica (`JOLPICA_F1_ENABLED`) con el mismo patrón: calendario, standings, última carrera y resultados por ronda; fallback en `data/f1/` (incl. `f1RaceResults2026.js`).
 
 ## Migrar a PostgreSQL

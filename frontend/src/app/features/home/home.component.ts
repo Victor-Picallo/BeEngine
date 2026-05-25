@@ -11,7 +11,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgStyle } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { catchError, filter, forkJoin, interval, of } from 'rxjs';
+import { catchError, filter, forkJoin, interval, Observable, of } from 'rxjs';
 import { NavigationEnd } from '@angular/router';
 import {
   Category,
@@ -31,7 +31,7 @@ import {
 import { HomeService } from './services/home.service';
 import { HomeSeriesCacheService, type HomeSeriesSnapshot } from './services/home-series-cache.service';
 import { F1LiveService } from '../f1-live/f1-live.service';
-import { MotoLiveService } from '../moto-live/moto-live.service';
+import { MotogpPulseService } from '../motogp/motogp-pulse.service';
 import { NewsService } from '../news/news.service';
 import { sessionsForRaceWeekend } from '../f1-live/f1-weekend-sessions';
 import { slugifyRace } from '../race/race-slug';
@@ -43,18 +43,17 @@ import type {
   OpenF1Session,
 } from '../f1-live/f1-live.types';
 import { TopbarComponent } from '../../shared/components/topbar/topbar.component';
-import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
+import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
 import { RaceCardComponent } from '../../shared/components/race-card/race-card.component';
 import { StandingsTableComponent } from '../../shared/components/standings-table/standings-table.component';
 import { NewsListComponent } from '../../shared/components/news-list/news-list.component';
 import { RightRailComponent } from '../../shared/components/right-rail/right-rail.component';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
 import { NewsImageComponent } from '../news/news-image/news-image.component';
-import { SERIES_SECTION_LABELS } from '../../shared/f1-sidebar-sections';
 import { SeriesContextService } from '../../core/series/series-context.service';
-import { FORMULA_SERIES_IDS, homePathForSeries, SERIES_CONFIG } from '../../core/series/series.config';
+import { homePathForSeries } from '../../core/series/series.config';
 import type { SeriesId } from '../../core/series/series.types';
-import { isMotoCategory, MOTO_SIDEBAR_CATEGORIES } from '../../core/moto/moto-categories';
+import { isMotoCategory } from '../../core/series/series-moto';
 import { accentForeground, accentPodiumHighlight } from '../../core/series/series-accent.utils';
 import { teamColor as resolveTeamColor } from '../drivers/drivers-shared';
 // ── Team color & nationality lookups ──────────────────────────────────────
@@ -120,7 +119,7 @@ const lastNameInitial = (full: string): string => {
     NgStyle,
     RouterLink,
     TopbarComponent,
-    SidebarComponent,
+    AppSidebarComponent,
     RaceCardComponent,
     StandingsTableComponent,
     NewsListComponent,
@@ -133,15 +132,13 @@ export class HomeComponent implements OnInit, OnDestroy {
   private readonly homeService = inject(HomeService);
   private readonly seriesCache = inject(HomeSeriesCacheService);
   private readonly f1          = inject(F1LiveService);
-  private readonly motoLive    = inject(MotoLiveService);
+  private readonly motogpPulse = inject(MotogpPulseService);
   private readonly newsService = inject(NewsService);
   private readonly destroyRef  = inject(DestroyRef);
   private readonly router      = inject(Router);
   readonly seriesCtx           = inject(SeriesContextService);
 
   readonly flagMap         = FLAG_MAP;
-  readonly sidebarSections = [...SERIES_SECTION_LABELS];
-
   readonly categories = HEADER_CATEGORIES;
   loading           = signal(true);
   refreshing        = signal(false);
@@ -164,12 +161,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.seriesCtx.id() === 'motogp' ? 'motogp' : 'f1',
   );
 
-  /** Serie activa en el sidebar (F1 / F2 / F3 o MotoGP en app moto). */
-  sidebarActiveCat = computed(() =>
+  rightRailActiveCat = computed(() =>
     this.seriesCtx.id() === 'motogp' ? 'motogp' : this.seriesCtx.id(),
   );
-
-  motoSidebarMode = computed(() => this.seriesCtx.id() === 'motogp');
 
   currentCat = computed(() => {
     const cfg = this.seriesCtx.config();
@@ -179,16 +173,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   accent = computed(() => this.seriesCtx.config().accent);
   accentFg = computed(() => accentForeground(this.accent()));
   accentPodium = computed(() => accentPodiumHighlight(this.accent()));
-
-  sidebarCategories = computed<Category[]>(() => {
-    if (this.seriesCtx.id() === 'motogp') {
-      return MOTO_SIDEBAR_CATEGORIES;
-    }
-    return FORMULA_SERIES_IDS.map((id) => {
-      const c = SERIES_CONFIG[id];
-      return { id: c.id, label: c.label, short: c.short, accent: c.accent };
-    });
-  });
 
   private nextRaceRaw = computed<JolpikaCalendarRace | null>(() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -312,7 +296,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       return;
     }
     if (isMotoCategory(id)) {
-      void this.router.navigate(['/motogp/noticias'], { queryParams: { cat: id, page: null } });
+      void this.router.navigate(id === 'motogp' ? ['/motogp', 'noticias'] : [`/${id}`, 'noticias']);
       return;
     }
     const seriesId = id as SeriesId;
@@ -376,6 +360,71 @@ export class HomeComponent implements OnInit, OnDestroy {
     };
   }
 
+  private seriesDataLoad$(seriesId: SeriesId): Observable<{
+    calendar: JolpikaCalendarRace[];
+    driverStands: JolpikaDriverStanding[];
+    teamStands: JolpikaConstructorStanding[];
+    lastRace: JolpikaLastRace | null;
+    sessions: OpenF1Session[];
+    news: {
+      items: Array<{
+        id?: string;
+        tag: string;
+        title: string;
+        time: string;
+        hot?: boolean;
+        imageUrl?: string | null;
+        cat?: string;
+      }>;
+    };
+  }> {
+    const news$ = this.newsService.getFeed(seriesId, 'Todos', 6, 0).pipe(
+      catchError(() =>
+        of({
+          items: [],
+          total: 0,
+          category: seriesId,
+          tag: 'Todos',
+          page: 1,
+          pageSize: 6,
+          totalPages: 1,
+        }),
+      ),
+    );
+
+    if (seriesId === 'motogp') {
+      return forkJoin({
+        calendar: this.motogpPulse.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
+        driverStands: this.motogpPulse
+          .getDriverStandings()
+          .pipe(catchError(() => of([] as JolpikaDriverStanding[]))),
+        teamStands: this.motogpPulse.getTeamStandings().pipe(
+          catchError(() => of([] as JolpikaConstructorStanding[])),
+        ),
+        lastRace: this.motogpPulse
+          .getLastRace()
+          .pipe(catchError(() => of(null as JolpikaLastRace | null))),
+        sessions: this.motogpPulse.getSessions().pipe(catchError(() => of([] as OpenF1Session[]))),
+        news: news$,
+      });
+    }
+
+    return forkJoin({
+      calendar: this.f1.getCalendar(seriesId).pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
+      driverStands: this.f1
+        .getDriverStandings(false, seriesId)
+        .pipe(catchError(() => of([] as JolpikaDriverStanding[]))),
+      teamStands: this.f1
+        .getConstructorStandings(false, seriesId)
+        .pipe(catchError(() => of([] as JolpikaConstructorStanding[]))),
+      lastRace: this.f1
+        .getLastRace(seriesId)
+        .pipe(catchError(() => of(null as JolpikaLastRace | null))),
+      sessions: this.f1.getSessions(seriesId).pipe(catchError(() => of([] as OpenF1Session[]))),
+      news: news$,
+    });
+  }
+
   private loadAll(): void {
     const seriesId = this.seriesCtx.id();
     const cached = this.seriesCache.get(seriesId);
@@ -392,16 +441,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.refreshing.set(false);
     }
 
-    forkJoin({
-      calendar:     this.f1.getCalendar(seriesId).pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
-      driverStands: this.f1.getDriverStandings(false, seriesId).pipe(catchError(() => of([] as JolpikaDriverStanding[]))),
-      teamStands:   this.f1.getConstructorStandings(false, seriesId).pipe(catchError(() => of([] as JolpikaConstructorStanding[]))),
-      lastRace:     this.f1.getLastRace(seriesId).pipe(catchError(() => of(null as JolpikaLastRace | null))),
-      sessions:     this.f1.getSessions(seriesId).pipe(catchError(() => of([] as OpenF1Session[]))),
-      news:         this.newsService.getFeed(seriesId, 'Todos', 6, 0).pipe(
-        catchError(() => of({ items: [], total: 0, category: seriesId, tag: 'Todos', page: 1, pageSize: 6, totalPages: 1 })),
-      ),
-    })
+    this.seriesDataLoad$(seriesId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: r => {
@@ -461,7 +501,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private refreshLiveData(): void {
     const seriesId = this.seriesCtx.id();
     if (seriesId === 'motogp') {
-      this.motoLive.getLiveTiming().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      this.motogpPulse.getLiveTiming().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (lt) => {
           if (this.seriesCtx.id() !== 'motogp') return;
           const active = lt.active && lt.head != null;
@@ -483,10 +523,8 @@ export class HomeComponent implements OnInit, OnDestroy {
       });
       return;
     }
-    // During a live session, standings/last-race/calendar don't change — only
-    // sessions metadata (which session is current) matters most.
     this.f1.getSessions(seriesId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: s => {
+      next: (s) => {
         if (this.seriesCtx.id() !== seriesId) return;
         this.sessionsRaw.set(s);
       },
@@ -496,29 +534,48 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   private refreshAll(): void {
     const seriesId = this.seriesCtx.id();
-    this.f1.getCalendar(seriesId).pipe(takeUntilDestroyed(this.destroyRef))
+    const pulse = seriesId === 'motogp';
+
+    (pulse ? this.motogpPulse.getCalendar() : this.f1.getCalendar(seriesId))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: c => { if (this.seriesCtx.id() === seriesId) this.calendarRaces.set(c); },
+        next: (c) => {
+          if (this.seriesCtx.id() === seriesId) this.calendarRaces.set(c);
+        },
         error: () => {},
       });
-    this.f1.getDriverStandings(false, seriesId).pipe(takeUntilDestroyed(this.destroyRef))
+    (pulse ? this.motogpPulse.getDriverStandings() : this.f1.getDriverStandings(false, seriesId))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: d => { if (this.seriesCtx.id() === seriesId) this.driverStands.set(d); },
+        next: (d) => {
+          if (this.seriesCtx.id() === seriesId) this.driverStands.set(d);
+        },
         error: () => {},
       });
-    this.f1.getConstructorStandings(false, seriesId).pipe(takeUntilDestroyed(this.destroyRef))
+    (pulse ? this.motogpPulse.getTeamStandings() : this.f1.getConstructorStandings(false, seriesId))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: t => { if (this.seriesCtx.id() === seriesId) this.teamStands.set(t); },
+        next: (t) => {
+          if (this.seriesCtx.id() === seriesId) {
+            this.teamStands.set(t as JolpikaConstructorStanding[]);
+          }
+        },
         error: () => {},
       });
-    this.f1.getLastRace(seriesId).pipe(takeUntilDestroyed(this.destroyRef))
+    (pulse ? this.motogpPulse.getLastRace() : this.f1.getLastRace(seriesId))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: r => { if (this.seriesCtx.id() === seriesId) this.lastRaceRaw.set(r); },
+        next: (r) => {
+          if (this.seriesCtx.id() === seriesId) this.lastRaceRaw.set(r);
+        },
         error: () => {},
       });
-    this.f1.getSessions(seriesId).pipe(takeUntilDestroyed(this.destroyRef))
+    (pulse ? this.motogpPulse.getSessions() : this.f1.getSessions(seriesId))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: s => { if (this.seriesCtx.id() === seriesId) this.sessionsRaw.set(s); },
+        next: (s) => {
+          if (this.seriesCtx.id() === seriesId) this.sessionsRaw.set(s);
+        },
         error: () => {},
       });
     this.newsService

@@ -14,15 +14,31 @@ import { catchError, of, switchMap } from 'rxjs';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
 import { BackNavigationService } from '../../core/services/back-navigation.service';
-import { newsPathForSeries } from '../../core/series/series.config';
+import { isMotoPulseSeries, newsPathForSeries } from '../../core/series/series.config';
 import { SeriesContextService } from '../../core/series/series-context.service';
 import type { SeriesId } from '../../core/series/series.types';
 import { NewsService } from './news.service';
 import { NewsImageComponent } from './news-image/news-image.component';
-import { isMotoCategory } from '../../core/moto/moto-categories';
+import { isMotoCategory } from '../../core/series/series-moto';
+import type { MotoPulseSeriesId } from '../../core/series/series.types';
 import { NEWS_PAGE_CATEGORIES, type NewsArticle } from './news.types';
 
 const FORMULA_NEWS_IDS = new Set<string>(['f1', 'f2', 'f3']);
+
+function motoNewsArticlePath(series: MotoPulseSeriesId, articleId: string): (string | number)[] {
+  return series === 'motogp'
+    ? ['/motogp', 'noticias', articleId]
+    : [`/${series}`, 'noticias', articleId];
+}
+
+function motoSeriesForArticle(
+  articleCat: string | undefined,
+  routeSeries: SeriesId,
+): MotoPulseSeriesId {
+  if (articleCat && isMotoCategory(articleCat)) return articleCat;
+  if (isMotoCategory(routeSeries)) return routeSeries;
+  return 'motogp';
+}
 
 @Component({
   selector: 'app-f1-news-detail-page',
@@ -43,7 +59,8 @@ export class F1NewsDetailPageComponent implements OnInit {
 
   readonly inMotoApp = computed(() => {
     const art = this.article();
-    return art?.cat != null && isMotoCategory(art.cat);
+    if (art?.cat != null && isMotoCategory(art.cat)) return true;
+    return isMotoPulseSeries(this.seriesCtx.id());
   });
 
   readonly homePath = computed(() => {
@@ -61,7 +78,7 @@ export class F1NewsDetailPageComponent implements OnInit {
       return newsPathForSeries(cat as SeriesId);
     }
     if (cat && isMotoCategory(cat)) {
-      return cat === 'motogp' ? '/motogp/noticias' : `/motogp/noticias?cat=${cat}`;
+      return newsPathForSeries(cat);
     }
     return `/noticias?cat=${cat}`;
   });
@@ -94,7 +111,7 @@ export class F1NewsDetailPageComponent implements OnInit {
   articleLink(id: string): (string | number)[] {
     const cat = this.article()?.cat;
     if (cat && isMotoCategory(cat)) {
-      return ['/motogp/noticias', id];
+      return motoNewsArticlePath(motoSeriesForArticle(cat, this.seriesCtx.id()), id);
     }
     if (cat && FORMULA_NEWS_IDS.has(cat)) {
       return cat === 'f1' ? ['/f1', 'noticias', id] : [`/${cat}`, 'noticias', id];
@@ -109,7 +126,7 @@ export class F1NewsDetailPageComponent implements OnInit {
       return newsPathForSeries(cat as SeriesId);
     }
     if (cat && isMotoCategory(cat)) {
-      return cat === 'motogp' ? '/motogp/noticias' : `/motogp/noticias?cat=${cat}`;
+      return newsPathForSeries(cat);
     }
     return ['/noticias'];
   }

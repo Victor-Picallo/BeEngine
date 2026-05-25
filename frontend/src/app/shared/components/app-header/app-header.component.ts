@@ -10,10 +10,9 @@ import { filter, map, startWith } from 'rxjs/operators';
 import { TopbarComponent } from '../topbar/topbar.component';
 import { HEADER_CATEGORIES } from '../../../data/sports.data';
 import { SeriesContextService } from '../../../core/series/series-context.service';
-import { MotoContextService } from '../../../core/moto/moto-context.service';
 import { homePathForSeries, newsPathForSeries } from '../../../core/series/series.config';
 import { formulaSeriesFromUrl, isFormulaAppRoute } from '../../../core/series/formula-route';
-import { isMotoAppRoute, isMotoCategory } from '../../../core/moto/moto-categories';
+import { isMotoAppRoute, isMotoCategory } from '../../../core/series/series-moto';
 
 @Component({
   selector: 'app-header',
@@ -33,8 +32,6 @@ import { isMotoAppRoute, isMotoCategory } from '../../../core/moto/moto-categori
 export class AppHeaderComponent {
   private readonly router = inject(Router);
   readonly seriesCtx = inject(SeriesContextService);
-  private readonly motoCtx = inject(MotoContextService);
-
   private readonly urlPath = toSignal(
     this.router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd),
@@ -50,12 +47,13 @@ export class AppHeaderComponent {
 
   readonly displayCategories = computed(() => HEADER_CATEGORIES);
 
-  readonly homeLink = computed(() =>
-    this.inMotoApp() ? this.motoCtx.homePath() : this.seriesCtx.homePath(),
-  );
+  readonly homeLink = computed(() => this.seriesCtx.homePath());
 
   readonly activeCat = computed(() => {
-    if (this.inMotoApp()) return 'motogp';
+    if (this.inMotoApp()) {
+      const seg = this.urlPath().split('/')[1];
+      return isMotoCategory(seg) ? seg : 'motogp';
+    }
     if (this.inFormulaApp()) return formulaSeriesFromUrl(this.urlPath());
     const path = this.urlPath();
     if (path.startsWith('/noticias')) {
@@ -66,9 +64,7 @@ export class AppHeaderComponent {
     return 'f1';
   });
 
-  readonly accent = computed(() =>
-    this.inMotoApp() ? this.motoCtx.config().accent : this.seriesCtx.config().accent,
-  );
+  readonly accent = computed(() => this.seriesCtx.config().accent);
 
   onCatChange(id: string): void {
     if (id === 'motogp') {
