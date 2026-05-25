@@ -555,6 +555,31 @@ a.fr-podium-driver:hover {
   object-fit: contain;
 }
 
+.fl-root--motogp .fl-moto-circuit-panel--canvas {
+  position: relative;
+  background: #fafafa;
+}
+
+.fl-root--motogp .fl-moto-circuit-panel--canvas .fl-map-canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.fl-root--motogp .fl-map-live-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #dc2626;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 3px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(220, 38, 38, 0.35);
+}
+
 .fl-root--motogp .fl-moto-summary {
   padding: 12px 14px;
   font-size: 12px;

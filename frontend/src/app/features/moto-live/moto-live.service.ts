@@ -13,6 +13,8 @@ import type {
   JolpikaRaceResult,
 } from '../f1-live/f1-live.types';
 import type { MotogpTeamProfile, MotogpTeamStanding } from '../motogp/motogp.types';
+import type { MotogpLiveFeedPayload, MotogpLiveTimingPayload } from './moto-live.types';
+import type { MotogpRoundSessionsPayload } from '../f1-live/f1-live.types';
 
 interface SourceWrapped<T> {
   source: string;
@@ -137,8 +139,27 @@ export class MotoLiveService {
     return this.api.get<MotoNextRacePayload>(`${this.prefix()}/pulselive/next-race`);
   }
 
-  getRaceResults(round: number): Observable<JolpikaRaceResult> {
-    return this.api.get<JolpikaRaceResult>(`${this.prefix()}/pulselive/results/${round}`);
+  getRaceResults(round: number, sessionKey = 'race'): Observable<JolpikaRaceResult> {
+    const q = sessionKey ? `?session=${encodeURIComponent(sessionKey)}` : '';
+    return this.api.get<JolpikaRaceResult>(`${this.prefix()}/pulselive/results/${round}${q}`);
+  }
+
+  getRoundSessions(round: number): Observable<MotogpRoundSessionsPayload> {
+    return this.api.get<MotogpRoundSessionsPayload>(
+      `${this.prefix()}/pulselive/results/${round}/sessions`,
+    );
+  }
+
+  getLiveTiming(): Observable<MotogpLiveTimingPayload> {
+    return this.api.get<MotogpLiveTimingPayload>(`${this.prefix()}/pulselive/live-timing`);
+  }
+
+  getLiveFeed(round?: number, sessionKey = 'race'): Observable<MotogpLiveFeedPayload> {
+    const q = new URLSearchParams();
+    if (round != null && round > 0) q.set('round', String(round));
+    if (sessionKey) q.set('session', sessionKey);
+    const qs = q.toString() ? `?${q}` : '';
+    return this.api.get<MotogpLiveFeedPayload>(`${this.prefix()}/pulselive/live-feed${qs}`);
   }
 
   getTeamProfile(constructorId: string, careerPage = 1): Observable<MotogpTeamProfile> {

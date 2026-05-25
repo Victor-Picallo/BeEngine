@@ -17,6 +17,10 @@ import {
   circuits,
   circuitDetail,
   teams,
+  liveTiming,
+  liveFeed,
+  sessionWeather,
+  sessionSectors,
 } from '../controllers/motogp/pulselive.controller.js';
 
 const router = Router();
@@ -28,6 +32,10 @@ router.get('/pulselive/official-teams', officialTeamsGrid);
 router.get('/pulselive/calendar', calendar);
 router.get('/pulselive/last-race', lastRace);
 router.get('/pulselive/next-race', nextRaceSessions);
+router.get('/pulselive/live-timing', liveTiming);
+router.get('/pulselive/live-feed', liveFeed);
+router.get('/pulselive/session-weather', sessionWeather);
+router.get('/pulselive/session-sectors', sessionSectors);
 router.get('/pulselive/sessions', weekendSessions);
 router.get('/pulselive/results/:round/sessions', roundSessions);
 router.get('/pulselive/results/:round', raceResults);

@@ -375,6 +375,7 @@ export interface MotogpRoundSessionsPayload {
     date: string | null;
     status: string | null;
     hasResults: boolean;
+    isLive?: boolean;
   }[];
 }
 
@@ -403,6 +404,10 @@ export interface TimingDriver {
   s2c: SectorColor;
   s3c: SectorColor;
   speed: number;
+  /** MotoGP: fabricante de moto */
+  bikeLabel?: string;
+  headshotUrl?: string | null;
+  driverId?: string | null;
 }
 
 export interface RadioMessage {

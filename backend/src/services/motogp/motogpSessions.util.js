@@ -37,8 +37,28 @@ export const resolvePulseSession = (sessions, sessionKey) => {
   return matches.length ? matches[matches.length - 1] : null;
 };
 
+const FINISHED_STATUSES = new Set(['FINISHED', 'OFFICIAL']);
+const LIVE_STATUSES = new Set(['LIVE', 'RUNNING', 'ON_TRACK', 'IN_PROGRESS', 'STARTED', 'ACTIVE']);
+
+/** Resultados oficiales publicados en Pulse. */
 export const sessionHasResults = (s) =>
-  s?.status === 'FINISHED' || s?.status === 'OFFICIAL';
+  FINISHED_STATUSES.has(String(s?.status ?? '').toUpperCase());
+
+/** Sesión en pista ahora (estado Pulse o ventana horaria ~90 min). */
+export const sessionIsLive = (s) => {
+  const st = String(s?.status ?? '').toUpperCase();
+  if (LIVE_STATUSES.has(st)) return true;
+  if (FINISHED_STATUSES.has(st) || st === 'NOT-STARTED') return false;
+  if (!s?.date) return false;
+  const start = new Date(s.date).getTime();
+  if (!Number.isFinite(start)) return false;
+  const end = start + 90 * 60 * 1000;
+  const now = Date.now();
+  return now >= start - 5 * 60 * 1000 && now <= end + 10 * 60 * 1000;
+};
+
+/** Hay datos para mostrar (oficial o provisional en directo). */
+export const sessionHasDisplayableData = (s) => sessionHasResults(s) || sessionIsLive(s);
 
 export const pickMainRaceSession = (sessions) => {
   const races = sessions.filter((s) => s.type === 'RAC');

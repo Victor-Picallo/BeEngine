@@ -3,9 +3,15 @@ import {
   Component,
   computed,
   DestroyRef,
+  effect,
+  ElementRef,
   inject,
+  NgZone,
+  OnDestroy,
   OnInit,
   signal,
+  untracked,
+  viewChild,
   ViewEncapsulation,
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -42,6 +48,12 @@ import {
   sessionConfigLabel,
 } from './motogp-session';
 import { resolveDriverHeadshotUrl, teamColor } from '../drivers/drivers-shared';
+import {
+  startCircuitMapAnimation,
+  type CircuitMapAnimationHandle,
+} from '../moto-live/moto-live-map';
+import { pulseLiveSessionKeyFromShort } from '../moto-live/moto-live-session-key';
+import type { MotogpLiveTimingPayload } from '../moto-live/moto-live.types';
 import type {
   JolpikaCalendarRace,
   JolpikaConstructorStanding,
@@ -91,11 +103,15 @@ export const isRaceInLiveWindow = (race: JolpikaCalendarRace, now: Date): boolea
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
 })
-export class FeederRacePageComponent implements OnInit {
+export class FeederRacePageComponent implements OnInit, OnDestroy {
+  readonly mapCanvasRef = viewChild<ElementRef<HTMLCanvasElement>>('mapCanvas');
+
   private readonly service = inject(F1LiveService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly backNav = inject(BackNavigationService);
+  private readonly zone = inject(NgZone);
+  private mapAnim: CircuitMapAnimationHandle | null = null;
 
   readonly seriesCtx = inject(SeriesContextService);
   readonly accent = computed(() => this.seriesCtx.config().accent);
@@ -128,6 +144,12 @@ export class FeederRacePageComponent implements OnInit {
   constructorStands = signal<JolpikaConstructorStanding[]>([]);
   standingsTab = signal<'drivers' | 'constructors'>('drivers');
   now = signal(new Date());
+  liveTiming = signal<MotogpLiveTimingPayload>({
+    active: false,
+    categoryId: 'motogp',
+    head: null,
+    riders: [],
+  });
 
   raceSlug = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('race') ?? '')),
@@ -183,12 +205,38 @@ export class FeederRacePageComponent implements OnInit {
     totalRounds: this.calendar().length || 22,
   }));
 
+  liveTimingMatchesSession = computed(() => {
+    const lt = this.liveTiming();
+    if (!lt.active || !lt.head) return false;
+    return pulseLiveSessionKeyFromShort(lt.head.sessionShortName) === this.sessionKey();
+  });
+
+  motogpIsLive = computed(() => {
+    if (!this.isMotogp()) return false;
+    const tab = this.sessionTabs().find((t) => t.sessionKey === this.sessionKey());
+    if (tab?.isLive) return true;
+    return this.liveTimingMatchesSession();
+  });
+
   raceStatus = computed<'live' | 'upcoming' | 'done'>(() => {
     if (this.useFeederLiveLayout()) {
       const race = this.currentRace();
       if (race?.resultsAvailable === true && !this.raceResult()?.sessionPending) return 'done';
       if (this.isRaceLiveWindow() || this.raceResult()?.live) return 'live';
       return 'upcoming';
+    }
+    if (this.isMotogp()) {
+      const tab = this.sessionTabs().find((t) => t.sessionKey === this.sessionKey());
+      if (this.motogpIsLive() && this.displayTimingRows().length) return 'live';
+      if (
+        (tab?.hasResults || this.raceResult()?.live === false) &&
+        this.displayTimingRows().length &&
+        !this.raceResult()?.live &&
+        !this.raceResult()?.sessionPending
+      ) {
+        return 'done';
+      }
+      if (tab?.hasResults && this.displayTimingRows().length) return 'done';
     }
     const tab = this.sessionTabs().find((t) => t.sessionKey === this.sessionKey());
     if (tab?.hasResults && this.resultRows().length) return 'done';
@@ -249,6 +297,12 @@ export class FeederRacePageComponent implements OnInit {
       if (this.isRaceLiveWindow() || this.raceResult()?.live) return 'live';
       return this.isPastByDate() ? 'awaiting' : 'upcoming';
     }
+    if (sid === 'motogp') {
+      if (this.motogpIsLive()) return 'live';
+      const tab = this.sessionTabs().find((t) => t.sessionKey === this.sessionKey());
+      if (tab?.hasResults && this.displayTimingRows().length) return 'done';
+      return this.isPastByDate() ? 'awaiting' : 'upcoming';
+    }
     return this.isPastByDate() ? 'done' : 'upcoming';
   });
 
@@ -306,7 +360,43 @@ export class FeederRacePageComponent implements OnInit {
     })),
   );
 
-  tickerDrivers = computed(() => this.timingRows().slice(0, 12));
+  liveTimingRows = computed(() => {
+    const lt = this.liveTiming();
+    return lt.riders.map((r) => ({
+      pos: r.position,
+      num: r.riderNumber || r.position,
+      name: r.driver,
+      short: r.shortName || driverShort(r.driver),
+      team: r.team,
+      teamColor: r.teamColor,
+      gap: r.gap,
+      bestLap: r.bestLap,
+      laps: r.laps > 0 ? String(r.laps) : '—',
+      points: '—',
+      driverId: r.riderId,
+    }));
+  });
+
+  displayTimingRows = computed(() => {
+    const official = this.timingRows();
+    if (official.length && !this.raceResult()?.live && !this.motogpIsLive()) {
+      return official;
+    }
+    if (this.isMotogp() && this.liveTimingMatchesSession() && this.liveTimingRows().length) {
+      return this.liveTimingRows();
+    }
+    return official;
+  });
+
+  mapLapProgress = computed(() => {
+    const lt = this.liveTiming();
+    if (!lt.active || !lt.head?.totalLaps) return undefined;
+    const leader = lt.riders.find((r) => r.position === 1);
+    if (!leader?.laps) return 8;
+    return Math.min(98, (leader.laps / lt.head.totalLaps) * 100);
+  });
+
+  tickerDrivers = computed(() => this.displayTimingRows().slice(0, 12));
 
   activeStandings = computed(() => {
     const tab = this.standingsTab();
@@ -367,6 +457,38 @@ export class FeederRacePageComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe();
+
+    interval(5_000)
+      .pipe(
+        filter(() => this.isMotogp()),
+        switchMap(() =>
+          this.service.getLiveTiming('motogp').pipe(
+            catchError(() =>
+              of({
+                active: false,
+                categoryId: 'motogp',
+                head: null,
+                riders: [],
+              } satisfies MotogpLiveTimingPayload),
+            ),
+          ),
+        ),
+        tap((lt) => this.liveTiming.set(lt)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe();
+
+    interval(10_000)
+      .pipe(
+        filter(() => this.isMotogp() && (this.motogpIsLive() || !!this.raceResult()?.live)),
+        switchMap(() => this.reloadSessionResults('motogp')),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe();
+  }
+
+  ngOnDestroy(): void {
+    this.mapAnim?.stop();
   }
 
   constructor() {
@@ -390,6 +512,35 @@ export class FeederRacePageComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe();
+
+    effect(() => {
+      if (!this.isMotogp()) {
+        untracked(() => this.mapAnim?.stop());
+        this.mapAnim = null;
+        return;
+      }
+      const rows = this.displayTimingRows();
+      const race = this.currentRace();
+      const accent = this.accent();
+      const progress = this.mapLapProgress();
+      untracked(() => {
+        this.mapAnim?.stop();
+        this.mapAnim = null;
+        const canvas = this.mapCanvasRef()?.nativeElement;
+        if (!canvas || !race) return;
+        this.mapAnim = startCircuitMapAnimation(
+          canvas,
+          race.circuitName,
+          rows.map((r) => ({ pos: r.pos, short: r.short, teamColor: r.teamColor })),
+          {
+            accent,
+            locality: race.locality,
+            lapProgress: progress,
+            zone: this.zone,
+          },
+        );
+      });
+    });
   }
 
   goBack(): void {

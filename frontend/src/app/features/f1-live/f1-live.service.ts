@@ -26,6 +26,7 @@ import {
   OpenF1TeamRadio,
   OpenF1Weather,
 } from './f1-live.types';
+import type { MotogpLiveTimingPayload } from '../moto-live/moto-live.types';
 
 interface ItemsWrapped<T> {
   items: T[];
@@ -210,5 +211,13 @@ export class F1LiveService {
     return this.api.get<MotogpRoundSessionsPayload>(
       `${this.racingApi(seriesId)}/results/${round}/sessions`,
     );
+  }
+
+  getLiveTiming(seriesId?: SeriesId): Observable<MotogpLiveTimingPayload> {
+    const sid = this.seriesId(seriesId);
+    if (sid !== 'motogp') {
+      return of({ active: false, categoryId: sid, head: null, riders: [] });
+    }
+    return this.api.get<MotogpLiveTimingPayload>(`${this.racingApi(sid)}/live-timing`);
   }
 }

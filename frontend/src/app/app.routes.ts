@@ -4,17 +4,25 @@ import {
   FORMULA_SECTION_ROUTES,
   FORMULA_SERIES_PARENT_ROUTE,
 } from './core/series/formula-section.routes';
-import { MOTO_SERIES_PARENT_ROUTE } from './core/moto/moto-section.routes';
+import { motoSeriesParentRoute } from './core/moto/moto-section.routes';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
 
-  // Live race timing — ONLY F1
+  // Live race timing — F1
   {
     path: 'f1/live',
     pathMatch: 'full',
     loadComponent: () =>
       import('./features/f1-live/f1-live.page').then((m) => m.F1LivePageComponent),
+  },
+
+  // MotoGP Live → GP/sesión activos en calendario
+  {
+    path: 'motogp/live',
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('./features/moto-live/motogp-live-hub.page').then((m) => m.MotogpLiveHubPageComponent),
   },
 
   // F1 — inicio en `/`, resto bajo `/f1/...`
@@ -46,9 +54,9 @@ export const routes: Routes = [
   { path: 'f3', ...FORMULA_SERIES_PARENT_ROUTE },
 
   // MotoGP / Moto2 / Moto3 — cada categoría bajo su prefijo
-  { path: 'motogp', ...MOTO_SERIES_PARENT_ROUTE },
-  { path: 'moto2',  ...MOTO_SERIES_PARENT_ROUTE },
-  { path: 'moto3',  ...MOTO_SERIES_PARENT_ROUTE },
+  { path: 'motogp', ...motoSeriesParentRoute('motogp') },
+  { path: 'moto2',  ...motoSeriesParentRoute('moto2') },
+  { path: 'moto3',  ...motoSeriesParentRoute('moto3') },
 
   {
     path: 'noticias',

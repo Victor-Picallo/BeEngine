@@ -8,7 +8,11 @@ import {
   getRaceResultsByRound,
   getRoundSessions,
   getWeekendSessions,
+  fetchLiveTimingLite,
 } from '../../services/motogp/pulseLive.service.js';
+import { getMotogpLiveFeed } from '../../services/motogp/motogpLiveFeed.service.js';
+import { getSessionWeather } from '../../services/motogp/motogpWeather.service.js';
+import { getSessionSectors } from '../../services/motogp/motogpSectors.service.js';
 import {
   getDriverProfile,
   getDriverProfileAggregates,
@@ -23,6 +27,7 @@ import { getTeamsIndex } from '../../services/motogp/motogpTeams.service.js';
 import { success, error } from '../../utils/response.js';
 
 const CACHE_STANDINGS = 'public, max-age=30, stale-while-revalidate=120';
+const CACHE_LIVE = 'public, max-age=3, stale-while-revalidate=8';
 const CACHE_CALENDAR = 'public, max-age=60, stale-while-revalidate=300';
 const CACHE_PROFILE = 'public, max-age=60, stale-while-revalidate=300';
 
@@ -182,6 +187,55 @@ export const circuitDetail = async (req, res) => {
     const data = await getCircuitById(req.params.circuitId, req.query.seasonYear);
     if (!data) return error(res, 'Circuit not found', 404);
     success(res, data, 200, { 'Cache-Control': CACHE_CALENDAR });
+  } catch (err) {
+    error(res, err.message);
+  }
+};
+
+export const liveTiming = async (req, res) => {
+  try {
+    const data = await fetchLiveTimingLite(getCategoryId(req));
+    success(res, data, 200, { 'Cache-Control': CACHE_LIVE });
+  } catch (err) {
+    error(res, err.message);
+  }
+};
+
+export const liveFeed = async (req, res) => {
+  try {
+    const categoryId = getCategoryId(req);
+    const data = await getMotogpLiveFeed(
+      req.query.round,
+      req.query.session ?? 'race',
+      categoryId,
+    );
+    success(res, data, 200, { 'Cache-Control': CACHE_LIVE });
+  } catch (err) {
+    error(res, err.message);
+  }
+};
+
+export const sessionWeather = async (req, res) => {
+  try {
+    const data = await getSessionWeather(
+      req.query.round,
+      req.query.session ?? 'race',
+      getCategoryId(req),
+    );
+    success(res, data, 200, { 'Cache-Control': 'public, max-age=30, stale-while-revalidate=120' });
+  } catch (err) {
+    error(res, err.message);
+  }
+};
+
+export const sessionSectors = async (req, res) => {
+  try {
+    const data = await getSessionSectors(
+      req.query.round,
+      req.query.session ?? 'race',
+      getCategoryId(req),
+    );
+    success(res, data, 200, { 'Cache-Control': 'public, max-age=20, stale-while-revalidate=60' });
   } catch (err) {
     error(res, err.message);
   }

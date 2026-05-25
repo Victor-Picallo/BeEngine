@@ -31,6 +31,7 @@ import {
 import { HomeService } from './services/home.service';
 import { HomeSeriesCacheService, type HomeSeriesSnapshot } from './services/home-series-cache.service';
 import { F1LiveService } from '../f1-live/f1-live.service';
+import { MotoLiveService } from '../moto-live/moto-live.service';
 import { NewsService } from '../news/news.service';
 import { sessionsForRaceWeekend } from '../f1-live/f1-weekend-sessions';
 import { slugifyRace } from '../race/race-slug';
@@ -132,6 +133,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private readonly homeService = inject(HomeService);
   private readonly seriesCache = inject(HomeSeriesCacheService);
   private readonly f1          = inject(F1LiveService);
+  private readonly motoLive    = inject(MotoLiveService);
   private readonly newsService = inject(NewsService);
   private readonly destroyRef  = inject(DestroyRef);
   private readonly router      = inject(Router);
@@ -153,6 +155,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   private teamStands    = signal<JolpikaConstructorStanding[]>([]);
   private lastRaceRaw   = signal<JolpikaLastRace | null>(null);
   private sessionsRaw   = signal<OpenF1Session[]>([]);
+  private motogpLiveActive = signal(false);
+  private motogpLiveHead = signal<{ sessionLabel: string; raceName: string; circuitName: string } | null>(null);
   private newsRaw       = signal<NewsItem[]>([]);
   // ── Derived ──
   /** Pestaña activa del header (solo F1 / MotoGP). */
@@ -212,7 +216,9 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   liveBannerVisible = computed(() => {
     if (!this.seriesCtx.config().features.livePage) return false;
-    return this.bannerDismissed() ? false : this.liveSession() !== null;
+    if (this.bannerDismissed()) return false;
+    if (this.seriesCtx.id() === 'motogp') return this.motogpLiveActive();
+    return this.liveSession() !== null;
   });
   bannerDismissed   = signal(false);
 
@@ -258,6 +264,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   });
 
   liveBannerData = computed(() => {
+    if (this.seriesCtx.id() === 'motogp') return this.motogpLiveHead();
     const s = this.liveSession();
     const race = this.nextRaceRaw();
     if (!s || !race) return null;
@@ -404,6 +411,7 @@ export class HomeComponent implements OnInit, OnDestroy {
           this.applySnapshot(snapshot);
           this.loading.set(false);
           this.refreshing.set(false);
+          if (seriesId === 'motogp') this.refreshLiveData();
         },
         error: () => {
           if (this.seriesCtx.id() !== seriesId) return;
@@ -441,7 +449,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     interval(REFRESH_LIVE_MS)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
-        if (this.liveSession()) this.refreshLiveData();
+        if (this.liveSession() || (this.seriesCtx.id() === 'motogp' && this.motogpLiveActive())) {
+          this.refreshLiveData();
+        }
       });
     interval(REFRESH_IDLE_MS)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -450,6 +460,29 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   private refreshLiveData(): void {
     const seriesId = this.seriesCtx.id();
+    if (seriesId === 'motogp') {
+      this.motoLive.getLiveTiming().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: (lt) => {
+          if (this.seriesCtx.id() !== 'motogp') return;
+          const active = lt.active && lt.head != null;
+          this.motogpLiveActive.set(active);
+          if (active && lt.head) {
+            this.motogpLiveHead.set({
+              sessionLabel: lt.head.sessionShortName || 'LIVE',
+              raceName: lt.head.eventName || 'MotoGP',
+              circuitName: lt.head.circuitName || '—',
+            });
+          } else {
+            this.motogpLiveHead.set(null);
+          }
+        },
+        error: () => {
+          this.motogpLiveActive.set(false);
+          this.motogpLiveHead.set(null);
+        },
+      });
+      return;
+    }
     // During a live session, standings/last-race/calendar don't change — only
     // sessions metadata (which session is current) matters most.
     this.f1.getSessions(seriesId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({

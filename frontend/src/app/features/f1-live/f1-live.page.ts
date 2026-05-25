@@ -18,6 +18,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { interval } from 'rxjs';
 import { F1LiveService } from './f1-live.service';
 import { findOfficialCircuit, projectCircuitCoords } from '../calendar/official-circuits';
+import { jolpikaDriverIdForOpenF1 } from '../drivers/drivers-shared';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import type {
   ConstructorStandingDisplay,
@@ -291,10 +292,17 @@ export class F1LivePageComponent implements OnInit, OnDestroy {
           s2c: s2 === '—' ? 'sec-white' : sc,
           s3c: s3 === '—' ? 'sec-white' : sc,
           speed: speed ?? 0,
+          driverId: jolpikaDriverIdForOpenF1(d, this.driverStands()),
         } as TimingDriver;
       })
       .sort((a, b) => a.pos - b.pos || a.num - b.num);
   });
+
+  driverLink(driverId: string | null | undefined): (string | number)[] | null {
+    const id = (driverId ?? '').trim();
+    if (!id || id === 'unknown') return null;
+    return ['/f1/pilotos', id];
+  }
 
   tickerDrivers = computed(() => this.timingRows().slice(0, 10));
 

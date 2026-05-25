@@ -190,6 +190,27 @@ export const normalize = (s: string): string =>
     .replace(/\s+/g, ' ')
     .trim();
 
+/** Ergast driverId (slug) para un piloto OpenF1, cruzando con standings Jolpica. */
+export function jolpikaDriverIdForOpenF1(
+  driver: OpenF1Driver,
+  standings: JolpikaDriverStanding[],
+): string | null {
+  if (!standings.length) return null;
+  const jn = normalize(driver.fullName);
+  const jTeam = normalize(driver.teamName);
+  const jLast = jn.split(/\s+/).pop() ?? '';
+
+  const exact = standings.find((j) => normalize(j.driver) === jn);
+  if (exact?.driverId && exact.driverId !== 'unknown') return exact.driverId;
+
+  const fuzzy = standings.find((j) => {
+    const last = normalize(j.driver).split(/\s+/).pop() ?? '';
+    return last === jLast && normalize(j.team) === jTeam;
+  });
+  if (fuzzy?.driverId && fuzzy.driverId !== 'unknown') return fuzzy.driverId;
+  return null;
+}
+
 /** Color de equipo; si la API envía hex (MotoGP), ese valor tiene prioridad. */
 export const teamColor = (team: string, apiColor?: string | null): string => {
   const hex = (apiColor && String(apiColor).trim()) || '';
@@ -257,7 +278,8 @@ export function resolveDriverHeadshotUrl(
     const f3 = f3DriverHeadshotUrl(driverId, options?.size ?? 'card');
     if (f3) return f3;
   }
-  if (options?.seriesId === 'motogp') {
+  const sid = options?.seriesId as string | undefined;
+  if (sid === 'motogp' || sid === 'moto2' || sid === 'moto3') {
     const url = (openF1HeadshotUrl && String(openF1HeadshotUrl).trim()) || '';
     return url;
   }

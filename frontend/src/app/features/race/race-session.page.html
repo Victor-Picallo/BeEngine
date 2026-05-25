@@ -256,7 +256,11 @@
                   <div class="fl-cell-driver">
                     <div class="fl-driver-team-bar" [style.background]="d.teamColor"></div>
                     <div>
-                      <div class="fl-driver-name-main">{{ d.name }}</div>
+                      @if (driverLink(d.driverId); as link) {
+                        <a [routerLink]="link" class="fl-driver-name-main fl-driver-link">{{ d.name }}</a>
+                      } @else {
+                        <div class="fl-driver-name-main">{{ d.name }}</div>
+                      }
                       <div class="fl-driver-team-label">{{ d.team }}</div>
                     </div>
                   </div>

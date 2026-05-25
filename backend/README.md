@@ -115,6 +115,8 @@ Si la FIA no responde, se sirven los datos de `data/f2/` y `data/f3/` sin mezcla
 
 Actualizar mocks tras un GP: `node scripts/sync-f2-data.mjs` / `node scripts/sync-f3-data.mjs` (puntos + resultados feature race).
 
+**Moto (GP / 2 / 3) en directo:** Pulse Live `GET /pulselive/live-feed` (timing + clima + sectores PDF con colores + clasificación provisional + mensajes race control). Misma ruta en `/api/motogp`, `/api/moto2`, `/api/moto3`. Livetiming global solo MotoGP™; Moto2/Moto3 usan resultados + PDF por sesión. Frontend: `/motogp|moto2|moto3/calendario/:gp/:sesión` y `/motogp/live` → hub al GP activo.
+
 **F1** usa Jolpica (`JOLPICA_F1_ENABLED`) con el mismo patrón: calendario, standings, última carrera y resultados por ronda; fallback en `data/f1/` (incl. `f1RaceResults2026.js`).
 
 ## Migrar a PostgreSQL

@@ -234,7 +234,7 @@
               </div>
 
               <div class="fl-timing-scroll" style="flex: 1; overflow-y: auto; min-height: 0">
-                @for (d of timingRows(); track d.num) {
+                @for (d of displayTimingRows(); track d.num) {
                   <div
                     class="fl-timing-row fl-timing--moto"
                     [class.fl-timing--moto-pts]="showPointsColumn()"
@@ -269,7 +269,7 @@
                     }
                   </div>
                 }
-                @if (!timingRows().length) {
+                @if (!displayTimingRows().length) {
                   <div class="fl-empty-state">
                     <div class="fl-empty-state-icon">◈</div>
                     <div class="fl-empty-state-title">Sin datos</div>
@@ -297,19 +297,16 @@
                   }
                 </span>
               </div>
-              <div class="fl-moto-circuit-panel">
-                @if (circuitSvgUrl()) {
-                  <img class="fl-moto-circuit-img" [src]="circuitSvgUrl()!" [alt]="race.circuitName" />
-                } @else {
-                  <svg
-                    class="fl-moto-circuit-img"
-                    [attr.viewBox]="circuitSvg().viewBox"
-                    preserveAspectRatio="xMidYMid meet"
-                    aria-hidden="true"
-                  >
-                    <path class="fc-circuit-asphalt" [attr.d]="circuitSvg().circuitPath"></path>
-                    <path class="fc-circuit-line" [attr.d]="circuitSvg().circuitPath" [attr.stroke]="accent()"></path>
-                  </svg>
+              <div class="fl-moto-circuit-panel fl-moto-circuit-panel--canvas">
+                <canvas
+                  #mapCanvas
+                  class="fl-map-canvas"
+                  width="308"
+                  height="218"
+                  [attr.aria-label]="'Minimapa ' + race.circuitName"
+                ></canvas>
+                @if (motogpIsLive()) {
+                  <span class="fl-map-live-badge">EN DIRECTO</span>
                 }
               </div>
             </div>

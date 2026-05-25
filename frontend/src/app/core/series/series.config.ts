@@ -48,8 +48,8 @@ export const SERIES_CONFIG: Record<SeriesId, SeriesConfig> = {
     routePrefix: '/motogp',
     features: {
       openF1: false,
-      livePage: false,
-      raceSessionPage: false,
+      livePage: true,
+      raceSessionPage: true,
       driverProfiles: 'full',
     },
   },

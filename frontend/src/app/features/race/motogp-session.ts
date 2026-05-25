@@ -16,6 +16,7 @@ export interface MotogpWeekendSession {
   date: string | null;
   status: string | null;
   hasResults: boolean;
+  isLive?: boolean;
 }
 
 export const MOTOGP_SESSION_CONFIGS: Record<

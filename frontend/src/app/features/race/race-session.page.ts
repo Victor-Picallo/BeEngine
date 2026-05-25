@@ -11,6 +11,7 @@ import { F1LiveService } from '../f1-live/f1-live.service';
 import { sessionsForRaceWeekend } from '../f1-live/f1-weekend-sessions';
 import { findOfficialCircuit, projectCircuitCoords } from '../calendar/official-circuits';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
+import { jolpikaDriverIdForOpenF1 } from '../drivers/drivers-shared';
 import {
   defaultSessionFor, findRaceBySlug, isValidSession,
   SESSION_CONFIGS, SESSION_ORDER, SessionKey, slugifyRace,
@@ -366,6 +367,7 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
           s2c: s2 === '—' ? 'sec-white' : sc,
           s3c: s3 === '—' ? 'sec-white' : sc,
           speed: speed ?? 0,
+          driverId: jolpikaDriverIdForOpenF1(d, this.driverStands()),
         } as TimingDriver;
       })
       .sort((a, b) => a.pos - b.pos || a.num - b.num);
@@ -523,6 +525,12 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
 
   buildSessionLink(session: SessionKey): (string | number)[] {
     return ['/f1/calendario', this.raceSlug(), session];
+  }
+
+  driverLink(driverId: string | null | undefined): (string | number)[] | null {
+    const id = (driverId ?? '').trim();
+    if (!id || id === 'unknown') return null;
+    return ['/f1/pilotos', id];
   }
 
   private loadAll(): void {
