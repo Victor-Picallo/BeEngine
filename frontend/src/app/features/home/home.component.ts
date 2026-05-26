@@ -11,7 +11,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgStyle } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { catchError, filter, forkJoin, interval, Observable, of } from 'rxjs';
+import { catchError, filter, forkJoin, interval, map, Observable, of } from 'rxjs';
 import { NavigationEnd } from '@angular/router';
 import {
   Category,
@@ -28,9 +28,10 @@ import {
   PodiumEntry,
   Session,
 } from '../../data/sports.data';
-import { HomeService } from './services/home.service';
 import { HomeSeriesCacheService, type HomeSeriesSnapshot } from './services/home-series-cache.service';
 import { F1LiveService } from '../f1-live/f1-live.service';
+import { mergeDataSources, type DataSource } from '../../core/data-source';
+import { DataSourceBadgeComponent } from '../../shared/components/data-source-badge/data-source-badge.component';
 import { MotogpPulseService } from '../motogp/motogp-pulse.service';
 import { NewsService } from '../news/news.service';
 import { sessionsForRaceWeekend } from '../f1-live/f1-weekend-sessions';
@@ -126,10 +127,10 @@ const lastNameInitial = (full: string): string => {
     RightRailComponent,
     NewsImageComponent,
     ReturnNavDirective,
+    DataSourceBadgeComponent,
   ],
 })
 export class HomeComponent implements OnInit, OnDestroy {
-  private readonly homeService = inject(HomeService);
   private readonly seriesCache = inject(HomeSeriesCacheService);
   private readonly f1          = inject(F1LiveService);
   private readonly motogpPulse = inject(MotogpPulseService);
@@ -143,6 +144,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   loading           = signal(true);
   refreshing        = signal(false);
   error             = signal<string | null>(null);
+  dataSource        = signal<DataSource | null>(null);
   countdown         = signal<CountdownTime>({ d: 0, h: 0, m: 0, s: 0 });
   now               = signal(new Date());
 
@@ -366,6 +368,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     teamStands: JolpikaConstructorStanding[];
     lastRace: JolpikaLastRace | null;
     sessions: OpenF1Session[];
+    dataSource: DataSource | null;
     news: {
       items: Array<{
         id?: string;
@@ -395,9 +398,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (seriesId === 'motogp') {
       return forkJoin({
         calendar: this.motogpPulse.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
-        driverStands: this.motogpPulse
-          .getDriverStandings()
-          .pipe(catchError(() => of([] as JolpikaDriverStanding[]))),
+        drivers: this.motogpPulse
+          .getDriverStandingsResponse()
+          .pipe(catchError(() => of({ items: [] as JolpikaDriverStanding[], source: undefined }))),
         teamStands: this.motogpPulse.getTeamStandings().pipe(
           catchError(() => of([] as JolpikaConstructorStanding[])),
         ),
@@ -406,23 +409,45 @@ export class HomeComponent implements OnInit, OnDestroy {
           .pipe(catchError(() => of(null as JolpikaLastRace | null))),
         sessions: this.motogpPulse.getSessions().pipe(catchError(() => of([] as OpenF1Session[]))),
         news: news$,
-      });
+      }).pipe(
+        map((r) => ({
+          calendar: r.calendar,
+          driverStands: r.drivers.items ?? [],
+          teamStands: r.teamStands,
+          lastRace: r.lastRace,
+          sessions: r.sessions,
+          news: r.news,
+          dataSource: mergeDataSources(r.drivers.source),
+        })),
+      );
     }
 
     return forkJoin({
       calendar: this.f1.getCalendar(seriesId).pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
-      driverStands: this.f1
-        .getDriverStandings(false, seriesId)
-        .pipe(catchError(() => of([] as JolpikaDriverStanding[]))),
-      teamStands: this.f1
-        .getConstructorStandings(false, seriesId)
-        .pipe(catchError(() => of([] as JolpikaConstructorStanding[]))),
+      drivers: this.f1
+        .getDriverStandingsResponse(false, seriesId)
+        .pipe(catchError(() => of({ items: [] as JolpikaDriverStanding[], source: undefined }))),
+      teams: this.f1
+        .getConstructorStandingsResponse(false, seriesId)
+        .pipe(
+          catchError(() => of({ items: [] as JolpikaConstructorStanding[], source: undefined })),
+        ),
       lastRace: this.f1
         .getLastRace(seriesId)
         .pipe(catchError(() => of(null as JolpikaLastRace | null))),
       sessions: this.f1.getSessions(seriesId).pipe(catchError(() => of([] as OpenF1Session[]))),
       news: news$,
-    });
+    }).pipe(
+      map((r) => ({
+        calendar: r.calendar,
+        driverStands: r.drivers.items ?? [],
+        teamStands: r.teams.items ?? [],
+        lastRace: r.lastRace,
+        sessions: r.sessions,
+        news: r.news,
+        dataSource: mergeDataSources(r.drivers.source, r.teams.source),
+      })),
+    );
   }
 
   private loadAll(): void {
@@ -449,6 +474,7 @@ export class HomeComponent implements OnInit, OnDestroy {
           const snapshot = this.snapshotFromResponse(r);
           this.seriesCache.set(seriesId, snapshot);
           this.applySnapshot(snapshot);
+          this.dataSource.set(r.dataSource);
           this.loading.set(false);
           this.refreshing.set(false);
           if (seriesId === 'motogp') this.refreshLiveData();

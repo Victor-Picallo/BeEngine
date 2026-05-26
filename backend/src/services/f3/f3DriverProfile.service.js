@@ -17,7 +17,7 @@ const splitName = (driver) => {
 };
 
 export const getDriverProfile = async (driverId, _careerPage = 1) => {
-  const grid = findDriverGrid(driverId);
+  const grid = await findDriverGrid(driverId);
   if (!grid) throw new Error('Driver not found');
 
   const standings = await getDriverStandings();

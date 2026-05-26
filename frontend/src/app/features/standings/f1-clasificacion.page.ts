@@ -14,7 +14,9 @@ import { isFeederSeries } from '../../core/series/series.config';
 import type { SeriesId } from '../../core/series/series.types';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
+import type { DataSource } from '../../core/data-source';
 import { F1LiveService } from '../f1-live/f1-live.service';
+import { DataSourceBadgeComponent } from '../../shared/components/data-source-badge/data-source-badge.component';
 import type {
   JolpikaCalendarRace,
   JolpikaConstructorStanding,
@@ -39,7 +41,14 @@ import {
 @Component({
   selector: 'app-f1-clasificacion-page',
   standalone: true,
-  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink, ReturnNavDirective, SeriesAccentDirective],
+  imports: [
+    AppHeaderComponent,
+    AppSidebarComponent,
+    RouterLink,
+    ReturnNavDirective,
+    SeriesAccentDirective,
+    DataSourceBadgeComponent,
+  ],
   templateUrl: './f1-clasificacion.page.html',
   styleUrls: ['./f1-clasificacion.page.css', '../drivers/driver-portrait.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -53,6 +62,7 @@ export class F1ClasificacionPageComponent {
 
   loading = signal(true);
   error = signal<string | null>(null);
+  dataSource = signal<DataSource | null>(null);
   view = signal<'drivers' | 'constructors'>('drivers');
   private failedConstImg = signal(new Set<string>());
 
@@ -97,11 +107,11 @@ export class F1ClasificacionPageComponent {
     this.error.set(null);
 
     return forkJoin({
-      drivers: this.f1.getDriverStandings(true, seriesId).pipe(
-        catchError(() => of([] as JolpikaDriverStanding[])),
+      drivers: this.f1.getDriverStandingsResponse(true, seriesId).pipe(
+        catchError(() => of({ items: [] as JolpikaDriverStanding[], source: undefined })),
       ),
-      teams: this.f1.getConstructorStandings(true, seriesId).pipe(
-        catchError(() => of([] as JolpikaConstructorStanding[])),
+      teams: this.f1.getConstructorStandingsResponse(true, seriesId).pipe(
+        catchError(() => of({ items: [] as JolpikaConstructorStanding[], source: undefined })),
       ),
       calendar: this.f1.getCalendar(seriesId).pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
       openf1: this.f1.getDrivers('latest', seriesId).pipe(catchError(() => of([] as OpenF1Driver[]))),
@@ -129,8 +139,13 @@ export class F1ClasificacionPageComponent {
       }),
       tap((res) => {
         if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return;
-        this.driverStands.set(res.drivers);
-        this.teamStands.set(res.teams);
+        this.driverStands.set(res.drivers.items ?? []);
+        this.teamStands.set(res.teams.items ?? []);
+        this.dataSource.set(
+          res.drivers.source === 'db' || res.teams.source === 'db'
+            ? 'db'
+            : (res.drivers.source ?? res.teams.source ?? null),
+        );
         this.calendar.set(res.calendar);
         this.openf1.set(res.openf1);
         this.lastRace.set(res.lastRace);

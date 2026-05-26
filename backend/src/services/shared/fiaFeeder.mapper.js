@@ -66,7 +66,7 @@ export const buildDriverResolver = (driversGrid) => {
     NAK: 'nakamura', NAE: 'nael', COL: 'colnaghi', WHA: 'wharton', YAM: 'yamakoshi',
     LAC: 'lacorte', TAP: 'taponen', MCL: 'mclaughlin', GIU: 'giusti', SHA: 'sharp',
     HEU: 'heuzenroeder', HO: 'ho', BAR: 'barrichello', XIE: 'xie', DAV: 'david',
-    DEP: 'de_palo', GAR: 'garfias', SHN: 'shin',
+    DEP: 'de_palo', GAR: 'garfias', SHN: 'shin', LE: 'le', BHI: 'bhirombhakdi',
   };
 
   const extraTla = { ...F2_TLA, ...F3_TLA };

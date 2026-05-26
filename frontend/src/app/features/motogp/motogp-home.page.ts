@@ -11,6 +11,8 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { catchError, forkJoin, interval, of } from 'rxjs';
+import { mergeDataSources, type DataSource } from '../../core/data-source';
+import { DataSourceBadgeComponent } from '../../shared/components/data-source-badge/data-source-badge.component';
 import {
   CategoryData,
   Constructor,
@@ -68,6 +70,7 @@ const REFRESH_IDLE_MS = 5 * 60_000;
     NewsListComponent,
     RightRailComponent,
     NewsImageComponent,
+    DataSourceBadgeComponent,
   ],
 })
 export class MotogpHomePageComponent implements OnInit, OnDestroy {
@@ -83,6 +86,7 @@ export class MotogpHomePageComponent implements OnInit, OnDestroy {
   loading = signal(true);
   refreshing = signal(false);
   error = signal<string | null>(null);
+  dataSource = signal<DataSource | null>(null);
 
   calendarRaces = signal<JolpikaCalendarRace[]>([]);
   driverStands = signal<JolpikaDriverStanding[]>([]);
@@ -184,7 +188,9 @@ export class MotogpHomePageComponent implements OnInit, OnDestroy {
 
     forkJoin({
       calendar: this.motogpPulse.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
-      driverStands: this.motogpPulse.getDriverStandings().pipe(catchError(() => of([] as JolpikaDriverStanding[]))),
+      drivers: this.motogpPulse
+        .getDriverStandingsResponse()
+        .pipe(catchError(() => of({ items: [] as JolpikaDriverStanding[], source: undefined }))),
       teamStands: this.motogpPulse.getOfficialTeamsGrid().pipe(catchError(() => of([] as MotogpTeamStanding[]))),
       lastRace: this.motogpPulse.getLastRace().pipe(catchError(() => of(null as JolpikaLastRace | null))),
       nextRace: this.motogpPulse.getNextRace().pipe(catchError(() => of(null))),
@@ -198,7 +204,8 @@ export class MotogpHomePageComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (r) => {
           this.calendarRaces.set(r.calendar);
-          this.driverStands.set(r.driverStands);
+          this.driverStands.set(r.drivers.items ?? []);
+          this.dataSource.set(mergeDataSources(r.drivers.source));
           this.teamStands.set(r.teamStands);
           this.lastRaceRaw.set(r.lastRace);
           this.nextRaceRaw.set(r.nextRace);

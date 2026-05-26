@@ -87,14 +87,24 @@ export const getCircuitById = async (circuitId, seasonYear) => {
   );
 };
 
+const STOP_WORDS = new Set(['circuit', 'international', 'grand', 'prix', 'gp', 'raceway', 'track']);
+
 /** Resuelve SVG/metadata por nombre de circuito (calendario / home). */
 export const findCircuitByName = async (name, seasonYear) => {
   const q = slugify(name);
   if (!q) return null;
   const { items } = await getCircuits(seasonYear);
-  return (
+  const exact =
     items.find((c) => slugify(c.name) === q) ??
-    items.find((c) => slugify(c.name).includes(q) || q.includes(slugify(c.name))) ??
-    null
+    items.find((c) => slugify(c.name).includes(q) || q.includes(slugify(c.name)));
+  if (exact) return exact;
+
+  const tokens = q.split('-').filter((t) => t.length > 3 && !STOP_WORDS.has(t));
+  if (!tokens.length) return null;
+  return (
+    items.find((c) => {
+      const cs = slugify(c.name);
+      return tokens.every((t) => cs.includes(t));
+    }) ?? null
   );
 };

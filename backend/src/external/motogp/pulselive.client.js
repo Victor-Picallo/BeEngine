@@ -1,7 +1,6 @@
-import { EXTERNAL_API_TIMEOUT_MS } from '../../config/env.js';
+import { EXTERNAL_API_TIMEOUT_MS, MOTOGP_PULSELIVE_BASE_URL } from '../../config/env.js';
 
-export const MOTOGP_PULSELIVE_BASE_URL =
-  process.env.MOTOGP_PULSELIVE_BASE_URL || 'https://api.motogp.pulselive.com/motogp/v1';
+export { MOTOGP_PULSELIVE_BASE_URL };
 
 /** MotoGP™ category UUID (2026+). */
 export const MOTOGP_CATEGORY_UUID = 'e8c110ad-64aa-4e8e-8a86-f2f152f6a942';

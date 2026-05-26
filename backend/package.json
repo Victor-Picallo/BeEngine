@@ -6,18 +6,52 @@
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node src/server.js"
+    "dev": "node src/server.js",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "refresh": "node scripts/refresh-all.mjs",
+    "refresh:weekend": "node scripts/refresh-all.mjs --weekend",
+    "refresh:formula": "node scripts/refresh-formula.mjs",
+    "refresh:moto": "node scripts/refresh-moto.mjs",
+    "db:enrich:moto-circuits": "node scripts/sync/enrich-moto-circuits.mjs",
+    "db:enrich:formula-circuits": "node scripts/sync/enrich-formula-circuits.mjs",
+    "db:sync": "node scripts/sync/sync-all.mjs",
+    "db:sync:weekend": "node scripts/sync/sync-weekend.mjs",
+    "db:sync:f1": "node scripts/sync/sync-f1.mjs",
+    "db:sync:f2": "node scripts/sync/sync-feeder.mjs f2",
+    "db:sync:f3": "node scripts/sync/sync-feeder.mjs f3",
+    "db:sync:motogp": "node scripts/sync/sync-moto.mjs motogp",
+    "db:sync:moto2": "node scripts/sync/sync-moto.mjs moto2",
+    "db:sync:moto3": "node scripts/sync/sync-moto.mjs moto3",
+    "storage:upload": "node scripts/upload-media-to-supabase.mjs",
+    "storage:upload:motogp": "node scripts/upload-media-to-supabase.mjs --motogp-only",
+    "storage:upload:circuits": "node scripts/upload-media-to-supabase.mjs --circuits-only",
+    "storage:upload:skip-moto": "node scripts/upload-media-to-supabase.mjs --skip-moto",
+    "smoke:db": "node scripts/smoke-db-fallback.mjs",
+    "verify:media": "node scripts/verify-media-db.mjs",
+    "db:sync:news": "node scripts/sync/sync-news.mjs",
+    "db:sync:profiles": "node scripts/sync/sync-profile-meta.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "@supabase/supabase-js": "^2.106.2",
     "compression": "^1.8.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "helmet": "^8.0.0",
     "morgan": "^1.10.0",
-    "pdf-parse": "^1.1.1"
+    "pdf-parse": "^1.1.1",
+    "pg": "^8.21.0"
+  },
+  "devDependencies": {
+    "prisma": "^7.8.0"
   }
 }

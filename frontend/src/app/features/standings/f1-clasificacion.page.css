@@ -31,6 +31,13 @@
   color: #c0392b;
 }
 
+.cl-hero-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
 /* Hero */
 .cl-hero {
   position: relative;

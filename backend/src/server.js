@@ -1,5 +1,5 @@
+import { PORT, NODE_ENV, logRuntimeConfig } from './config/env.js';
 import app from './app.js';
-import { PORT, NODE_ENV } from './config/env.js';
 import {
   warmConstructorStandingsCache,
   warmDriverStandingsCache,
@@ -12,7 +12,8 @@ server.on('listening', () => {
   const host = typeof addr === 'object' && addr ? addr.port : PORT;
   console.log(`\n  BeEngine API  [${NODE_ENV}]`);
   console.log(`  API:    http://localhost:${host}`);
-  console.log(`  Health: http://localhost:${host}/api/health\n`);
+  console.log(`  Health: http://localhost:${host}/api/health`);
+  logRuntimeConfig();
   warmConstructorStandingsCache().catch(() => {});
   warmDriverStandingsCache().catch(() => {});
 });

@@ -1,4 +1,3 @@
-import { findNewsByCategory } from '../../repositories/news.repository.js';
 import {
   getNewsArticles,
   getNewsArticleById,
@@ -7,12 +6,10 @@ import {
 
 export const getNewsByCategory = async (category) => {
   try {
-    const live = await getNewsSummaryForHome(category, 4);
-    if (live.length) return live;
+    return await getNewsSummaryForHome(category, 4);
   } catch {
-    /* fallback estático */
+    return [];
   }
-  return findNewsByCategory(category);
 };
 
 export { getNewsArticles, getNewsArticleById };

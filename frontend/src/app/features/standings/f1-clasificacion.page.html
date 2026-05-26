@@ -16,7 +16,10 @@
           <div class="cl-hero-glow"></div>
           <div class="cl-hero-inner">
             <div class="cl-hero-copy">
-              <div class="cl-hero-kicker">CAMPEONATO DEL MUNDO</div>
+              <div class="cl-hero-kicker">
+                CAMPEONATO DEL MUNDO
+                <app-data-source-badge [source]="dataSource()" />
+              </div>
               <h1 class="cl-hero-title">
                 Clasificación<br />
                 <span class="cl-hero-title-accent">{{ view() === 'constructors' ? 'Constructores' : 'Pilotos' }}</span>

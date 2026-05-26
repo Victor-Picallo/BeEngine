@@ -29,5 +29,6 @@ export const MOTO2_DRIVER_PORTRAIT_URL = {
   "711cd7a3-7e13-413b-8de2-08d5bf4070f4": "https://photos.motogp.com/riders/7/1/711cd7a3-7e13-413b-8de2-08d5bf4070f4/2026/profile/main-861238.png",
   "a357a14a-bdd0-4b0a-8c75-948b5233cbad": "https://photos.motogp.com/riders/a/3/a357a14a-bdd0-4b0a-8c75-948b5233cbad/2026/profile/main-162960.png",
   "57f4c236-d465-4161-8e22-7426f4da36eb": "https://photos.motogp.com/riders/5/7/57f4c236-d465-4161-8e22-7426f4da36eb/2026/profile/main-81576.png",
-  "a90f6d5b-cba7-45cd-932e-308514518b80": "https://photos.motogp.com/riders/a/9/a90f6d5b-cba7-45cd-932e-308514518b80/2026/profile/main-549520.png"
+  "a90f6d5b-cba7-45cd-932e-308514518b80": "https://photos.motogp.com/riders/a/9/a90f6d5b-cba7-45cd-932e-308514518b80/2026/profile/main-549520.png",
+  "8861fef1-5380-4d96-b45d-b5c469c04df2": "https://photos.motogp.com/riders/8/8/8861fef1-5380-4d96-b45d-b5c469c04df2/2025/profile/main-299591.png"
 };

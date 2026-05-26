@@ -1,9 +1,12 @@
 /**
  * Logos oficiales del grid Moto3 2026 (13 equipos Pulse).
- * Assets: frontend/public/moto3/teams/ — script: backend/scripts/download-moto3-team-logos.mjs
+ * Assets: frontend/public/moto3/teams/ o Supabase beengine-media/moto3/constructors/
  */
+import { toPublicMediaUrl } from '../../lib/supabaseStorage.js';
 
-const LOCAL = (file) => `/moto3/teams/${file}`;
+const pub = (path) => (path ? toPublicMediaUrl(path) : null);
+
+const LOCAL = (file) => pub(`/moto3/teams/${file}`);
 
 /** slug Pulse → archivo en public/moto3/teams */
 export const MOTO3_OFFICIAL_LOGO_FILES = {

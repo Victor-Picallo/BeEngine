@@ -4,8 +4,29 @@ import {
   MOTO2_CATEGORY_UUID,
   MOTO3_CATEGORY_UUID,
 } from '../../external/motogp/pulselive.client.js';
-import motogpMock from '../../data/motogp/motogp.data.js';
+import { PULSE_LIVE_ENABLED } from '../../config/env.js';
 import { getRidersIndex } from './motogpRiders.service.js';
+import { resolveWithFallback, resolveWithFallbackOrEmpty } from '../shared/resolveWithFallback.js';
+import {
+  getCalendarFromDb,
+  getConstructorStandingsFromDb,
+  getDriverStandingsFromDb,
+  getLastRaceFromDb,
+  getOfficialTeamsGridFromDb,
+  getRaceResultsFromDb,
+  getRoundSessionsFromDb,
+} from '../../repositories/db/moto.repository.js';
+import {
+  fetchCalendar,
+  fetchDriverStandings,
+  fetchLastRace,
+  fetchOfficialTeamsGrid,
+  fetchRaceResultsByRound,
+  fetchRoundSessionsMeta,
+  getCurrentSeason,
+  getRaceEvents,
+  resolveCircuitDisplayName,
+} from './pulseLive.fetch.js';
 import { getCircuits, findCircuitByName } from './motogpCircuits.service.js';
 import { getTeamsIndex, enrichStandingRow } from './motogpTeams.service.js';
 import {
@@ -17,24 +38,10 @@ import { resolveMoto3TeamLogoUrl } from '../../data/moto3/moto3TeamLogos.js';
 import {
   enrichMoto2DriverStandings,
   enrichMoto2TeamStandings,
-  fallbackMoto2DriverStandings,
-  fallbackMoto2ConstructorStandings,
-  fallbackMoto2OfficialTeamsGrid,
-  fallbackMoto2Calendar,
-  fallbackMoto2LastRace,
-  fallbackMoto2RaceResults,
-  MOTO2_DRIVER_PORTRAIT_URL,
 } from '../moto2/moto2Data.service.js';
 import {
   enrichMoto3DriverStandings,
   enrichMoto3TeamStandings,
-  fallbackMoto3DriverStandings,
-  fallbackMoto3ConstructorStandings,
-  fallbackMoto3OfficialTeamsGrid,
-  fallbackMoto3Calendar,
-  fallbackMoto3LastRace,
-  fallbackMoto3RaceResults,
-  MOTO3_DRIVER_PORTRAIT_URL,
 } from '../moto3/moto3Data.service.js';
 import {
   pickMainRaceSession,
@@ -57,51 +64,34 @@ export const categoryUuidFor = (id) => CATEGORY_UUIDS[id] ?? MOTOGP_CATEGORY_UUI
 const motoFeederApi = (categoryId) => {
   if (categoryId === 'moto2') {
     return {
-      portraits: MOTO2_DRIVER_PORTRAIT_URL,
       enrichDrivers: enrichMoto2DriverStandings,
       enrichTeams: enrichMoto2TeamStandings,
-      fallbackDrivers: fallbackMoto2DriverStandings,
-      fallbackConstructors: fallbackMoto2ConstructorStandings,
-      fallbackOfficialTeams: fallbackMoto2OfficialTeamsGrid,
-      fallbackCalendar: fallbackMoto2Calendar,
-      fallbackLastRace: fallbackMoto2LastRace,
-      fallbackRaceResults: fallbackMoto2RaceResults,
       resolveTeamLogo: resolveMoto2TeamLogoUrl,
     };
   }
   if (categoryId === 'moto3') {
     return {
-      portraits: MOTO3_DRIVER_PORTRAIT_URL,
       enrichDrivers: enrichMoto3DriverStandings,
       enrichTeams: enrichMoto3TeamStandings,
-      fallbackDrivers: fallbackMoto3DriverStandings,
-      fallbackConstructors: fallbackMoto3ConstructorStandings,
-      fallbackOfficialTeams: fallbackMoto3OfficialTeamsGrid,
-      fallbackCalendar: fallbackMoto3Calendar,
-      fallbackLastRace: fallbackMoto3LastRace,
-      fallbackRaceResults: fallbackMoto3RaceResults,
       resolveTeamLogo: resolveMoto3TeamLogoUrl,
     };
   }
   return null;
 };
 
-const mergeMotoFeederCalendar = (items, events, categoryId) => {
-  const feeder = motoFeederApi(categoryId);
-  if (!feeder) return items;
-  const localCal = feeder.fallbackCalendar();
-  const localByRound = new Map(localCal.map((r) => [r.round, r]));
-  const flags = new Map(localCal.map((r) => [r.round, r.resultsAvailable]));
+const mergeDbCalendarFlags = async (items, categoryId) => {
+  const db = await getCalendarFromDb(categoryId);
+  if (!db?.length) return items;
+  const flags = new Map(db.map((r) => [r.round, r.resultsAvailable]));
   return items.map((row) => ({
     ...row,
-    circuitName: resolveCircuitDisplayName(
-      row.circuitName,
-      events[row.round - 1],
-      localByRound.get(row.round),
-    ),
-    resultsAvailable: flags.get(row.round) ?? false,
+    resultsAvailable:
+      row.resultsAvailable ||
+      (flags.has(row.round) ? Boolean(flags.get(row.round)) : false),
   }));
 };
+
+const pulseOpts = { liveEnabled: PULSE_LIVE_ENABLED };
 
 export const getCurrentSeasonYear = async () => {
   const season = await getCurrentSeason();
@@ -131,22 +121,6 @@ const isTestEventLabel = (name) => /\btest\b/i.test(String(name ?? '').trim());
 const isTestEvent = (e) =>
   Boolean(e?.test) || isTestEventLabel(e?.sponsored_name) || isTestEventLabel(e?.name);
 
-/** Never surface «BARCELONA TEST»-style event titles as circuit names. */
-export const resolveCircuitDisplayName = (circuitName, event = null, localRow = null) => {
-  const label = String(circuitName ?? '').trim();
-  const eventLabel = `${event?.sponsored_name ?? ''} ${event?.name ?? ''}`.trim();
-  const fromCircuit = event?.circuit?.name?.trim() ?? '';
-
-  if (label && !isTestEventLabel(label) && normLabel(label) !== normLabel(eventLabel)) {
-    return label;
-  }
-  if (localRow?.circuitName && !isTestEventLabel(localRow.circuitName)) {
-    return localRow.circuitName;
-  }
-  if (fromCircuit && !isTestEventLabel(fromCircuit)) return fromCircuit;
-  return label || fromCircuit || '—';
-};
-
 const lastNameInitial = (full) => {
   const parts = String(full || '').trim().split(/\s+/);
   if (parts.length < 2) return full;
@@ -170,31 +144,6 @@ const formatSessionDate = (iso) =>
 
 const formatSessionTime = (iso) =>
   new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
-
-let seasonCache = null;
-let seasonCacheTs = 0;
-const SEASON_CACHE_MS = 6 * 60 * 60_000;
-
-export const getCurrentSeason = async () => {
-  const now = Date.now();
-  if (seasonCache && now - seasonCacheTs < SEASON_CACHE_MS) return seasonCache;
-  const raw = await pulseliveClient.get('/results/seasons', { freshTtlMs: SEASON_CACHE_MS });
-  const list = asList(raw);
-  const current = list.find((s) => s.current) ?? list[0];
-  if (!current?.id) throw new Error('No current MotoGP season');
-  seasonCache = current;
-  seasonCacheTs = now;
-  return current;
-};
-
-export const getRaceEvents = async () => {
-  const season = await getCurrentSeason();
-  const events = await pulseliveClient.get(
-    `/results/events?seasonUuid=${season.id}`,
-    { freshTtlMs: 5 * 60_000 },
-  );
-  return asList(events).filter((e) => !isTestEvent(e));
-};
 
 const normalizeDriverStandings = (raw) => {
   const rows = raw?.classification ?? [];
@@ -383,84 +332,16 @@ const fetchEventSessions = async (event, categoryId = 'motogp') => {
   );
 };
 
-// ── Fallbacks (mock local) ───────────────────────────────────
-
-const fallbackDriverStandings = () =>
-  motogpMock.standings.map((d) => ({
-    pos: d.pos,
-    driver: d.driver,
-    driverId: slugify(d.driver),
-    team: d.team,
-    points: d.points,
-    wins: 0,
-    nationality: d.nationality,
-  }));
-
-const fallbackConstructorStandings = () =>
-  motogpMock.constructors.map((c) => ({
-    pos: c.pos,
-    team: c.team,
-    constructorId: slugify(c.team),
-    points: c.points,
-    wins: 0,
-    nationality: '',
-  }));
-
-const fallbackCalendar = () => {
-  const nr = motogpMock.nextRace;
-  const [date, time] = nr.date.split('T');
-  return [
-    {
-      round: nr.round,
-      raceName: nr.name,
-      circuitName: nr.circuit,
-      locality: nr.location.split(',')[0].trim(),
-      country: nr.location.split(',').pop()?.trim() ?? '',
-      date,
-      time: time?.replace('Z', '') ?? null,
-      status: 'NOT-STARTED',
-      eventId: null,
-    },
-  ];
-};
-
-const fallbackLastRace = () => ({
-  raceName: motogpMock.lastRace.name,
-  round: Math.max(0, motogpMock.nextRace.round - 1),
-  circuitName: '—',
-  date: new Date().toISOString().slice(0, 10),
-  results: motogpMock.lastRace.podium.map((p) => ({
-    position: p.pos,
-    driver: p.driver,
-    driverId: slugify(p.driver),
-    team: p.team,
-    time: p.time,
-    points: 0,
-  })),
-  imageUrl: null,
-});
-
 // ── Public API ───────────────────────────────────────────────
 
 export const getDriverStandings = async (categoryId = 'motogp') => {
-  try {
-    const season = await getCurrentSeason();
-    const raw = await pulseliveClient.get(
-      `/results/standings?seasonUuid=${season.id}&categoryUuid=${categoryUuidFor(categoryId)}`,
-    );
-    let items = await enrichDriversWithTeamsAndPortraits(
-      normalizeDriverStandings(raw),
-      season.year,
-      categoryId,
-    );
-    const feeder = motoFeederApi(categoryId);
-    if (feeder) items = feeder.enrichDrivers(items);
-    return { source: 'external', items };
-  } catch {
-    const feeder = motoFeederApi(categoryId);
-    if (feeder) return { source: 'local', items: feeder.fallbackDrivers() };
-    return { source: 'mock', items: fallbackDriverStandings() };
-  }
+  const resolved = await resolveWithFallbackOrEmpty(
+    () => fetchDriverStandings(categoryId),
+    () => getDriverStandingsFromDb(categoryId),
+    [],
+    pulseOpts,
+  );
+  return { items: resolved.data, source: resolved.source };
 };
 
 const enrichDriversWithTeamsAndPortraits = async (items, seasonYear, categoryId = 'motogp') => {
@@ -488,25 +369,27 @@ const enrichDriversWithTeamsAndPortraits = async (items, seasonYear, categoryId 
 };
 
 export const getConstructorStandings = async (categoryId = 'motogp') => {
-  try {
-    const season = await getCurrentSeason();
-    const [raw, teamsIdx] = await Promise.all([
-      pulseliveClient.get(
-        `/results/standings?seasonUuid=${season.id}&categoryUuid=${categoryUuidFor(categoryId)}`,
-      ),
-      getTeamsIndex(season.year, categoryId),
-    ]);
-    let items = normalizeConstructorStandingsByTeam(raw?.classification ?? [], categoryId);
-    items = mergeTeamsGridIntoStandings(items, teamsIdx);
-    items = items.map((row) => enrichStandingRow(row, teamsIdx, categoryId));
-    const feeder = motoFeederApi(categoryId);
-    if (feeder) items = feeder.enrichTeams(items);
-    return { source: 'external', items };
-  } catch {
-    const feeder = motoFeederApi(categoryId);
-    if (feeder) return { source: 'local', items: feeder.fallbackConstructors() };
-    return { source: 'mock', items: fallbackConstructorStandings() };
-  }
+  const resolved = await resolveWithFallbackOrEmpty(
+    async () => {
+      const season = await getCurrentSeason();
+      const [raw, teamsIdx] = await Promise.all([
+        pulseliveClient.get(
+          `/results/standings?seasonUuid=${season.id}&categoryUuid=${categoryUuidFor(categoryId)}`,
+        ),
+        getTeamsIndex(season.year, categoryId),
+      ]);
+      let items = normalizeConstructorStandingsByTeam(raw?.classification ?? [], categoryId);
+      items = mergeTeamsGridIntoStandings(items, teamsIdx);
+      items = items.map((row) => enrichStandingRow(row, teamsIdx, categoryId));
+      const feeder = motoFeederApi(categoryId);
+      if (feeder) items = feeder.enrichTeams(items);
+      return items;
+    },
+    () => getConstructorStandingsFromDb(categoryId),
+    [],
+    pulseOpts,
+  );
+  return { items: resolved.data, source: resolved.source };
 };
 
 /** Parrilla oficial: 11 equipos Pulse + puntos/victorias agregados por equipo del grid. */
@@ -536,128 +419,45 @@ const aggregateStandingsByOfficialTeam = (classificationRows, categoryId = 'moto
 };
 
 export const getOfficialTeamsGrid = async (categoryId = 'motogp') => {
-  try {
-    const season = await getCurrentSeason();
-    const [raw, teamsIdx] = await Promise.all([
-      pulseliveClient.get(
-        `/results/standings?seasonUuid=${season.id}&categoryUuid=${categoryUuidFor(categoryId)}`,
-      ),
-      getTeamsIndex(season.year, categoryId),
-    ]);
-    const agg = aggregateStandingsByOfficialTeam(raw?.classification ?? [], categoryId);
-    const items = teamsIdx.list
-      .map((t) => {
-        const stats = agg.get(t.constructorId) ?? { points: 0, wins: 0 };
-        return {
-          pos: 0,
-          team: t.name,
-          constructorId: t.constructorId,
-          teamId: t.teamId,
-          points: stats.points,
-          wins: stats.wins,
-          nationality: '',
-          teamColor: t.color,
-          logoUrl:
-            t.logoUrl ??
-            (categoryId === 'motogp'
-              ? resolveMotogpTeamLogoUrl(t.teamId, t.constructorId, t.name)
-              : motoFeederApi(categoryId)?.resolveTeamLogo(t.teamId, t.constructorId, t.name) ??
-                t.logoUrl),
-          bikeImageUrl: t.bikeImageUrl,
-        };
-      })
-      .sort((a, b) => b.points - a.points || a.team.localeCompare(b.team))
-      .map((row, i) => ({ ...row, pos: i + 1 }));
-    const feeder = motoFeederApi(categoryId);
-    const merged = feeder ? feeder.enrichTeams(items) : items;
-    return { source: 'external', items: merged };
-  } catch {
-    const feeder = motoFeederApi(categoryId);
-    if (feeder) {
-      return { source: 'local', items: feeder.fallbackOfficialTeams() };
-    }
-    const mock = fallbackConstructorStandings();
-    return { source: 'mock', items: mock.slice(0, 11) };
-  }
+  const resolved = await resolveWithFallbackOrEmpty(
+    () => fetchOfficialTeamsGrid(categoryId),
+    () => getOfficialTeamsGridFromDb(categoryId),
+    [],
+    pulseOpts,
+  );
+  return { items: resolved.data, source: resolved.source };
 };
 
 export const getCalendar = async (categoryId = 'motogp') => {
-  try {
-    const season = await getCurrentSeason();
-    const events = await getRaceEvents();
-    let items = normalizeCalendar(events);
-    try {
-      const { items: circuitList } = await getCircuits(season.year);
-      const bySlug = new Map(circuitList.map((c) => [c.slug, c]));
-      const byId = new Map(circuitList.map((c) => [c.circuitId, c]));
-      items = items.map((row) => {
-        const c =
-          (row.circuitId && byId.get(row.circuitId)) ||
-          bySlug.get(slugify(row.circuitName));
-        if (!c) return row;
-        return {
-          ...row,
-          circuitSvgUrl: c.svgUrl,
-          circuitImageUrl: c.imageUrl,
-        };
-      });
-    } catch {
-      /* calendario sin SVG */
-    }
-    items = mergeMotoFeederCalendar(items, events, categoryId);
-    return { source: 'external', items };
-  } catch {
-    const feeder = motoFeederApi(categoryId);
-    if (feeder) {
-      return { source: 'local', items: feeder.fallbackCalendar() };
-    }
-    return { source: 'mock', items: fallbackCalendar() };
-  }
+  const resolved = await resolveWithFallbackOrEmpty(
+    async () => mergeDbCalendarFlags(await fetchCalendar(categoryId), categoryId),
+    () => getCalendarFromDb(categoryId),
+    [],
+    pulseOpts,
+  );
+  return { items: resolved.data, source: resolved.source };
 };
 
 export const getLastRace = async (categoryId = 'motogp') => {
-  try {
-    const season = await getCurrentSeason();
-    const events = await getRaceEvents();
-    const finished = events.filter((e) => e.status === 'FINISHED');
-    const last = finished[finished.length - 1];
-    if (!last) throw new Error('No finished races');
-
-    const sessions = asList(
-      await pulseliveClient.get(
-        `/results/sessions?eventUuid=${last.id}&categoryUuid=${categoryUuidFor(categoryId)}`,
-      ),
-    );
-    const raceSession = pickMainRaceSession(sessions);
-    if (!raceSession?.id) throw new Error('No race session');
-
-    const cls = await pulseliveClient.get(
-      `/results/session/${raceSession.id}/classification?seasonYear=${season.year}&test=false`,
-    );
-    const results = await enrichRaceResultsHeadshots(
-      normalizeClassification(cls, raceSession),
-      season.year,
-      categoryId,
-    );
-    const round = finished.length;
-    const circuit = await findCircuitByName(last.circuit?.name, season.year).catch(() => null);
-
-    return {
-      source: 'external',
-      raceName: last.sponsored_name?.trim() || last.name,
-      round,
-      circuitName: resolveCircuitDisplayName(last.circuit?.name ?? '—', last),
-      date: last.date_start?.slice(0, 10) ?? '',
-      results,
-      imageUrl: circuit?.imageUrl ?? circuit?.svgUrl ?? null,
-    };
-  } catch {
-    const feeder = motoFeederApi(categoryId);
-    if (feeder) {
-      return { source: 'local', ...feeder.fallbackLastRace() };
-    }
-    return { source: 'mock', ...fallbackLastRace() };
-  }
+  const resolved = await resolveWithFallbackOrEmpty(
+    async () => {
+      const race = await fetchLastRace(categoryId);
+      const season = await getCurrentSeason();
+      const circuit = await findCircuitByName(
+        race.circuitName,
+        season.year,
+      ).catch(() => null);
+      return {
+        ...race,
+        imageUrl: circuit?.imageUrl ?? circuit?.svgUrl ?? null,
+      };
+    },
+    () => getLastRaceFromDb(categoryId),
+    null,
+    pulseOpts,
+  );
+  if (!resolved.data) throw new Error('No last race data');
+  return { ...resolved.data, source: resolved.source };
 };
 
 /** Sessions del próximo GP (para la tarjeta de carrera en home). */
@@ -698,26 +498,7 @@ export const getNextRaceSessions = async (categoryId = 'motogp') => {
       })),
     };
   } catch {
-    const nr = motogpMock.nextRace;
-    return {
-      source: 'mock',
-      event: {
-        raceName: nr.name,
-        circuitName: nr.circuit,
-        locality: nr.location.split(',')[0].trim(),
-        country: nr.location.split(',').pop()?.trim() ?? '',
-        date: nr.date,
-        round: nr.round,
-        totalRounds: nr.totalRounds,
-      },
-      sessions: nr.sessions.map((s) => ({
-        name: s.name,
-        date: s.date,
-        time: s.time,
-        highlight: !!s.highlight,
-        dateIso: nr.date,
-      })),
-    };
+    return { source: 'empty', event: null, sessions: [] };
   }
 };
 
@@ -727,40 +508,12 @@ export const getRoundSessions = async (round, categoryId = 'motogp') => {
     throw new Error('Invalid race round');
   }
 
-  const season = await getCurrentSeason();
-  const events = await getRaceEvents();
-  const event = events[cleanRound - 1];
-  if (!event) throw new Error(`No MotoGP event for round ${cleanRound}`);
-
-  const sessions = await fetchEventSessions(event, categoryId);
-  const circuit = await findCircuitByName(event.circuit?.name, season.year).catch(() => null);
-
-  return {
-    source: 'external',
-    round: cleanRound,
-    raceName: event.sponsored_name?.trim() || event.name,
-    circuitName: resolveCircuitDisplayName(event.circuit?.name ?? '—', event),
-    circuitSvgUrl: circuit?.svgUrl ?? null,
-    sessions: (() => {
-      // Use a Map keyed by sessionKey so that when a race is red-flagged and
-      // restarted (two RAC sessions), we show only the final/restart session.
-      // Map preserves insertion order of keys, and later .set() calls update
-      // the value while keeping the original key position in the list.
-      const byKey = new Map();
-      for (const s of sessions) {
-        const sessionKey = pulseSessionToKey(s);
-        byKey.set(sessionKey, {
-          sessionKey,
-          label: pulseSessionLabel(s),
-          date: s.date ?? null,
-          status: s.status ?? null,
-          hasResults: sessionHasDisplayableData(s),
-          isLive: sessionIsLive(s),
-        });
-      }
-      return [...byKey.values()];
-    })(),
-  };
+  const resolved = await resolveWithFallback(
+    () => fetchRoundSessionsMeta(cleanRound, categoryId),
+    () => getRoundSessionsFromDb(categoryId, cleanRound),
+    pulseOpts,
+  );
+  return { ...resolved.data, source: resolved.source };
 };
 
 export const getRaceResultsByRound = async (round, sessionKey = 'race', categoryId = 'motogp') => {
@@ -769,85 +522,13 @@ export const getRaceResultsByRound = async (round, sessionKey = 'race', category
     throw new Error('Invalid race round');
   }
 
-  try {
-    const season = await getCurrentSeason();
-    const events = await getRaceEvents();
-    const event = events[cleanRound - 1];
-    if (!event) throw new Error(`No MotoGP event for round ${cleanRound}`);
-
-    const sessions = await fetchEventSessions(event, categoryId);
-    const session = resolvePulseSession(sessions, sessionKey) ?? pickMainRaceSession(sessions);
-    if (!session?.id) throw new Error('No session for round');
-
-    const circuit = await findCircuitByName(event.circuit?.name, season.year).catch(() => null);
-    const live = sessionIsLive(session);
-    const official = sessionHasResults(session);
-
-    const base = {
-      round: cleanRound,
-      raceName: event.sponsored_name?.trim() || event.name,
-      circuitName: resolveCircuitDisplayName(event.circuit?.name ?? '—', event),
-      circuitSvgUrl: circuit?.svgUrl ?? null,
-      date: session.date?.slice(0, 10) ?? event.date_start?.slice(0, 10) ?? '',
-      sessionKey: pulseSessionToKey(session),
-      sessionLabel: pulseSessionLabel(session),
-      sessionStatus: session.status ?? null,
-      sessionPending: live && !official,
-      live: live && !official,
-      results: [],
-    };
-
-    if (!sessionHasDisplayableData(session)) {
-      return base;
-    }
-
-    const clsTtl = live ? 8_000 : 60_000;
-    let rows = [];
-    try {
-      const cls = await pulseliveClient.get(
-        `/results/session/${session.id}/classification?seasonYear=${season.year}&test=false`,
-        { freshTtlMs: clsTtl },
-      );
-      rows = normalizeClassification(cls, session);
-    } catch {
-      rows = [];
-    }
-
-    const enriched = await enrichRaceResultsHeadshots(rows, season.year, categoryId);
-    const hasRows = enriched.length > 0;
-
-    return {
-      ...base,
-      sessionPending: live && hasRows && !official,
-      live: live && hasRows && !official,
-      results: enriched.map((r) => ({
-        position: r.position,
-        driver: r.driver,
-        driverId: r.driverId,
-        team: r.team,
-        constructorId: r.constructorId,
-        teamColor: r.teamColor ?? null,
-        headshotUrl: r.headshotUrl ?? null,
-        grid: r.grid ?? r.position,
-        laps: r.laps,
-        status: r.status,
-        points: r.points,
-        time: r.time,
-        number: r.number ?? null,
-      })),
-    };
-  } catch (err) {
-    const feeder = motoFeederApi(categoryId);
-    if (feeder) {
-      try {
-        const local = feeder.fallbackRaceResults(cleanRound);
-        return { source: 'local', ...local, sessionKey: sessionKey ?? 'race' };
-      } catch {
-        /* no local round */
-      }
-    }
-    throw err;
-  }
+  const key = String(sessionKey || 'race').toLowerCase();
+  const resolved = await resolveWithFallback(
+    () => fetchRaceResultsByRound(cleanRound, key, categoryId),
+    () => getRaceResultsFromDb(categoryId, cleanRound, key),
+    pulseOpts,
+  );
+  return { ...resolved.data, source: resolved.source };
 };
 
 export { fetchLiveTimingLite, liveTimingSessionKey } from './motogpLiveTiming.service.js';
@@ -878,4 +559,5 @@ export const getWeekendSessions = async (categoryId = 'motogp') => {
   return { source: payload.source, items };
 };
 
+export { getCurrentSeason, getRaceEvents, resolveCircuitDisplayName };
 export { lastNameInitial, formatRaceDate, slugify };

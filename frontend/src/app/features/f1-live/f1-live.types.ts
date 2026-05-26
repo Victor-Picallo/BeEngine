@@ -223,6 +223,7 @@ export interface JolpikaConstructorStanding {
   wins: number;
   nationality: string;
   logoUrl?: string | null;
+  bikeImageUrl?: string | null;
   teamColor?: string | null;
 }
 

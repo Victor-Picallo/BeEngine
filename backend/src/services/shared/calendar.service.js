@@ -1,3 +1,6 @@
-import { findCalendarByCategory } from '../../repositories/calendar.repository.js';
+import { getHomeByCategory } from './home.service.js';
 
-export const getCalendarByCategory = (category) => findCalendarByCategory(category);
+export const getCalendarByCategory = async (category) => {
+  const home = await getHomeByCategory(category);
+  return home?.nextRace ?? null;
+};

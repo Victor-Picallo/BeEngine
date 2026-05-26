@@ -1,9 +1,12 @@
 /**
  * Logos oficiales del grid Moto2 2026 (14 equipos Pulse).
- * Assets: frontend/public/moto2/teams/ — script: backend/scripts/download-moto2-team-logos.mjs
+ * Assets: frontend/public/moto2/teams/ o Supabase beengine-media/moto2/constructors/
  */
+import { toPublicMediaUrl } from '../../lib/supabaseStorage.js';
 
-const LOCAL = (file) => `/moto2/teams/${file}`;
+const pub = (path) => (path ? toPublicMediaUrl(path) : null);
+
+const LOCAL = (file) => pub(`/moto2/teams/${file}`);
 
 /** slug Pulse → archivo en public/moto2/teams */
 export const MOTO2_OFFICIAL_LOGO_FILES = {

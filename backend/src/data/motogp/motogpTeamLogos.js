@@ -1,9 +1,12 @@
 /**
  * Logos oficiales de los 11 equipos del grid MotoGP 2026.
- * Assets: frontend/public/motogp/teams/ — script: backend/scripts/download-motogp-11-official-logos.mjs
+ * Assets: frontend/public/motogp/teams/ o Supabase beengine-media/motogp/constructors/
  */
+import { toPublicMediaUrl } from '../../lib/supabaseStorage.js';
 
-const LOCAL = (file) => `/motogp/teams/${file}`;
+const pub = (path) => (path ? toPublicMediaUrl(path) : null);
+
+const LOCAL = (file) => pub(`/motogp/teams/${file}`);
 
 /** Los 11 archivos oficiales (slug = nombre de archivo sin extensión) */
 export const MOTOGP_OFFICIAL_LOGO_FILES = {

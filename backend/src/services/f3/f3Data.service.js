@@ -1,40 +1,26 @@
+import { FIA_F3_ENABLED } from '../../config/env.js';
+import { resolveWithFallbackOrEmpty } from '../shared/resolveWithFallback.js';
 import {
-  FIA_F3_BASE_URL,
-  FIA_F3_ENABLED,
-  FIA_F3_SEASON_ID,
-} from '../../config/env.js';
-import { createFiaFeederApi } from '../shared/fiaFeederApi.service.js';
-import {
-  F3_DRIVERS_GRID_2026,
-  F3_DRIVER_POINTS_2026,
-} from '../../data/f3/f3DriversGrid2026.js';
-import {
-  F3_CONSTRUCTORS_GRID_2026,
-  F3_CONSTRUCTOR_POINTS_2026,
-} from '../../data/f3/f3ConstructorsGrid2026.js';
-import {
-  F3_CALENDAR_2026,
-  F3_LAST_COMPLETED_ROUND,
-} from '../../data/f3/f3Calendar2026.js';
-import { F3_RACE_RESULTS_2026 } from '../../data/f3/f3RaceResults2026.js';
+  getCalendarFromDb,
+  getConstructorStandingsFromDb,
+  getDriverStandingsFromDb,
+  getLastRaceFromDb,
+  getRaceResultsFromDb,
+  findDriverSeasonEntry,
+  getDriverEntriesForConstructor,
+} from '../../repositories/db/feeder.repository.js';
+import { getF3FiaApi } from './f3FiaApi.js';
+import { resolveFormulaMediaUrl } from '../shared/formulaMedia.js';
 
-const fiaApi = createFiaFeederApi({
-  baseUrl: FIA_F3_BASE_URL,
-  seasonId: FIA_F3_SEASON_ID,
-  driversGrid: F3_DRIVERS_GRID_2026,
-  constructorsGrid: F3_CONSTRUCTORS_GRID_2026,
-});
+const SERIES = 'f3';
 
 const stripInternal = (items) =>
   items.map(({ fiaRaceId, sprintDate, ...race }) => race);
 
-const raceWindowFromLocal = (race) => {
-  const start = race.date && race.time ? `${race.date}T${race.time}` : null;
-  const end = start
-    ? new Date(new Date(start).getTime() + 90 * 60 * 1000).toISOString()
-    : null;
-  return { raceSessionStart: start, raceSessionEnd: end };
-};
+const withSource = (resolved, body) => ({
+  ...body,
+  source: resolved.source,
+});
 
 const mapRaceResultsResponse = (race) => ({
   round: race.round,
@@ -45,63 +31,6 @@ const mapRaceResultsResponse = (race) => ({
   live: race.live === true,
   sessionPending: race.sessionPending === true,
 });
-
-const winsFromResults = (driverId) => {
-  let w = 0;
-  for (const race of Object.values(F3_RACE_RESULTS_2026)) {
-    const win = race.results.find((r) => r.driverId === driverId && r.position === 1);
-    if (win) w += 1;
-  }
-  return w;
-};
-
-const teamWins = (constructorId) => {
-  let w = 0;
-  for (const race of Object.values(F3_RACE_RESULTS_2026)) {
-    const win = race.results.find((r) => r.constructorId === constructorId && r.position === 1);
-    if (win) w += 1;
-  }
-  return w;
-};
-
-const fallbackDriverStandings = () =>
-  [...F3_DRIVERS_GRID_2026]
-    .map((g) => ({
-      pos: 0,
-      driver: g.driver,
-      driverId: g.driverId,
-      team: g.team,
-      points: F3_DRIVER_POINTS_2026[g.driverId] ?? 0,
-      wins: winsFromResults(g.driverId),
-      nationality: g.nationality,
-      gridOrder: g.gridOrder,
-    }))
-    .sort((a, b) => b.points - a.points || a.gridOrder - b.gridOrder)
-    .map((row, i) => ({ ...row, pos: i + 1 }));
-
-const fallbackConstructorStandings = () =>
-  [...F3_CONSTRUCTORS_GRID_2026]
-    .map((g) => ({
-      pos: 0,
-      team: g.team,
-      constructorId: g.constructorId,
-      points: F3_CONSTRUCTOR_POINTS_2026[g.constructorId] ?? 0,
-      wins: teamWins(g.constructorId),
-      nationality: g.nationality,
-      gridOrder: g.gridOrder,
-    }))
-    .sort((a, b) => b.points - a.points || a.gridOrder - b.gridOrder)
-    .map((row, i) => ({ ...row, pos: i + 1 }));
-
-const fallbackCalendar = () =>
-  F3_CALENDAR_2026.map((race) => {
-    const { sprintDate: _s, ...base } = race;
-    return {
-      ...base,
-      ...raceWindowFromLocal(race),
-      resultsAvailable: Boolean(F3_RACE_RESULTS_2026[race.round]),
-    };
-  });
 
 const mapRacePayload = (race) => ({
   round: race.round,
@@ -123,36 +52,6 @@ const mapRacePayload = (race) => ({
   })),
 });
 
-const fallbackLastRace = () => {
-  const race = F3_RACE_RESULTS_2026[F3_LAST_COMPLETED_ROUND];
-  if (!race) throw new Error('No last F3 race data');
-  return mapRacePayload(race);
-};
-
-const fallbackRaceResults = (round) => {
-  const race = F3_RACE_RESULTS_2026[round];
-  if (!race) throw new Error(`No F3 race results for round ${round}`);
-  return {
-    round: race.round,
-    raceName: race.raceName,
-    circuitName: race.circuitName,
-    date: race.date,
-    results: race.results.map((r) => ({
-      position: r.position,
-      driver: r.driver,
-      driverId: r.driverId,
-      team: r.team,
-      constructorId: r.constructorId,
-      grid: r.grid,
-      laps: r.laps,
-      status: r.status,
-      points: r.points,
-      time: r.time,
-    })),
-  };
-};
-
-/** Rondas con resultados publicados (FIA o, si falla la API, mocks locales). */
 export const getMaxCompletedRound = async () => {
   const cal = await getCalendar();
   const rounds = cal.items.filter((r) => r.resultsAvailable).map((r) => r.round);
@@ -160,65 +59,110 @@ export const getMaxCompletedRound = async () => {
 };
 
 export const getDriverStandings = async () => {
-  if (!FIA_F3_ENABLED) return { items: fallbackDriverStandings() };
-  try {
-    const { items } = await fiaApi.getDriverStandings();
-    return { items };
-  } catch {
-    return { items: fallbackDriverStandings() };
-  }
+  const resolved = await resolveWithFallbackOrEmpty(
+    async () => (await getF3FiaApi()).getDriverStandings().then((r) => r.items),
+    () => getDriverStandingsFromDb(SERIES),
+    [],
+    { liveEnabled: FIA_F3_ENABLED },
+  );
+  return withSource(resolved, { items: resolved.data });
 };
 
 export const getConstructorStandings = async () => {
-  if (!FIA_F3_ENABLED) return { items: fallbackConstructorStandings() };
-  try {
-    const { items } = await fiaApi.getConstructorStandings();
-    return { items };
-  } catch {
-    return { items: fallbackConstructorStandings() };
-  }
+  const resolved = await resolveWithFallbackOrEmpty(
+    async () => (await getF3FiaApi()).getConstructorStandings().then((r) => r.items),
+    () => getConstructorStandingsFromDb(SERIES),
+    [],
+    { liveEnabled: FIA_F3_ENABLED },
+  );
+  return withSource(resolved, { items: resolved.data });
 };
 
 export const getCalendar = async () => {
-  if (!FIA_F3_ENABLED) return { items: fallbackCalendar() };
-  try {
-    const { items } = await fiaApi.getCalendar();
-    return { items: stripInternal(items) };
-  } catch {
-    return { items: fallbackCalendar() };
-  }
+  const resolved = await resolveWithFallbackOrEmpty(
+    async () =>
+      (await getF3FiaApi()).getCalendar().then((r) => stripInternal(r.items)),
+    () => getCalendarFromDb(SERIES),
+    [],
+    { liveEnabled: FIA_F3_ENABLED },
+  );
+  return withSource(resolved, { items: resolved.data });
 };
 
 export const getLastRace = async () => {
-  if (!FIA_F3_ENABLED) return fallbackLastRace();
-  try {
-    const race = await fiaApi.getLastRace();
-    return mapRacePayload(race);
-  } catch {
-    return fallbackLastRace();
-  }
+  const resolved = await resolveWithFallbackOrEmpty(
+    async () => (await getF3FiaApi()).getLastRace().then(mapRacePayload),
+    () => getLastRaceFromDb(SERIES).then((r) => (r ? mapRacePayload(r) : null)),
+    null,
+    { liveEnabled: FIA_F3_ENABLED },
+  );
+  if (!resolved.data) throw new Error('No last F3 race data');
+  return withSource(resolved, resolved.data);
 };
 
 export const getRaceResultsByRound = async (round) => {
   const cleanRound = Number.parseInt(round, 10);
-  if (!FIA_F3_ENABLED) return fallbackRaceResults(cleanRound);
-  try {
-    const race = await fiaApi.getRaceResultsByRound(cleanRound, { allowLive: true });
-    return mapRaceResultsResponse(race);
-  } catch {
-    return fallbackRaceResults(cleanRound);
-  }
+  const resolved = await resolveWithFallbackOrEmpty(
+    async () =>
+      (await getF3FiaApi())
+        .getRaceResultsByRound(cleanRound, { allowLive: true })
+        .then(mapRaceResultsResponse),
+    () => getRaceResultsFromDb(SERIES, cleanRound).then(mapRaceResultsResponse),
+    null,
+    { liveEnabled: FIA_F3_ENABLED },
+  );
+  if (!resolved.data) throw new Error(`No F3 race results for round ${cleanRound}`);
+  return withSource(resolved, resolved.data);
 };
 
-export const findDriverGrid = (driverId) =>
-  F3_DRIVERS_GRID_2026.find((d) => d.driverId === driverId) ?? null;
+export const findDriverGrid = async (driverId) => {
+  const entry = await findDriverSeasonEntry(SERIES, driverId);
+  if (!entry) return null;
+  const parts = entry.displayName.split(' ');
+  return {
+    driverId: entry.driverId,
+    givenName: parts[0] ?? '',
+    familyName: parts.slice(1).join(' ') || '',
+    driver: entry.displayName,
+    team: entry.teamName,
+    nationality: entry.driver?.nationality ?? '',
+    gridOrder: entry.gridOrder ?? 99,
+    headshotUrl: resolveFormulaMediaUrl(
+      SERIES,
+      entry.driverId,
+      'headshot',
+      entry.headshotUrl ?? entry.driver?.headshotUrl,
+    ),
+  };
+};
 
-export const findConstructorGrid = (constructorId) =>
-  F3_CONSTRUCTORS_GRID_2026.find((c) => c.constructorId === constructorId) ?? null;
+export const findConstructorGrid = async (constructorId) => {
+  const prisma = (await import('../../lib/prisma.js')).requirePrisma();
+  const { seasonIdFor } = await import('../../repositories/db/season.repository.js');
+  const cs = await prisma.constructorSeason.findUnique({
+    where: {
+      seasonId_constructorId: {
+        seasonId: seasonIdFor(SERIES),
+        constructorId,
+      },
+    },
+  });
+  if (!cs) return null;
+  return {
+    constructorId,
+    team: cs.name,
+    logoUrl: resolveFormulaMediaUrl(SERIES, constructorId, 'logo', cs.logoUrl),
+    bikeImageUrl: resolveFormulaMediaUrl(SERIES, constructorId, 'car', cs.bikeImageUrl),
+  };
+};
 
-const TEAM_TO_CONSTRUCTOR_ID = Object.fromEntries(
-  F3_CONSTRUCTORS_GRID_2026.map((c) => [c.team, c.constructorId]),
-);
-
-export const getDriversForConstructor = (constructorId) =>
-  F3_DRIVERS_GRID_2026.filter((d) => TEAM_TO_CONSTRUCTOR_ID[d.team] === constructorId);
+export const getDriversForConstructor = async (constructorId) => {
+  const entries = await getDriverEntriesForConstructor(SERIES, constructorId);
+  return entries.map((e) => ({
+    driverId: e.driverId,
+    driver: e.displayName,
+    team: e.teamName,
+    nationality: e.driver?.nationality ?? '',
+    gridOrder: e.gridOrder ?? 99,
+  }));
+};

@@ -26,8 +26,13 @@ import {
   OpenF1TeamRadio,
   OpenF1Weather,
 } from './f1-live.types';
+import type { DataSource } from '../../core/data-source';
+
+export type { DataSource };
+
 interface ItemsWrapped<T> {
   items: T[];
+  source?: DataSource;
 }
 
 const sessionQuery = (sessionKey?: number | 'latest' | null): string => {
@@ -40,8 +45,11 @@ export class F1LiveService {
   private readonly api = inject(ApiService);
   private readonly series = inject(SeriesContextService);
 
-  private constructorStandingsCache = new Map<SeriesId, Observable<JolpikaConstructorStanding[]>>();
-  private driverStandingsCache = new Map<SeriesId, Observable<JolpikaDriverStanding[]>>();
+  private constructorStandingsCache = new Map<
+    SeriesId,
+    Observable<ItemsWrapped<JolpikaConstructorStanding>>
+  >();
+  private driverStandingsCache = new Map<SeriesId, Observable<ItemsWrapped<JolpikaDriverStanding>>>();
 
   private seriesId(explicit?: SeriesId): SeriesId {
     return explicit ?? this.series.id();
@@ -126,19 +134,25 @@ export class F1LiveService {
     return this.api.get<OpenF1Location[]>(`${base}&session_key=${encodeURIComponent(String(sessionKey))}`);
   }
 
-  getDriverStandings(forceRefresh = false, seriesId?: SeriesId): Observable<JolpikaDriverStanding[]> {
+  getDriverStandingsResponse(
+    forceRefresh = false,
+    seriesId?: SeriesId,
+  ): Observable<ItemsWrapped<JolpikaDriverStanding>> {
     const sid = this.seriesId(seriesId);
     if (forceRefresh) this.driverStandingsCache.delete(sid);
     if (!this.driverStandingsCache.has(sid)) {
       const obs = this.api
         .get<ItemsWrapped<JolpikaDriverStanding>>(`${this.racingApi(sid)}/driver-standings`)
-        .pipe(
-          map((res) => res.items ?? []),
-          shareReplay({ bufferSize: 1, refCount: false }),
-        );
+        .pipe(shareReplay({ bufferSize: 1, refCount: false }));
       this.driverStandingsCache.set(sid, obs);
     }
     return this.driverStandingsCache.get(sid)!;
+  }
+
+  getDriverStandings(forceRefresh = false, seriesId?: SeriesId): Observable<JolpikaDriverStanding[]> {
+    return this.getDriverStandingsResponse(forceRefresh, seriesId).pipe(
+      map((res) => res.items ?? []),
+    );
   }
 
   getDriverProfile(driverId: string, careerPage = 1): Observable<JolpikaDriverProfile> {
@@ -155,19 +169,28 @@ export class F1LiveService {
     );
   }
 
-  getConstructorStandings(forceRefresh = false, seriesId?: SeriesId): Observable<JolpikaConstructorStanding[]> {
+  getConstructorStandingsResponse(
+    forceRefresh = false,
+    seriesId?: SeriesId,
+  ): Observable<ItemsWrapped<JolpikaConstructorStanding>> {
     const sid = this.seriesId(seriesId);
     if (forceRefresh) this.constructorStandingsCache.delete(sid);
     if (!this.constructorStandingsCache.has(sid)) {
       const obs = this.api
         .get<ItemsWrapped<JolpikaConstructorStanding>>(`${this.racingApi(sid)}/constructor-standings`)
-        .pipe(
-          map((res) => res.items ?? []),
-          shareReplay({ bufferSize: 1, refCount: false }),
-        );
+        .pipe(shareReplay({ bufferSize: 1, refCount: false }));
       this.constructorStandingsCache.set(sid, obs);
     }
     return this.constructorStandingsCache.get(sid)!;
+  }
+
+  getConstructorStandings(
+    forceRefresh = false,
+    seriesId?: SeriesId,
+  ): Observable<JolpikaConstructorStanding[]> {
+    return this.getConstructorStandingsResponse(forceRefresh, seriesId).pipe(
+      map((res) => res.items ?? []),
+    );
   }
 
   getConstructorProfile(constructorId: string, careerPage = 1): Observable<JolpikaConstructorProfile> {

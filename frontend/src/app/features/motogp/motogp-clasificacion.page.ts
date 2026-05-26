@@ -33,11 +33,20 @@ import {
   MotogpTeamClRow,
 } from './motogp-clasificacion-build';
 import { SeriesContextService } from '../../core/series/series-context.service';
+import { mergeDataSources, type DataSource } from '../../core/data-source';
+import { DataSourceBadgeComponent } from '../../shared/components/data-source-badge/data-source-badge.component';
 
 @Component({
   selector: 'app-motogp-clasificacion-page',
   standalone: true,
-  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink, ReturnNavDirective, SeriesAccentDirective],
+  imports: [
+    AppHeaderComponent,
+    AppSidebarComponent,
+    RouterLink,
+    ReturnNavDirective,
+    SeriesAccentDirective,
+    DataSourceBadgeComponent,
+  ],
   templateUrl: './motogp-clasificacion.page.html',
   styleUrls: ['../standings/f1-clasificacion.page.css', '../drivers/driver-portrait.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -52,6 +61,7 @@ export class MotogpClasificacionPageComponent {
 
   loading = signal(true);
   error = signal<string | null>(null);
+  dataSource = signal<DataSource | null>(null);
   view = signal<'drivers' | 'constructors'>('drivers');
   private failedTeamImg = signal(new Set<string>());
 
@@ -95,8 +105,8 @@ export class MotogpClasificacionPageComponent {
     this.error.set(null);
 
     forkJoin({
-      drivers: this.motogp.getDriverStandings(true).pipe(
-        catchError(() => of([] as JolpikaDriverStanding[])),
+      drivers: this.motogp.getDriverStandingsResponse(true).pipe(
+        catchError(() => of({ items: [] as JolpikaDriverStanding[], source: undefined })),
       ),
       teams: this.motogp.getOfficialTeamsGrid(true).pipe(
         catchError(() => of([] as MotogpTeamStanding[])),
@@ -124,7 +134,8 @@ export class MotogpClasificacionPageComponent {
           );
         }),
         tap((res) => {
-          this.driverStands.set(res.drivers);
+          this.driverStands.set(res.drivers.items ?? []);
+          this.dataSource.set(mergeDataSources(res.drivers.source));
           this.teamStands.set(res.teams);
           this.calendar.set(res.calendar);
           this.lastRace.set(res.lastRace);

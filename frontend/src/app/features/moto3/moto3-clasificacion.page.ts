@@ -22,6 +22,8 @@ import { AppHeaderComponent } from '../../shared/components/app-header/app-heade
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
 import { SeriesAccentDirective } from '../../core/series/series-accent.directive';
 import { SeriesContextService } from '../../core/series/series-context.service';
+import { mergeDataSources, type DataSource } from '../../core/data-source';
+import { DataSourceBadgeComponent } from '../../shared/components/data-source-badge/data-source-badge.component';
 import {
   buildDriverRows,
   ClDriverRow,
@@ -35,7 +37,14 @@ import { moto3TeamLogoCardClass } from './moto3-media';
 @Component({
   selector: 'app-moto3-clasificacion-page',
   standalone: true,
-  imports: [AppHeaderComponent, AppSidebarComponent, RouterLink, ReturnNavDirective, SeriesAccentDirective],
+  imports: [
+    AppHeaderComponent,
+    AppSidebarComponent,
+    RouterLink,
+    ReturnNavDirective,
+    SeriesAccentDirective,
+    DataSourceBadgeComponent,
+  ],
   templateUrl: './moto3-clasificacion.page.html',
   styleUrls: [
     '../standings/f1-clasificacion.page.css',
@@ -66,6 +75,7 @@ export class Moto3ClasificacionPageComponent {
 
   loading = signal(true);
   error = signal<string | null>(null);
+  dataSource = signal<DataSource | null>(null);
   view = signal<'drivers' | 'constructors'>('drivers');
   private failedTeamImg = signal(new Set<string>());
 
@@ -108,8 +118,8 @@ export class Moto3ClasificacionPageComponent {
     this.error.set(null);
 
     forkJoin({
-      drivers: this.moto3.getDriverStandings(true).pipe(
-        catchError(() => of([] as JolpikaDriverStanding[])),
+      drivers: this.moto3.getDriverStandingsResponse(true).pipe(
+        catchError(() => of({ items: [] as JolpikaDriverStanding[], source: undefined })),
       ),
       teams: this.moto3.getOfficialTeamsGrid(true).pipe(
         catchError(() => of([] as Moto3TeamStanding[])),
@@ -137,7 +147,8 @@ export class Moto3ClasificacionPageComponent {
           );
         }),
         tap((res) => {
-          this.driverStands.set(res.drivers);
+          this.driverStands.set(res.drivers.items ?? []);
+          this.dataSource.set(mergeDataSources(res.drivers.source));
           this.teamStands.set(res.teams);
           this.calendar.set(res.calendar);
           this.lastRace.set(res.lastRace);

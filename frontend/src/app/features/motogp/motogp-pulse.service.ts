@@ -16,8 +16,10 @@ import type {
 import type { MotogpTeamProfile, MotogpTeamStanding } from './motogp.types';
 import type { MotogpLiveFeedPayload, MotogpLiveTimingPayload } from '../motogp-live/motogp-live.types';
 
+import type { DataSource } from '../../core/data-source';
+
 interface SourceWrapped<T> {
-  source: string;
+  source?: DataSource;
   items: T[];
 }
 
@@ -50,21 +52,24 @@ export class MotogpPulseService {
   private readonly api = inject(ApiService);
   private readonly prefix = '/motogp/pulselive';
 
-  private driverStandings$?: Observable<JolpikaDriverStanding[]>;
+  private driverStandings$?: Observable<SourceWrapped<JolpikaDriverStanding>>;
   private teamStandings$?: Observable<MotogpTeamStanding[]>;
   private officialTeams$?: Observable<MotogpTeamStanding[]>;
 
-  getDriverStandings(forceRefresh = false): Observable<JolpikaDriverStanding[]> {
+  getDriverStandingsResponse(
+    forceRefresh = false,
+  ): Observable<SourceWrapped<JolpikaDriverStanding>> {
     if (forceRefresh) this.driverStandings$ = undefined;
     if (!this.driverStandings$) {
       this.driverStandings$ = this.api
         .get<SourceWrapped<JolpikaDriverStanding>>(`${this.prefix}/driver-standings`)
-        .pipe(
-          map((res) => res.items ?? []),
-          shareReplay({ bufferSize: 1, refCount: false }),
-        );
+        .pipe(shareReplay({ bufferSize: 1, refCount: false }));
     }
     return this.driverStandings$;
+  }
+
+  getDriverStandings(forceRefresh = false): Observable<JolpikaDriverStanding[]> {
+    return this.getDriverStandingsResponse(forceRefresh).pipe(map((res) => res.items ?? []));
   }
 
   getTeamStandings(forceRefresh = false): Observable<MotogpTeamStanding[]> {

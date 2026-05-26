@@ -1,0 +1,194 @@
+// BeEngine — esquema inicial (todas las series). Sync: scripts futuros → tablas.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// f1 | f2 | f3 | motogp | moto2 | moto3
+model Series {
+  id      String   @id
+  label   String
+  short   String
+  accent  String?  @db.VarChar(16)
+  seasons Season[]
+
+  @@map("series")
+}
+
+model Season {
+  id       String @id // ej. moto3_2026
+  seriesId String
+  series   Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  year     Int
+
+  events                 Event[]
+  driverEntries          DriverSeasonEntry[]
+  constructorSeasons     ConstructorSeason[]
+  driverStandings        DriverStanding[]
+  constructorStandings   ConstructorStanding[]
+
+  @@unique([seriesId, year])
+  @@map("seasons")
+}
+
+model Driver {
+  id          String              @id
+  givenName   String?
+  familyName  String?
+  nationality String?             @db.VarChar(8)
+  headshotUrl String?
+  entries     DriverSeasonEntry[]
+  standings   DriverStanding[]
+
+  @@map("drivers")
+}
+
+model Constructor {
+  id         String              @id
+  externalId String?
+  seasons    ConstructorSeason[]
+  standings  ConstructorStanding[]
+  entries    DriverSeasonEntry[]
+
+  @@map("constructors")
+}
+
+model ConstructorSeason {
+  seasonId      String
+  constructorId String
+  season        Season      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  constructor   Constructor @relation(fields: [constructorId], references: [id], onDelete: Cascade)
+  name          String
+  teamColor     String?     @db.VarChar(16)
+  logoUrl       String?
+  bikeImageUrl  String?
+
+  @@id([seasonId, constructorId])
+  @@map("constructor_seasons")
+}
+
+model DriverSeasonEntry {
+  seasonId      String
+  driverId      String
+  constructorId String
+  season        Season      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  driver        Driver      @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  constructor   Constructor @relation(fields: [constructorId], references: [id], onDelete: Cascade)
+  displayName   String
+  teamName      String
+  gridOrder     Int?
+  teamColor     String?     @db.VarChar(16)
+  headshotUrl   String?
+
+  @@id([seasonId, driverId])
+  @@map("driver_season_entries")
+}
+
+model Event {
+  id                String          @id @default(cuid())
+  seasonId          String
+  season            Season          @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  round             Int
+  raceName          String
+  circuitName       String?
+  locality          String?
+  country           String?
+  date              String?         @db.VarChar(10)
+  time              String?         @db.VarChar(12)
+  status            String?         @db.VarChar(24)
+  externalEventId   String?
+  circuitId         String?
+  circuitSvgUrl     String?
+  circuitImageUrl   String?
+  resultsAvailable  Boolean         @default(false)
+  sessionResults    SessionResult[]
+
+  @@unique([seasonId, round])
+  @@map("events")
+}
+
+model SessionResult {
+  id         String @id @default(cuid())
+  eventId    String
+  event      Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  sessionKey String @db.VarChar(32)
+  payload    Json
+
+  @@unique([eventId, sessionKey])
+  @@map("session_results")
+}
+
+model DriverStanding {
+  seasonId String
+  driverId String
+  season   Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  driver   Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  position Int
+  points   Float  @default(0)
+  wins     Int    @default(0)
+  podiums  Int    @default(0)
+  poles    Int    @default(0)
+
+  @@id([seasonId, driverId])
+  @@map("driver_standings")
+}
+
+model ConstructorStanding {
+  seasonId      String
+  constructorId String
+  season        Season      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  constructor   Constructor @relation(fields: [constructorId], references: [id], onDelete: Cascade)
+  position      Int
+  points        Float       @default(0)
+  wins          Int         @default(0)
+
+  @@id([seasonId, constructorId])
+  @@map("constructor_standings")
+}
+
+model SyncRun {
+  id         String    @id @default(cuid())
+  seriesId   String?
+  source     String?   @db.VarChar(32)
+  status     String    @db.VarChar(16)
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  error      String?
+  meta       Json?
+
+  @@map("sync_runs")
+}
+
+/// Históricos / bios (antes en data/*.js)
+model ProfileMeta {
+  id        String   @id
+  seriesId  String?  @db.VarChar(16)
+  kind      String   @db.VarChar(24)
+  payload   Json
+  updatedAt DateTime @updatedAt
+
+  @@index([seriesId, kind])
+  @@map("profile_meta")
+}
+
+/// Noticias RSS persistidas (cache entre reinicios)
+model NewsArticle {
+  id        String    @id
+  category  String    @db.VarChar(16)
+  title     String
+  link      String    @unique
+  tag       String?   @db.VarChar(24)
+  summary   String?
+  imageUrl  String?
+  pubDate   DateTime?
+  hot       Boolean   @default(false)
+  fetchedAt DateTime  @default(now())
+
+  @@index([category, pubDate(sort: Desc)])
+  @@map("news_articles")
+}

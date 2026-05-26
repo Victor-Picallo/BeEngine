@@ -1,6 +1,11 @@
 import { createHash } from 'node:crypto';
 import { parseRssItems } from '../../utils/rssParser.js';
 import { NEWS_FEEDS_BY_CATEGORY } from '../../data/shared/newsFeeds.config.js';
+import { DB_ENABLED } from '../../config/env.js';
+import {
+  getNewsArticlesFromDb,
+  getNewsSummaryFromDb,
+} from '../../repositories/db/newsArticle.repository.js';
 
 const CACHE_MS = Math.max(
   60_000,
@@ -153,7 +158,7 @@ function mapRawItem(item, category, feed) {
   };
 }
 
-async function fetchCategoryArticles(category) {
+export async function fetchCategoryArticles(category) {
   const feeds = NEWS_FEEDS_BY_CATEGORY[category] ?? [];
   const merged = new Map();
 
@@ -201,6 +206,15 @@ export async function getNewsArticles(category, opts = {}) {
   const limit = Math.min(60, Math.max(1, parseInt(String(opts.limit ?? '30'), 10) || 30));
   const offset = Math.max(0, parseInt(String(opts.offset ?? '0'), 10) || 0);
 
+  if (DB_ENABLED) {
+    try {
+      const fromDb = await getNewsArticlesFromDb(category, { tag, limit, offset });
+      if (fromDb?.items?.length) return fromDb;
+    } catch {
+      /* RSS live */
+    }
+  }
+
   const hit = feedCache.get(category);
   let articles;
   if (hit && Date.now() - hit.ts < CACHE_MS) {
@@ -243,6 +257,32 @@ export async function getNewsArticleById(id) {
 
 /** Resumen para home (tag, title, time, hot). */
 export async function getNewsSummaryForHome(category, count = 4) {
+  if (DB_ENABLED) {
+    try {
+      const fromDb = await getNewsSummaryFromDb(category, count);
+      if (fromDb?.length) {
+        return fromDb.map(({ tag, title, time, hot, imageUrl, id, cat }) => ({
+          id,
+          tag,
+          title,
+          time,
+          hot: Boolean(hot),
+          imageUrl: imageUrl ?? null,
+          cat: cat ?? category,
+        }));
+      }
+    } catch {
+      /* RSS */
+    }
+  }
   const { items } = await getNewsArticles(category, { limit: count });
-  return items.map(({ tag, title, time, hot }) => ({ tag, title, time, hot: Boolean(hot) }));
+  return items.map(({ id, tag, title, time, hot, imageUrl, cat }) => ({
+    id,
+    tag,
+    title,
+    time,
+    hot: Boolean(hot),
+    imageUrl: imageUrl ?? null,
+    cat: cat ?? category,
+  }));
 }

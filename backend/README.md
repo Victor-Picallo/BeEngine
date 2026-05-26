@@ -92,37 +92,53 @@ src/
 
 ## Variables de entorno
 
+Copia `backend/.env.example` → `backend/.env` y ajusta valores. Toda la API lee `src/config/env.js` (no uses `process.env` suelto en servicios).
+
 ```
 PORT=3000
 NODE_ENV=development
 FRONTEND_URL=http://localhost:4200
 
-# F1 — Jolpica / Ergast
 JOLPICA_F1_ENABLED=true
 JOLPICA_BASE_URL=https://api.jolpi.ca/ergast/f1
+OPENF1_BASE_URL=https://api.openf1.org/v1
+EXTERNAL_API_TIMEOUT_MS=8000
 
-# F2/F3 — sitio oficial FIA (calendario, standings, resultados feature race)
+MOTOGP_PULSELIVE_BASE_URL=https://api.motogp.pulselive.com/motogp/v1
+
 FIA_F2_ENABLED=true
-FIA_F3_ENABLED=true
 FIA_F2_BASE_URL=https://www.fiaformula2.com
-FIA_F3_BASE_URL=https://www.fiaformula3.com
 FIA_F2_SEASON_ID=183
+
+FIA_F3_ENABLED=true
+FIA_F3_BASE_URL=https://www.fiaformula3.com
 FIA_F3_SEASON_ID=183
-EXTERNAL_API_TIMEOUT_MS=3500
+
+# Opcional (Prisma / Supabase)
+# DATABASE_URL=...
+# DIRECT_URL=...
 ```
 
-Si la FIA no responde, se sirven los datos de `data/f2/` y `data/f3/` sin mezclar con los oficiales.
+Al arrancar el API se imprime un resumen de config (sin contraseñas).
 
-Actualizar mocks tras un GP: `node scripts/sync-f2-data.mjs` / `node scripts/sync-f3-data.mjs` (puntos + resultados feature race).
+Datos de temporada: **API en vivo primero**, fallback **Postgres** (`source: live | db`). Tras un GP: **`npm run refresh`** (6 series, Storage completo, auditoría 100%). Fin de semana: `npm run refresh:weekend`.
 
 **Moto (GP / 2 / 3) en directo:** Pulse Live `GET /pulselive/live-feed` (timing + clima + sectores PDF con colores + clasificación provisional + mensajes race control). Misma ruta en `/api/motogp`, `/api/moto2`, `/api/moto3`. Livetiming global solo MotoGP™; Moto2/Moto3 usan resultados + PDF por sesión. Frontend: `/motogp|moto2|moto3/calendario/:gp/:sesión` y `/motogp/live` → hub al GP activo.
 
-**Moto2 datos locales (fallback):** si Pulse falla, BeEngine sirve parrilla, equipos, calendario y resultados desde `src/data/moto2/` (misma idea que F2). Regenerar snapshot: `node scripts/generate-moto2-local-data.mjs` (actualiza backend + `frontend/.../moto2-portraits.data.ts`).
+**Moto / F2 / F3:** Pulse o FIA en vivo; si fallan, lectura desde Supabase (sin mocks de calendario/resultados en runtime).
 
-**F1** usa Jolpica (`JOLPICA_F1_ENABLED`) con el mismo patrón: calendario, standings, última carrera y resultados por ronda; fallback en `data/f1/` (incl. `f1RaceResults2026.js`).
+**F1:** Jolpica (`JOLPICA_F1_ENABLED`) + fallback DB. Parrilla curada en `data/f1/f1*Grid2026.js` (solo seed de sync).
 
-## Migrar a PostgreSQL
+## PostgreSQL (Supabase + Prisma)
 
-1. Instalar `pg` o `drizzle-orm`
-2. Añadir `DATABASE_URL` a `.env`
-3. Reemplazar la lógica en `src/repositories/` sin tocar servicios ni controladores
+1. `DATABASE_URL` (pooler 6543) y `DIRECT_URL` (5432) en `backend/.env`
+2. `npm run db:migrate` — migraciones (CLI usa `DIRECT_URL` vía `prisma.config.ts`)
+3. `npm run db:seed` — series F1–Moto3 + temporadas 2026
+4. Cliente: `src/lib/prisma.js` (`@prisma/adapter-pg` + pooler en runtime)
+5. **Post-GP (todo en uno):** `npm run refresh` — sync 6 series + perfiles + noticias → circuitos → Storage (coches + motos) → auditoría 100% → smoke DB
+6. **Solo fin de semana:** `npm run refresh:weekend`
+7. Comandos sueltos si hace falta: `db:sync`, `storage:upload:*`, `verify:media`, `smoke:db` (ver `package.json`)
+8. **Health:** `GET /api/health` incluye `db.ok` y `lastSync` por serie
+9. Lista de pendientes: `docs/TODO.md`
+
+Variables Storage (opcional): `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET=beengine-media`

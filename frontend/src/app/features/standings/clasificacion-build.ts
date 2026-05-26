@@ -282,10 +282,12 @@ export function buildConstructorRows(
     const key = normalize(c.team);
     const constructorId = c.constructorId?.trim() || null;
     const sid = options?.seriesId;
-    const carImageUrl = constructorId ? f1TeamCarImageUrl(constructorId, sid) : null;
-    const logoImageUrl =
-      c.logoUrl ??
-      (constructorId && !carImageUrl ? f1TeamShowcaseImageUrl(constructorId, sid, c.logoUrl) : null);
+    const carImageUrl = constructorId
+      ? f1TeamCarImageUrl(constructorId, sid, c.bikeImageUrl)
+      : null;
+    const logoImageUrl = constructorId
+      ? f1TeamShowcaseImageUrl(constructorId, sid, c.logoUrl)
+      : null;
 
     return {
       pos: c.pos,

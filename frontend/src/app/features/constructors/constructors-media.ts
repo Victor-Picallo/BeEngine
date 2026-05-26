@@ -43,10 +43,9 @@ export function f1TeamShowcaseImageUrl(
   seriesId?: SeriesId,
   apiLogoUrl?: string | null,
 ): string | null {
-  if (seriesId === 'motogp') {
-    const url = (apiLogoUrl && String(apiLogoUrl).trim()) || '';
-    return url || null;
-  }
+  const fromApi = (apiLogoUrl && String(apiLogoUrl).trim()) || '';
+  if (fromApi) return fromApi;
+
   const id = (constructorId || '').trim().toLowerCase();
   if (!id) return null;
   if (seriesId === 'f2') {
@@ -86,7 +85,14 @@ const CAR_2026: Record<string, { folder: string; fileBase: string }> = {
   cadillac: { folder: 'cadillac', fileBase: '2026cadillac' },
 };
 
-export function f1TeamCarImageUrl(constructorId: string, seriesId?: SeriesId): string | null {
+export function f1TeamCarImageUrl(
+  constructorId: string,
+  seriesId?: SeriesId,
+  apiBikeUrl?: string | null,
+): string | null {
+  const fromApi = (apiBikeUrl && String(apiBikeUrl).trim()) || '';
+  if (fromApi) return fromApi;
+
   const id = (constructorId || '').trim().toLowerCase();
   if (!id) return null;
   if (seriesId === 'f2') {

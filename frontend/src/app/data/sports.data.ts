@@ -95,12 +95,16 @@ export interface NewsItem {
   cat?: string;
 }
 
+export type HomeDataSource = 'live' | 'db' | 'empty';
+
 export interface CategoryData {
   nextRace: NextRace;
   standings: Driver[];
   constructors: Constructor[];
   lastRace: LastRace;
   news: NewsItem[];
+  /** Origen agregado de standings/calendario (API home). */
+  source?: HomeDataSource;
 }
 
 export interface CountdownTime {

@@ -18,13 +18,18 @@ const asList = (raw) => (Array.isArray(raw) ? raw : raw?.value ?? []);
 const pickPortrait = (rider) => {
   const step = rider?.current_career_step ?? rider?.career?.find((c) => c.current) ?? rider?.career?.[0];
   const pics = step?.pictures ?? rider?.pictures;
-  return (
+  const direct =
     pics?.portrait ||
     pics?.profile?.main ||
     pics?.profile?.secondary ||
     pics?.helmet?.main ||
-    null
-  );
+    null;
+  if (direct) return direct;
+  for (const c of rider?.career ?? []) {
+    const p = c?.pictures?.portrait ?? c?.pictures?.profile?.main ?? c?.pictures?.helmet?.main;
+    if (p) return p;
+  }
+  return null;
 };
 
 const normalizeRider = (r) => {

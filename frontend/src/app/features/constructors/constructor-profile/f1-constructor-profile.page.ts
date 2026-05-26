@@ -122,8 +122,7 @@ export class F1ConstructorProfilePageComponent {
 
   carUrl = computed(() => {
     const p = this.profile();
-    if (this.seriesCtx.id() === 'motogp' && p?.bikeImageUrl) return p.bikeImageUrl;
-    return f1TeamCarImageUrl(p?.constructorId ?? '', this.seriesCtx.id());
+    return f1TeamCarImageUrl(p?.constructorId ?? '', this.seriesCtx.id(), p?.bikeImageUrl);
   });
 
   maxCumPts = computed(() => {

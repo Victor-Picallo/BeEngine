@@ -272,13 +272,15 @@ export function resolveDriverHeadshotUrl(
   openF1HeadshotUrl: string | undefined | null,
   options?: { size?: 'card' | 'large'; seriesId?: SeriesId },
 ): string {
+  const apiUrl = (openF1HeadshotUrl && String(openF1HeadshotUrl).trim()) || '';
+
   if (options?.seriesId === 'f2') {
-    const f2 = f2DriverHeadshotUrl(driverId, options?.size ?? 'card');
-    if (f2) return f2;
+    if (apiUrl) return apiUrl;
+    return f2DriverHeadshotUrl(driverId, options?.size ?? 'card') ?? '';
   }
   if (options?.seriesId === 'f3') {
-    const f3 = f3DriverHeadshotUrl(driverId, options?.size ?? 'card');
-    if (f3) return f3;
+    if (apiUrl) return apiUrl;
+    return f3DriverHeadshotUrl(driverId, options?.size ?? 'card') ?? '';
   }
   const sid = options?.seriesId as string | undefined;
   if (sid === 'moto2') {

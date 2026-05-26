@@ -8,12 +8,12 @@ import {
 } from './f2Data.service.js';
 
 export const getConstructorProfile = async (constructorId, _careerPage = 1) => {
-  const grid = findConstructorGrid(constructorId);
+  const grid = await findConstructorGrid(constructorId);
   if (!grid) throw new Error('Constructor not found');
 
   const standings = await getConstructorStandings();
   const row = standings.items.find((c) => c.constructorId === constructorId);
-  const drivers = getDriversForConstructor(constructorId);
+  const drivers = await getDriversForConstructor(constructorId);
   const calendar = await getCalendar();
   const maxRound = await getMaxCompletedRound();
   const gpLabel = (round) => {
