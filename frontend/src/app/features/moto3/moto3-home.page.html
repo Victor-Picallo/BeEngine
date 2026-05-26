@@ -1,0 +1,172 @@
+<div
+  [style.--hm-accent]="accent()"
+  [style.--accent]="accent()"
+  [style.--cl-accent]="accent()"
+  [style.--accent-fg]="accentFg()">
+  <app-topbar
+    [categories]="categories"
+    [activeCat]="topbarActiveCat()"
+    [accent]="accent()"
+    [homeLink]="homeLink()"
+    (catChange)="setTopCat($event)">
+  </app-topbar>
+
+  <div class="hm-layout">
+    <app-side [favorites]="currentFavorites()" (catChange)="setCat($event)"></app-side>
+
+    @if (showMainLoading()) {
+      <main class="hm-main hm-main--loading">
+        <p>Cargando datos…</p>
+      </main>
+    } @else if (error(); as err) {
+      <main class="hm-main hm-main--loading">
+        <p class="hm-error">{{ err }}</p>
+      </main>
+    } @else {
+      @if (data(); as d) {
+        <main class="hm-main" [class.hm-main--refreshing]="refreshing()">
+          <header class="hm-cat-header">
+            <div class="hm-cat-bar"></div>
+            <h1 class="hm-cat-title">{{ currentCat().label }}</h1>
+            <span class="hm-season-badge">Temporada 2026</span>
+          </header>
+
+          <section class="hm-season-progress">
+            <div class="hm-season-progress-meta">
+              <div class="hm-season-progress-label">Temporada 2026</div>
+              <div class="hm-season-progress-rounds">
+                {{ seasonRoundsDone() }}<span>/{{ d.nextRace.totalRounds }}</span>
+              </div>
+              <div class="hm-season-progress-sub">Rondas completadas</div>
+            </div>
+            <div class="hm-season-progress-body">
+              <div class="hm-season-progress-top">
+                <span>Progreso de temporada</span>
+                <span class="hm-season-progress-pct">{{ seasonProgressPct() }}%</span>
+              </div>
+              <div class="hm-season-progress-bar">
+                <div class="hm-season-progress-fill" [style.width.%]="seasonProgressPct()"></div>
+              </div>
+              <div class="hm-season-dots">
+                @for (i of seasonDotIndices(); track i) {
+                  <span
+                    class="hm-season-dot"
+                    [class.hm-season-dot--done]="i < seasonRoundsDone()"
+                    [class.hm-season-dot--next]="i === seasonRoundsDone()"></span>
+                }
+              </div>
+            </div>
+          </section>
+
+          @if (featuredNews(); as featured) {
+            <a
+              class="hm-featured"
+              [routerLink]="featured.id ? newsLink(featured.id) : newsLink()">
+              <app-news-image
+                [cat]="featured.cat ?? 'moto3'"
+                [src]="featured.imageUrl ?? null"
+                [alt]="featured.title"
+                [featured]="true"
+                [height]="280"
+                [accent]="accent()" />
+              <div class="hm-featured-body">
+                <div class="hm-featured-meta">
+                  <span
+                    class="hm-featured-tag"
+                    [style.background]="accent()"
+                    [style.color]="accentFg()">{{ featured.tag }}</span>
+                  @if (featured.hot) {
+                    <span class="hm-featured-hot">DESTACADO</span>
+                  }
+                  <span class="hm-featured-time">{{ featured.time }}</span>
+                </div>
+                <h2 class="hm-featured-title">{{ featured.title }}</h2>
+              </div>
+            </a>
+          }
+
+          <app-race-card [nextRace]="d.nextRace" [accent]="accent()" [countdown]="countdown()" />
+
+          <div class="hm-grid-2">
+            <app-standings-table [standings]="d.standings.slice(0, 13)" [accent]="accent()" />
+
+            <div class="hm-grid-2-col">
+              <div class="hm-card hm-last-race-card">
+                <div class="hm-card-head">
+                  <div class="hm-card-head-left">
+                    <div class="hm-card-accent-bar" style="background: #4ade80"></div>
+                    <div>
+                      <div class="hm-card-title">Última carrera</div>
+                      <div style="font-size: 10px; color: #bbb; margin-top: 1px">{{ d.lastRace.date }}</div>
+                    </div>
+                  </div>
+                  <span style="font-size: 11px; color: #bbb">{{ d.lastRace.name }}</span>
+                </div>
+                @if (!d.lastRace.podium.length) {
+                  <p style="padding: 14px; text-align: center; font-size: 12px; color: #aaa">Aún no hay resultados</p>
+                } @else {
+                  <div class="hm-podium">
+                    @for (p of d.lastRace.podium; track p.pos) {
+                      <div class="hm-podium-slot" [class.hm-podium-slot--p1]="p.pos === 1">
+                        <div class="hm-podium-bar" [style.background]="p.teamColor"></div>
+                        <div class="hm-podium-driver">{{ p.driver }}</div>
+                        <div class="hm-podium-team">{{ p.team }}</div>
+                        <div class="hm-podium-time" [style.color]="accentPodium()">{{ p.time }}</div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+
+              <div class="hm-card hm-constructors-card">
+                <div class="hm-card-head">
+                  <div class="hm-card-head-left">
+                    <div class="hm-card-accent-bar" style="background: #888"></div>
+                    <span class="hm-card-title">Equipos</span>
+                  </div>
+                </div>
+                @for (c of d.constructors; track c.team) {
+                  <a
+                    class="hm-constructor-row"
+                    [routerLink]="c.constructorId ? seriesLink('escuderias', c.constructorId) : null"
+                    [style.cursor]="c.constructorId ? 'pointer' : 'default'"
+                  >
+                    <span class="hm-constructor-pos">{{ c.pos }}</span>
+                    <div style="flex: 1">
+                      <div style="display: flex; justify-content: space-between; margin-bottom: 3px">
+                        <span style="font-size: 12px; color: #555; font-weight: 500">{{ c.team }}</span>
+                        <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px">{{ c.points }}</span>
+                      </div>
+                      <div class="hm-constructor-bar-track">
+                        <div
+                          class="hm-constructor-bar-fill"
+                          [style.width.%]="(c.points / maxConstructorPoints()) * 100"
+                          [style.background]="c.color"></div>
+                      </div>
+                    </div>
+                  </a>
+                }
+                <div class="hm-constructors-foot">
+                  <a [routerLink]="seriesLink('escuderias')">Ver todos los equipos →</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <app-news-list [news]="d.news" [accent]="accent()" [limit]="3" [compact]="true" />
+        </main>
+
+        <app-right-rail
+          [nextRace]="d.nextRace"
+          [standings]="d.standings"
+          [constructors]="d.constructors"
+          [lastRace]="d.lastRace"
+          [news]="d.news"
+          [activeCat]="sidebarActiveCat()"
+          [accent]="accent()"
+          [lastRaceWinner]="lastRaceWinner()">
+        </app-right-rail>
+      }
+    }
+  </div>
+</div>

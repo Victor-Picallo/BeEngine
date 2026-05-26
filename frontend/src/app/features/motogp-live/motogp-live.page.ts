@@ -29,6 +29,11 @@ import {
 } from './motogp-live-map';
 import { findRaceBySlug, slugifyRace } from '../race/race-slug';
 import {
+  isTestEventLabel,
+  resolveFeederCircuitName,
+  resolveFeederRaceName,
+} from '../race/race-display.util';
+import {
   isMotogpSessionKey,
   MOTOGP_SESSION_CONFIGS,
   type MotogpSessionKey,
@@ -195,9 +200,20 @@ export class MotogpLivePageComponent implements OnInit, OnDestroy {
     const f = this.feed();
     const race = this.currentRace();
     const res = this.raceResult();
+    const feedEvent = f?.eventName?.trim() ?? '';
+    const mergedResult = res
+      ? {
+          ...res,
+          circuitName: f?.circuitName?.trim() || res.circuitName,
+        }
+      : null;
+    const raceName =
+      (feedEvent && !isTestEventLabel(feedEvent) ? feedEvent : '') ||
+      resolveFeederRaceName(race, res) ||
+      'Gran Premio';
     return {
-      raceName: f?.eventName ?? res?.raceName ?? race?.raceName ?? 'Gran Premio',
-      circuitName: f?.circuitName ?? res?.circuitName ?? race?.circuitName ?? '—',
+      raceName,
+      circuitName: resolveFeederCircuitName(race, mergedResult),
       locality: race?.locality ?? '—',
       round: race?.round ?? this.round(),
       totalRounds: this.totalRounds(),

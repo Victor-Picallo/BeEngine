@@ -13,6 +13,10 @@ import {
   MOTO2_DRIVER_PORTRAIT_URL,
 } from '../moto2/moto2Data.service.js';
 import {
+  findMoto3DriverGrid,
+  MOTO3_DRIVER_PORTRAIT_URL,
+} from '../moto3/moto3Data.service.js';
+import {
   findRider,
   getRiderDetail,
   getRiderStats,
@@ -65,7 +69,11 @@ export const getDriverProfile = async (driverId, opts = {}) => {
   const categoryId = resolveCategoryId(opts.categoryId);
   const meta = CATEGORY_META[categoryId];
   const localGrid =
-    categoryId === 'moto2' ? findMoto2DriverGrid(driverId) : null;
+    categoryId === 'moto2'
+      ? findMoto2DriverGrid(driverId)
+      : categoryId === 'moto3'
+        ? findMoto3DriverGrid(driverId)
+        : null;
 
   const standings = await getDriverStandings(categoryId);
   const row = standings.items.find((d) => d.driverId === driverId);
@@ -159,7 +167,9 @@ export const getDriverProfile = async (driverId, opts = {}) => {
       row?.headshotUrl ??
       (categoryId === 'moto2'
         ? MOTO2_DRIVER_PORTRAIT_URL[row?.driverId ?? rider?.id ?? driverId]
-        : null) ??
+        : categoryId === 'moto3'
+          ? MOTO3_DRIVER_PORTRAIT_URL[row?.driverId ?? rider?.id ?? driverId]
+          : null) ??
       localGrid?.headshotUrl ??
       null,
     championships,

@@ -1,4 +1,4 @@
-﻿import {
+import {
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -157,10 +157,6 @@ export class MotogpHomePageComponent implements OnInit, OnDestroy {
   setCat(id: string): void {
     if (id === 'f1') {
       void this.router.navigateByUrl(homePathForSeries('f1'));
-      return;
-    }
-    if (id === 'moto3') {
-      void this.router.navigateByUrl('/motogp');
       return;
     }
     if (isMotoCategory(id)) {

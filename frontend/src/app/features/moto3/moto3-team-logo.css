@@ -1,0 +1,77 @@
+/**
+ * Ajuste de logos Moto3 en cards de equipos (grid) y clasificación.
+ * Varios assets son banners anchos; se escalan con object-fit: contain.
+ */
+
+:host ::ng-deep .fc-constructors .fc-team-showcase-img.moto3-team-logo {
+  width: 78%;
+  height: 78%;
+  max-width: 78%;
+  max-height: 78%;
+}
+
+:host ::ng-deep .fc-constructors .fc-team-showcase-img.moto3-team-logo--wide {
+  width: 52%;
+  height: 52%;
+  max-width: 52%;
+  max-height: 52%;
+}
+
+:host ::ng-deep .fc-constructors .fc-team-showcase-img.moto3-team-logo--compact {
+  width: 86%;
+  height: 86%;
+  max-width: 86%;
+  max-height: 86%;
+}
+
+:host ::ng-deep .fc-constructors .fc-team-showcase-img.moto3-team-logo--boost {
+  width: 92%;
+  height: 92%;
+  max-width: 92%;
+  max-height: 92%;
+}
+
+/* PNG con fondo negro (CIP, CODE): contraste en tarjeta blanca */
+:host ::ng-deep .fc-constructors .fc-team-showcase-img.moto3-team-logo--dark-pad {
+  width: 88%;
+  height: 88%;
+  max-width: 88%;
+  max-height: 88%;
+  padding: 10px 14px;
+  box-sizing: border-box;
+  background: #ececec;
+  border-radius: 10px;
+  object-fit: contain;
+}
+
+:host ::ng-deep .cl-const-car-img.moto3-team-logo--dark-pad,
+:host ::ng-deep .cp-logo-fallback.moto3-team-logo--dark-pad {
+  padding: 4px 8px;
+  background: #ececec;
+  border-radius: 6px;
+}
+
+:host ::ng-deep .cl-const-car-img.moto3-team-logo {
+  max-width: 88px;
+  max-height: 44px;
+}
+
+:host ::ng-deep .cl-const-car-img.moto3-team-logo--wide {
+  max-width: 72px;
+  max-height: 36px;
+}
+
+:host ::ng-deep .cp-logo-fallback.moto3-team-logo {
+  max-width: 220px;
+  max-height: 120px;
+}
+
+:host ::ng-deep .cp-logo-fallback.moto3-team-logo--wide {
+  max-width: 168px;
+  max-height: 84px;
+}
+
+:host ::ng-deep .cp-logo-fallback.moto3-team-logo--compact {
+  max-width: 200px;
+  max-height: 110px;
+}

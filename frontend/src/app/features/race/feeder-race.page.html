@@ -303,7 +303,7 @@
                   class="fl-map-canvas"
                   width="308"
                   height="218"
-                  [attr.aria-label]="'Minimapa ' + race.circuitName"
+                  [attr.aria-label]="'Minimapa ' + displayCircuitName()"
                 ></canvas>
                 @if (motogpIsLive()) {
                   <span class="fl-map-live-badge">EN DIRECTO</span>
@@ -319,7 +319,7 @@
               <div class="fl-moto-summary">
                 <div class="fl-cond-row">
                   <span class="fl-cond-row-label">Circuito</span>
-                  <span class="fl-cond-row-value">{{ race.circuitName }}</span>
+                  <span class="fl-cond-row-value">{{ displayCircuitName() }}</span>
                 </div>
                 <div class="fl-cond-row">
                   <span class="fl-cond-row-label">Ubicación</span>
@@ -383,7 +383,7 @@
                   <img
                     class="fc-circuit-svg fc-circuit-svg--img"
                     [src]="circuitSvgUrl()!"
-                    [alt]="race.circuitName"
+                    [alt]="displayCircuitName()"
                     loading="lazy"
                   />
                 } @else {
@@ -391,7 +391,7 @@
                     class="fc-circuit-svg"
                     [attr.viewBox]="circuitSvg().viewBox"
                     role="img"
-                    [attr.aria-label]="race.circuitName"
+                    [attr.aria-label]="displayCircuitName()"
                     preserveAspectRatio="xMidYMid meet"
                   >
                     <path class="fc-circuit-glow" [attr.d]="circuitSvg().circuitPath"></path>
@@ -429,8 +429,8 @@
                   @default { PRÓXIMA CARRERA }
                 }
               </div>
-              <h1>{{ raceResult()?.raceName ?? race.raceName }}</h1>
-              <p class="fr-meta">{{ race.circuitName }} · {{ race.locality }}, {{ race.country }}</p>
+              <h1>{{ displayRaceName() }}</h1>
+              <p class="fr-meta">{{ displayCircuitName() }} · {{ race.locality }}, {{ race.country }}</p>
               <p class="fr-date">{{ dateLabel() }}</p>
             </div>
           </header>

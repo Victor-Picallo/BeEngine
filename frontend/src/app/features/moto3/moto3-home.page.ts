@@ -25,13 +25,13 @@ import {
   Session,
 } from '../../data/sports.data';
 import { NewsService } from '../news/news.service';
-import { Moto2LiveService, type Moto2NextRacePayload } from './moto2-live.service';
+import { Moto3LiveService, type Moto3NextRacePayload } from './moto3-live.service';
 import type {
   JolpikaCalendarRace,
   JolpikaDriverStanding,
   JolpikaLastRace,
 } from '../f1-live/f1-live.types';
-import type { Moto2TeamStanding } from './moto2.types';
+import type { Moto3TeamStanding } from './moto3.types';
 import { TopbarComponent } from '../../shared/components/topbar/topbar.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
 import { RaceCardComponent } from '../../shared/components/race-card/race-card.component';
@@ -55,8 +55,8 @@ const lastNameInitial = (full: string): string => {
 const REFRESH_IDLE_MS = 5 * 60_000;
 
 @Component({
-  selector: 'app-moto2-home',
-  templateUrl: './moto2-home.page.html',
+  selector: 'app-moto3-home',
+  templateUrl: './moto3-home.page.html',
   styleUrl: '../home/home.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
@@ -70,8 +70,8 @@ const REFRESH_IDLE_MS = 5 * 60_000;
     NewsImageComponent,
   ],
 })
-export class Moto2HomePageComponent implements OnInit, OnDestroy {
-  private readonly moto2 = inject(Moto2LiveService);
+export class Moto3HomePageComponent implements OnInit, OnDestroy {
+  private readonly moto3 = inject(Moto3LiveService);
   private readonly newsService = inject(NewsService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
@@ -86,14 +86,14 @@ export class Moto2HomePageComponent implements OnInit, OnDestroy {
 
   calendarRaces = signal<JolpikaCalendarRace[]>([]);
   driverStands = signal<JolpikaDriverStanding[]>([]);
-  teamStands = signal<Moto2TeamStanding[]>([]);
+  teamStands = signal<Moto3TeamStanding[]>([]);
   lastRaceRaw = signal<JolpikaLastRace | null>(null);
-  nextRaceRaw = signal<Moto2NextRacePayload | null>(null);
+  nextRaceRaw = signal<Moto3NextRacePayload | null>(null);
   newsRaw = signal<NewsItem[]>([]);
   countdown = signal<CountdownTime>({ d: 0, h: 0, m: 0, s: 0 });
 
   topbarActiveCat = computed(() => 'motogp');
-  sidebarActiveCat = computed((): 'motogp' | 'moto2' | 'moto3' => 'moto2');
+  sidebarActiveCat = computed((): 'motogp' | 'moto2' | 'moto3' => 'moto3');
   currentCat = computed(() => this.seriesCtx.config());
   accent = computed(() => this.seriesCtx.config().accent);
   accentFg = computed(() => accentForeground(this.accent()));
@@ -176,14 +176,14 @@ export class Moto2HomePageComponent implements OnInit, OnDestroy {
     this.refreshing.set(false);
 
     forkJoin({
-      calendar: this.moto2.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
-      driverStands: this.moto2.getDriverStandings().pipe(catchError(() => of([] as JolpikaDriverStanding[]))),
-      teamStands: this.moto2.getOfficialTeamsGrid().pipe(catchError(() => of([] as Moto2TeamStanding[]))),
-      lastRace: this.moto2.getLastRace().pipe(catchError(() => of(null as JolpikaLastRace | null))),
-      nextRace: this.moto2.getNextRace().pipe(catchError(() => of(null))),
-      news: this.newsService.getFeed('moto2', 'Todos', 6, 0).pipe(
+      calendar: this.moto3.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
+      driverStands: this.moto3.getDriverStandings().pipe(catchError(() => of([] as JolpikaDriverStanding[]))),
+      teamStands: this.moto3.getOfficialTeamsGrid().pipe(catchError(() => of([] as Moto3TeamStanding[]))),
+      lastRace: this.moto3.getLastRace().pipe(catchError(() => of(null as JolpikaLastRace | null))),
+      nextRace: this.moto3.getNextRace().pipe(catchError(() => of(null))),
+      news: this.newsService.getFeed('moto3', 'Todos', 6, 0).pipe(
         catchError(() =>
-          of({ items: [], total: 0, category: 'moto2', tag: 'Todos', page: 1, pageSize: 6, totalPages: 1 }),
+          of({ items: [], total: 0, category: 'moto3', tag: 'Todos', page: 1, pageSize: 6, totalPages: 1 }),
         ),
       ),
     })
@@ -203,14 +203,14 @@ export class Moto2HomePageComponent implements OnInit, OnDestroy {
               time: a.time,
               hot: a.hot,
               imageUrl: a.imageUrl,
-              cat: a.cat ?? 'moto2',
+              cat: a.cat ?? 'moto3',
             })),
           );
           this.loading.set(false);
           this.refreshing.set(false);
         },
         error: () => {
-          this.error.set('No se pudieron cargar los datos de Moto2. Revisa que el backend esté arrancado.');
+          this.error.set('No se pudieron cargar los datos de Moto3. Revisa que el backend esté arrancado.');
           this.loading.set(false);
           this.refreshing.set(false);
         },
@@ -220,11 +220,11 @@ export class Moto2HomePageComponent implements OnInit, OnDestroy {
   private refreshAll(): void {
     this.refreshing.set(true);
     forkJoin({
-      calendar: this.moto2.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
-      driverStands: this.moto2.getDriverStandings(true).pipe(catchError(() => of([] as JolpikaDriverStanding[]))),
-      teamStands: this.moto2.getOfficialTeamsGrid(true).pipe(catchError(() => of([] as Moto2TeamStanding[]))),
-      lastRace: this.moto2.getLastRace().pipe(catchError(() => of(null as JolpikaLastRace | null))),
-      nextRace: this.moto2.getNextRace().pipe(catchError(() => of(null))),
+      calendar: this.moto3.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
+      driverStands: this.moto3.getDriverStandings(true).pipe(catchError(() => of([] as JolpikaDriverStanding[]))),
+      teamStands: this.moto3.getOfficialTeamsGrid(true).pipe(catchError(() => of([] as Moto3TeamStanding[]))),
+      lastRace: this.moto3.getLastRace().pipe(catchError(() => of(null as JolpikaLastRace | null))),
+      nextRace: this.moto3.getNextRace().pipe(catchError(() => of(null))),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

@@ -13,6 +13,7 @@ import {
   resolveOfficialConstructorSlug,
 } from '../../data/motogp/motogpTeamLogos.js';
 import { resolveMoto2TeamLogoUrl } from '../../data/moto2/moto2TeamLogos.js';
+import { resolveMoto3TeamLogoUrl } from '../../data/moto3/moto3TeamLogos.js';
 import {
   enrichMoto2DriverStandings,
   enrichMoto2TeamStandings,
@@ -24,6 +25,17 @@ import {
   fallbackMoto2RaceResults,
   MOTO2_DRIVER_PORTRAIT_URL,
 } from '../moto2/moto2Data.service.js';
+import {
+  enrichMoto3DriverStandings,
+  enrichMoto3TeamStandings,
+  fallbackMoto3DriverStandings,
+  fallbackMoto3ConstructorStandings,
+  fallbackMoto3OfficialTeamsGrid,
+  fallbackMoto3Calendar,
+  fallbackMoto3LastRace,
+  fallbackMoto3RaceResults,
+  MOTO3_DRIVER_PORTRAIT_URL,
+} from '../moto3/moto3Data.service.js';
 import {
   pickMainRaceSession,
   pulseSessionLabel,
@@ -42,6 +54,55 @@ const CATEGORY_UUIDS = {
 
 export const categoryUuidFor = (id) => CATEGORY_UUIDS[id] ?? MOTOGP_CATEGORY_UUID;
 
+const motoFeederApi = (categoryId) => {
+  if (categoryId === 'moto2') {
+    return {
+      portraits: MOTO2_DRIVER_PORTRAIT_URL,
+      enrichDrivers: enrichMoto2DriverStandings,
+      enrichTeams: enrichMoto2TeamStandings,
+      fallbackDrivers: fallbackMoto2DriverStandings,
+      fallbackConstructors: fallbackMoto2ConstructorStandings,
+      fallbackOfficialTeams: fallbackMoto2OfficialTeamsGrid,
+      fallbackCalendar: fallbackMoto2Calendar,
+      fallbackLastRace: fallbackMoto2LastRace,
+      fallbackRaceResults: fallbackMoto2RaceResults,
+      resolveTeamLogo: resolveMoto2TeamLogoUrl,
+    };
+  }
+  if (categoryId === 'moto3') {
+    return {
+      portraits: MOTO3_DRIVER_PORTRAIT_URL,
+      enrichDrivers: enrichMoto3DriverStandings,
+      enrichTeams: enrichMoto3TeamStandings,
+      fallbackDrivers: fallbackMoto3DriverStandings,
+      fallbackConstructors: fallbackMoto3ConstructorStandings,
+      fallbackOfficialTeams: fallbackMoto3OfficialTeamsGrid,
+      fallbackCalendar: fallbackMoto3Calendar,
+      fallbackLastRace: fallbackMoto3LastRace,
+      fallbackRaceResults: fallbackMoto3RaceResults,
+      resolveTeamLogo: resolveMoto3TeamLogoUrl,
+    };
+  }
+  return null;
+};
+
+const mergeMotoFeederCalendar = (items, events, categoryId) => {
+  const feeder = motoFeederApi(categoryId);
+  if (!feeder) return items;
+  const localCal = feeder.fallbackCalendar();
+  const localByRound = new Map(localCal.map((r) => [r.round, r]));
+  const flags = new Map(localCal.map((r) => [r.round, r.resultsAvailable]));
+  return items.map((row) => ({
+    ...row,
+    circuitName: resolveCircuitDisplayName(
+      row.circuitName,
+      events[row.round - 1],
+      localByRound.get(row.round),
+    ),
+    resultsAvailable: flags.get(row.round) ?? false,
+  }));
+};
+
 export const getCurrentSeasonYear = async () => {
   const season = await getCurrentSeason();
   return season.year ?? new Date().getFullYear();
@@ -56,6 +117,35 @@ const slugify = (s) =>
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
+
+const normLabel = (s) =>
+  String(s || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+const isTestEventLabel = (name) => /\btest\b/i.test(String(name ?? '').trim());
+
+const isTestEvent = (e) =>
+  Boolean(e?.test) || isTestEventLabel(e?.sponsored_name) || isTestEventLabel(e?.name);
+
+/** Never surface «BARCELONA TEST»-style event titles as circuit names. */
+export const resolveCircuitDisplayName = (circuitName, event = null, localRow = null) => {
+  const label = String(circuitName ?? '').trim();
+  const eventLabel = `${event?.sponsored_name ?? ''} ${event?.name ?? ''}`.trim();
+  const fromCircuit = event?.circuit?.name?.trim() ?? '';
+
+  if (label && !isTestEventLabel(label) && normLabel(label) !== normLabel(eventLabel)) {
+    return label;
+  }
+  if (localRow?.circuitName && !isTestEventLabel(localRow.circuitName)) {
+    return localRow.circuitName;
+  }
+  if (fromCircuit && !isTestEventLabel(fromCircuit)) return fromCircuit;
+  return label || fromCircuit || '—';
+};
 
 const lastNameInitial = (full) => {
   const parts = String(full || '').trim().split(/\s+/);
@@ -103,7 +193,7 @@ export const getRaceEvents = async () => {
     `/results/events?seasonUuid=${season.id}`,
     { freshTtlMs: 5 * 60_000 },
   );
-  return asList(events).filter((e) => !e.test);
+  return asList(events).filter((e) => !isTestEvent(e));
 };
 
 const normalizeDriverStandings = (raw) => {
@@ -150,9 +240,7 @@ const normalizeConstructorStandingsByTeam = (classificationRows, categoryId = 'm
         logoUrl:
           categoryId === 'motogp'
             ? resolveMotogpTeamLogoUrl(null, constructorId, c.team)
-            : categoryId === 'moto2'
-              ? resolveMoto2TeamLogoUrl(null, constructorId, c.team)
-              : null,
+            : motoFeederApi(categoryId)?.resolveTeamLogo(null, constructorId, c.team) ?? null,
       };
     });
 };
@@ -196,7 +284,7 @@ const normalizeCalendar = (events) =>
   events.map((e, i) => ({
     round: i + 1,
     raceName: e.sponsored_name?.trim() || e.name,
-    circuitName: e.circuit?.name ?? '—',
+    circuitName: resolveCircuitDisplayName(e.circuit?.name ?? '—', e),
     circuitId: e.circuit?.id ?? null,
     locality: e.circuit?.place ?? e.circuit?.city ?? '',
     country: e.country?.name ?? e.circuit?.nation ?? e.circuit?.country ?? '',
@@ -232,16 +320,17 @@ const enrichRaceResultsHeadshots = async (rows, seasonYear, categoryId = 'motogp
         ...r,
         headshotUrl:
           rider?.portraitUrl ??
-          (categoryId === 'moto2' ? MOTO2_DRIVER_PORTRAIT_URL[r.driverId] : null) ??
+          motoFeederApi(categoryId)?.portraits[r.driverId] ??
           null,
         teamColor: withTeam.teamColor ?? null,
       };
     });
   } catch {
-    if (categoryId === 'moto2') {
+    const feeder = motoFeederApi(categoryId);
+    if (feeder) {
       return rows.map((r) => ({
         ...r,
-        headshotUrl: MOTO2_DRIVER_PORTRAIT_URL[r.driverId] ?? r.headshotUrl ?? null,
+        headshotUrl: feeder.portraits[r.driverId] ?? r.headshotUrl ?? null,
       }));
     }
     return rows;
@@ -364,14 +453,12 @@ export const getDriverStandings = async (categoryId = 'motogp') => {
       season.year,
       categoryId,
     );
-    if (categoryId === 'moto2') {
-      items = enrichMoto2DriverStandings(items);
-    }
+    const feeder = motoFeederApi(categoryId);
+    if (feeder) items = feeder.enrichDrivers(items);
     return { source: 'external', items };
   } catch {
-    if (categoryId === 'moto2') {
-      return { source: 'local', items: fallbackMoto2DriverStandings() };
-    }
+    const feeder = motoFeederApi(categoryId);
+    if (feeder) return { source: 'local', items: feeder.fallbackDrivers() };
     return { source: 'mock', items: fallbackDriverStandings() };
   }
 };
@@ -412,14 +499,12 @@ export const getConstructorStandings = async (categoryId = 'motogp') => {
     let items = normalizeConstructorStandingsByTeam(raw?.classification ?? [], categoryId);
     items = mergeTeamsGridIntoStandings(items, teamsIdx);
     items = items.map((row) => enrichStandingRow(row, teamsIdx, categoryId));
-    if (categoryId === 'moto2') {
-      items = enrichMoto2TeamStandings(items);
-    }
+    const feeder = motoFeederApi(categoryId);
+    if (feeder) items = feeder.enrichTeams(items);
     return { source: 'external', items };
   } catch {
-    if (categoryId === 'moto2') {
-      return { source: 'local', items: fallbackMoto2ConstructorStandings() };
-    }
+    const feeder = motoFeederApi(categoryId);
+    if (feeder) return { source: 'local', items: feeder.fallbackConstructors() };
     return { source: 'mock', items: fallbackConstructorStandings() };
   }
 };
@@ -476,20 +561,20 @@ export const getOfficialTeamsGrid = async (categoryId = 'motogp') => {
             t.logoUrl ??
             (categoryId === 'motogp'
               ? resolveMotogpTeamLogoUrl(t.teamId, t.constructorId, t.name)
-              : categoryId === 'moto2'
-                ? resolveMoto2TeamLogoUrl(t.teamId, t.constructorId, t.name)
-                : t.logoUrl),
+              : motoFeederApi(categoryId)?.resolveTeamLogo(t.teamId, t.constructorId, t.name) ??
+                t.logoUrl),
           bikeImageUrl: t.bikeImageUrl,
         };
       })
       .sort((a, b) => b.points - a.points || a.team.localeCompare(b.team))
       .map((row, i) => ({ ...row, pos: i + 1 }));
-    const merged =
-      categoryId === 'moto2' ? enrichMoto2TeamStandings(items) : items;
+    const feeder = motoFeederApi(categoryId);
+    const merged = feeder ? feeder.enrichTeams(items) : items;
     return { source: 'external', items: merged };
   } catch {
-    if (categoryId === 'moto2') {
-      return { source: 'local', items: fallbackMoto2OfficialTeamsGrid() };
+    const feeder = motoFeederApi(categoryId);
+    if (feeder) {
+      return { source: 'local', items: feeder.fallbackOfficialTeams() };
     }
     const mock = fallbackConstructorStandings();
     return { source: 'mock', items: mock.slice(0, 11) };
@@ -519,18 +604,12 @@ export const getCalendar = async (categoryId = 'motogp') => {
     } catch {
       /* calendario sin SVG */
     }
-    if (categoryId === 'moto2') {
-      const localCal = fallbackMoto2Calendar();
-      const flags = new Map(localCal.map((r) => [r.round, r.resultsAvailable]));
-      items = items.map((row) => ({
-        ...row,
-        resultsAvailable: flags.get(row.round) ?? false,
-      }));
-    }
+    items = mergeMotoFeederCalendar(items, events, categoryId);
     return { source: 'external', items };
   } catch {
-    if (categoryId === 'moto2') {
-      return { source: 'local', items: fallbackMoto2Calendar() };
+    const feeder = motoFeederApi(categoryId);
+    if (feeder) {
+      return { source: 'local', items: feeder.fallbackCalendar() };
     }
     return { source: 'mock', items: fallbackCalendar() };
   }
@@ -567,14 +646,15 @@ export const getLastRace = async (categoryId = 'motogp') => {
       source: 'external',
       raceName: last.sponsored_name?.trim() || last.name,
       round,
-      circuitName: last.circuit?.name ?? '—',
+      circuitName: resolveCircuitDisplayName(last.circuit?.name ?? '—', last),
       date: last.date_start?.slice(0, 10) ?? '',
       results,
       imageUrl: circuit?.imageUrl ?? circuit?.svgUrl ?? null,
     };
   } catch {
-    if (categoryId === 'moto2') {
-      return { source: 'local', ...fallbackMoto2LastRace() };
+    const feeder = motoFeederApi(categoryId);
+    if (feeder) {
+      return { source: 'local', ...feeder.fallbackLastRace() };
     }
     return { source: 'mock', ...fallbackLastRace() };
   }
@@ -600,7 +680,7 @@ export const getNextRaceSessions = async (categoryId = 'motogp') => {
       source: 'external',
       event: {
         raceName: next.sponsored_name?.trim() || next.name,
-        circuitName: next.circuit?.name ?? '—',
+        circuitName: resolveCircuitDisplayName(next.circuit?.name ?? '—', next),
         locality: next.circuit?.place ?? next.circuit?.city ?? '',
         country: next.country?.name ?? '',
         date: next.date_start,
@@ -659,7 +739,7 @@ export const getRoundSessions = async (round, categoryId = 'motogp') => {
     source: 'external',
     round: cleanRound,
     raceName: event.sponsored_name?.trim() || event.name,
-    circuitName: event.circuit?.name ?? '—',
+    circuitName: resolveCircuitDisplayName(event.circuit?.name ?? '—', event),
     circuitSvgUrl: circuit?.svgUrl ?? null,
     sessions: (() => {
       // Use a Map keyed by sessionKey so that when a race is red-flagged and
@@ -706,7 +786,7 @@ export const getRaceResultsByRound = async (round, sessionKey = 'race', category
     const base = {
       round: cleanRound,
       raceName: event.sponsored_name?.trim() || event.name,
-      circuitName: event.circuit?.name ?? '—',
+      circuitName: resolveCircuitDisplayName(event.circuit?.name ?? '—', event),
       circuitSvgUrl: circuit?.svgUrl ?? null,
       date: session.date?.slice(0, 10) ?? event.date_start?.slice(0, 10) ?? '',
       sessionKey: pulseSessionToKey(session),
@@ -757,9 +837,10 @@ export const getRaceResultsByRound = async (round, sessionKey = 'race', category
       })),
     };
   } catch (err) {
-    if (categoryId === 'moto2') {
+    const feeder = motoFeederApi(categoryId);
+    if (feeder) {
       try {
-        const local = fallbackMoto2RaceResults(cleanRound);
+        const local = feeder.fallbackRaceResults(cleanRound);
         return { source: 'local', ...local, sessionKey: sessionKey ?? 'race' };
       } catch {
         /* no local round */

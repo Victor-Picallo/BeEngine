@@ -6,6 +6,7 @@ import {
 } from './core/series/formula-section.routes';
 import { MOTOGP_SERIES_PARENT_ROUTE } from './core/motogp/motogp-section.routes';
 import { MOTO2_SERIES_PARENT_ROUTE } from './core/moto2/moto2-section.routes';
+import { MOTO3_SERIES_PARENT_ROUTE } from './core/moto3/moto3-section.routes';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -49,7 +50,7 @@ export const routes: Routes = [
   // MotoGP y Moto2 — carpetas y rutas independientes (como F2/F3)
   { path: 'motogp', ...MOTOGP_SERIES_PARENT_ROUTE },
   { path: 'moto2',  ...MOTO2_SERIES_PARENT_ROUTE },
-  { path: 'moto3', redirectTo: 'motogp', pathMatch: 'full' },
+  { path: 'moto3',  ...MOTO3_SERIES_PARENT_ROUTE },
 
   {
     path: 'noticias',

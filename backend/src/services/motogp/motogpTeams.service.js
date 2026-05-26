@@ -4,6 +4,7 @@ import {
 } from '../../external/motogp/pulselive.client.js';
 import { resolveMotogpTeamLogoUrl } from '../../data/motogp/motogpTeamLogos.js';
 import { resolveMoto2TeamLogoUrl } from '../../data/moto2/moto2TeamLogos.js';
+import { resolveMoto3TeamLogoUrl } from '../../data/moto3/moto3TeamLogos.js';
 
 /** Categoría broadcast MotoGP™ (equipos / riders con fotos). */
 export const MOTOGP_BROADCAST_CATEGORY_UUID = '737ab122-76e1-4081-bedb-334caaa18c70';
@@ -110,7 +111,9 @@ const normalizeTeam = (t, categoryId = 'motogp') => {
       ? resolveMotogpTeamLogoUrl(t.id, slug, name)
       : categoryId === 'moto2'
         ? resolveMoto2TeamLogoUrl(t.id, slug, name) ?? pickPulseTeamLogo(t)
-        : pickPulseTeamLogo(t);
+        : categoryId === 'moto3'
+          ? resolveMoto3TeamLogoUrl(t.id, slug, name) ?? pickPulseTeamLogo(t)
+          : pickPulseTeamLogo(t);
 
   return {
     teamId: t.id,
@@ -185,7 +188,9 @@ export const enrichStandingRow = (row, idx, categoryId = 'motogp') => {
       ? resolveMotogpTeamLogoUrl(row.teamId, rowSlug, row.team)
       : categoryId === 'moto2'
         ? resolveMoto2TeamLogoUrl(row.teamId, rowSlug, row.team)
-        : null;
+        : categoryId === 'moto3'
+          ? resolveMoto3TeamLogoUrl(row.teamId, rowSlug, row.team)
+          : null;
 
   const team =
     idx.bySlug.get(rowSlug) ??
@@ -203,7 +208,7 @@ export const enrichStandingRow = (row, idx, categoryId = 'motogp') => {
   const logoUrl =
     categoryId === 'motogp'
       ? row.logoUrl ?? resolvedLogo ?? team.logoUrl
-      : categoryId === 'moto2'
+      : categoryId === 'moto2' || categoryId === 'moto3'
         ? row.logoUrl ?? resolvedLogo ?? team.logoUrl
         : row.logoUrl ?? team.logoUrl ?? null;
 

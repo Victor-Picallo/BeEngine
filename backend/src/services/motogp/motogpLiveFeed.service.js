@@ -127,6 +127,9 @@ export const getMotogpLiveFeed = async (
     sectorsSource: sectorsPack.source,
     messages,
     eventName: timing.head?.eventName ?? ctx?.event?.sponsored_name ?? ctx?.event?.name ?? null,
-    circuitName: timing.head?.circuitName ?? ctx?.event?.circuit?.name ?? null,
+    circuitName:
+      String(timing.head?.circuitName ?? '').trim() ||
+      ctx?.event?.circuit?.name ||
+      null,
   };
 };

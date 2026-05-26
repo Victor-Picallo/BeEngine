@@ -472,8 +472,8 @@ export class F1DriverProfilePageComponent {
           return;
         }
       }
-      if (sid === 'moto2') {
-        const local = resolveDriverHeadshotUrl(id, '', null, { seriesId: 'moto2' });
+      if (sid === 'moto2' || sid === 'moto3') {
+        const local = resolveDriverHeadshotUrl(id, '', null, { seriesId: sid });
         if (local && local !== el.src) {
           el.dataset['portraitRetry'] = '1';
           el.src = local;

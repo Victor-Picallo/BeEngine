@@ -40,8 +40,13 @@ import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sid
 import { F1LiveService } from '../f1-live/f1-live.service';
 import { MotogpPulseService } from '../motogp/motogp-pulse.service';
 import { Moto2LiveService } from '../moto2/moto2-live.service';
+import { Moto3LiveService } from '../moto3/moto3-live.service';
 import { findOfficialCircuit, projectCircuitCoords } from '../calendar/official-circuits';
 import { findRaceBySlug } from './race-slug';
+import {
+  resolveFeederCircuitName,
+  resolveFeederRaceName,
+} from './race-display.util';
 import {
   isMotogpSessionKey,
   MOTOGP_SESSION_CONFIGS,
@@ -111,6 +116,7 @@ export class FeederRacePageComponent implements OnInit, OnDestroy {
   private readonly f1 = inject(F1LiveService);
   private readonly motogpPulse = inject(MotogpPulseService);
   private readonly moto2Pulse = inject(Moto2LiveService);
+  private readonly moto3Pulse = inject(Moto3LiveService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly backNav = inject(BackNavigationService);
@@ -204,9 +210,17 @@ export class FeederRacePageComponent implements OnInit, OnDestroy {
     return [{ sessionKey: 'race', label: 'RACE', hasResults: true } as MotogpWeekendSession];
   });
 
+  displayCircuitName = computed(() =>
+    resolveFeederCircuitName(this.currentRace(), this.raceResult()),
+  );
+
+  displayRaceName = computed(() =>
+    resolveFeederRaceName(this.currentRace(), this.raceResult()),
+  );
+
   liveHeaderData = computed(() => ({
-    raceName: this.raceResult()?.raceName ?? this.currentRace()?.raceName ?? '',
-    circuitName: this.currentRace()?.circuitName ?? '',
+    raceName: this.displayRaceName(),
+    circuitName: this.displayCircuitName(),
     round: this.currentRace()?.round ?? 0,
     totalRounds: this.calendar().length || 22,
   }));
@@ -554,7 +568,7 @@ export class FeederRacePageComponent implements OnInit, OnDestroy {
         if (!canvas || !race) return;
         this.mapAnim = startCircuitMapAnimation(
           canvas,
-          race.circuitName,
+          resolveFeederCircuitName(race, this.raceResult()),
           rows.map((r) => ({ pos: r.pos, short: r.short, teamColor: r.teamColor })),
           {
             accent,
@@ -615,7 +629,8 @@ export class FeederRacePageComponent implements OnInit, OnDestroy {
     startY: number;
   } {
     const fallback = { circuitPath: GENERIC_PATH, viewBox: '0 0 300 170', startX: 24, startY: 92 };
-    const official = findOfficialCircuit(race.circuitName) ?? findOfficialCircuit(race.locality);
+    const circuitLabel = resolveFeederCircuitName(race, this.raceResult());
+    const official = findOfficialCircuit(circuitLabel) ?? findOfficialCircuit(race.locality);
     if (!official) return fallback;
 
     const points = projectCircuitCoords(official.coords);
@@ -788,24 +803,28 @@ export class FeederRacePageComponent implements OnInit, OnDestroy {
   private pulseCalendar(seriesId: SeriesId) {
     if (seriesId === 'motogp') return this.motogpPulse.getCalendar();
     if (seriesId === 'moto2') return this.moto2Pulse.getCalendar();
+    if (seriesId === 'moto3') return this.moto3Pulse.getCalendar();
     return this.f1.getCalendar(seriesId);
   }
 
   private pulseRaceResults(seriesId: SeriesId, round: number, session: string) {
     if (seriesId === 'motogp') return this.motogpPulse.getRaceResults(round, session);
     if (seriesId === 'moto2') return this.moto2Pulse.getRaceResults(round, session);
+    if (seriesId === 'moto3') return this.moto3Pulse.getRaceResults(round, session);
     return this.f1.getRaceResults(round, seriesId, session);
   }
 
   private pulseDriverStandings(seriesId: SeriesId) {
     if (seriesId === 'motogp') return this.motogpPulse.getDriverStandings();
     if (seriesId === 'moto2') return this.moto2Pulse.getDriverStandings();
+    if (seriesId === 'moto3') return this.moto3Pulse.getDriverStandings();
     return this.f1.getDriverStandings(false, seriesId);
   }
 
   private pulseTeamStandings(seriesId: SeriesId) {
     if (seriesId === 'motogp') return this.motogpPulse.getTeamStandings();
     if (seriesId === 'moto2') return this.moto2Pulse.getTeamStandings();
+    if (seriesId === 'moto3') return this.moto3Pulse.getTeamStandings();
     return this.f1.getConstructorStandings(false, seriesId);
   }
 }

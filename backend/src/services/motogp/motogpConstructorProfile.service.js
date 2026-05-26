@@ -6,6 +6,7 @@ import {
 } from './pulseLive.service.js';
 import { resolveMotogpTeamLogoUrl } from '../../data/motogp/motogpTeamLogos.js';
 import { resolveMoto2TeamLogoUrl } from '../../data/moto2/moto2TeamLogos.js';
+import { resolveMoto3TeamLogoUrl } from '../../data/moto3/moto3TeamLogos.js';
 import {
   createDynamicTeamProfileDef,
   getMotogpTeamProfileDef,
@@ -214,7 +215,9 @@ export const getConstructorProfile = async (constructorId, opts = {}) => {
       standingRow?.logoUrl ??
       (categoryId === 'moto2'
         ? resolveMoto2TeamLogoUrl(team?.teamId ?? standingRow?.teamId, cid, displayName)
-        : resolveMotogpTeamLogoUrl(team?.teamId ?? standingRow?.teamId, cid, displayName)) ??
+        : categoryId === 'moto3'
+          ? resolveMoto3TeamLogoUrl(team?.teamId ?? standingRow?.teamId, cid, displayName)
+          : resolveMotogpTeamLogoUrl(team?.teamId ?? standingRow?.teamId, cid, displayName)) ??
       null,
     bikeImageUrl: team?.bikeImageUrl ?? null,
     teamColor: team?.color ?? standingRow?.teamColor ?? null,

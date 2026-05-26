@@ -1,0 +1,204 @@
+<div class="fc-root">
+  <app-header></app-header>
+
+  <div class="fc-body">
+    <app-side></app-side>
+
+    <main class="fc-shell">
+      <div class="fc-hero">
+        <div class="fc-hero-left">
+          <div class="fc-hero-title-row">
+            <span class="fc-hero-bar"></span>
+            <h1>Calendario <span class="fc-hero-faded">{{ catLabel() }} 2026</span></h1>
+          </div>
+          <div class="fc-hero-sub">{{ totalRounds() }} Grandes Premios · Temporada 2026</div>
+        </div>
+
+        <div class="fc-filters">
+          <button class="fc-chip"
+                  [class.active]="filter() === 'all'"
+                  (click)="setFilter('all')">
+            Todas
+            <span class="fc-chip-count">{{ totalRounds() }}</span>
+          </button>
+          <button class="fc-chip"
+                  [class.active]="filter() === 'completed'"
+                  (click)="setFilter('completed')">
+            Completadas
+            <span class="fc-chip-count">{{ completedRounds() }}</span>
+          </button>
+          <button class="fc-chip"
+                  [class.active]="filter() === 'upcoming'"
+                  (click)="setFilter('upcoming')">
+            Próximas
+            <span class="fc-chip-count">{{ remainingRounds() }}</span>
+          </button>
+        </div>
+      </div>
+
+      @if (!loading() && !error() && totalRounds() > 0) {
+        <section class="fc-progress">
+          <div class="fc-progress-stat">
+            <div class="fc-progress-eyebrow">Temporada 2026</div>
+            <div class="fc-progress-count">
+              {{ completedRounds() }}<span>/{{ totalRounds() }}</span>
+            </div>
+            <div class="fc-progress-label">Rondas completadas</div>
+          </div>
+
+          <div class="fc-progress-divider"></div>
+
+          <div class="fc-progress-bar-wrap">
+            <div class="fc-progress-bar-head">
+              <span>Progreso de temporada</span>
+              <strong>{{ progressPct() }}%</strong>
+            </div>
+            <div class="fc-progress-bar">
+              <div class="fc-progress-bar-fill" [style.width.%]="progressPct()"></div>
+            </div>
+            <div class="fc-progress-dots">
+              @for (dot of progressDots(); track dot.round) {
+                <span class="fc-progress-dot"
+                      [class.done]="dot.status === 'done'"
+                      [class.next]="dot.status === 'next'"
+                      [attr.title]="dot.name"></span>
+              }
+            </div>
+          </div>
+
+          @if (nextRace(); as race) {
+            <div class="fc-progress-divider"></div>
+            <div class="fc-progress-next">
+              <div class="fc-progress-eyebrow accent">Próxima</div>
+              <div class="fc-progress-next-name">{{ race.raceName }}</div>
+              <div class="fc-progress-next-date">{{ nextRaceDateLabel() }}</div>
+            </div>
+          }
+        </section>
+      }
+
+      @if (loading()) {
+        <section class="fc-grid">
+          @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+            <div class="fc-card fc-skeleton"></div>
+          }
+        </section>
+      } @else if (error()) {
+        <div class="fc-error">{{ error() }}</div>
+      } @else {
+        @for (group of monthGroups(); track group.month) {
+          <section class="fc-month">
+            <header class="fc-month-head">
+              <span class="fc-month-name">{{ group.month }}</span>
+              <span class="fc-month-line"></span>
+              <span class="fc-month-count">
+                {{ group.races.length }} {{ group.races.length === 1 ? 'carrera' : 'carreras' }}
+              </span>
+            </header>
+
+            <div class="fc-grid">
+              @for (card of group.races; track card.race.round; let i = $index) {
+                <a class="fc-card fc-card-link"
+                   [routerLink]="raceCardLink(card)"
+                   appReturnNav
+                   [attr.aria-label]="'Ver ' + card.race.raceName"
+                   [class.done]="card.status === 'done'"
+                   [class.next]="card.status === 'next'"
+                   [style.animation-delay.ms]="cardDelay(i)">
+
+                  <div class="fc-card-circuit">
+                    <div class="fc-grid-pattern"></div>
+                    @if (card.status === 'next') {
+                      <div class="fc-glow"></div>
+                    }
+                    @if (card.status === 'done') {
+                      <div class="fc-dim"></div>
+                    }
+
+                    <div class="fc-circuit-svg-wrap">
+                      @if (card.circuitSvgUrl) {
+                        <img
+                          class="fc-circuit-svg fc-circuit-svg--img"
+                          [src]="card.circuitSvgUrl"
+                          [alt]="card.race.circuitName"
+                          loading="lazy"
+                        />
+                      } @else {
+                        <svg class="fc-circuit-svg" viewBox="0 0 300 170"
+                             preserveAspectRatio="xMidYMid meet"
+                             [attr.aria-label]="card.race.circuitName">
+                          <path class="fc-circuit-glow" d="M 24 92 C 46 30 124 18 164 58 C 198 92 262 34 276 84 C 288 128 228 146 174 126 C 118 106 86 156 42 130 C 18 116 16 100 24 92 Z"></path>
+                          <path class="fc-circuit-asphalt" d="M 24 92 C 46 30 124 18 164 58 C 198 92 262 34 276 84 C 288 128 228 146 174 126 C 118 106 86 156 42 130 C 18 116 16 100 24 92 Z"></path>
+                          <path class="fc-circuit-line" d="M 24 92 C 46 30 124 18 164 58 C 198 92 262 34 276 84 C 288 128 228 146 174 126 C 118 106 86 156 42 130 C 18 116 16 100 24 92 Z"></path>
+                          <circle class="fc-start-outer" cx="24" cy="92" r="5.5"></circle>
+                          <circle class="fc-start-inner" cx="24" cy="92" r="2.8"></circle>
+                        </svg>
+                      }
+                    </div>
+
+                    <div class="fc-round">R{{ card.race.round }}</div>
+                    <div class="fc-date">{{ card.dateLabel }}</div>
+
+                    @if (card.status === 'done') {
+                      <div class="fc-tag-done">
+                        <span class="fc-tag-dot"></span>
+                        <span>COMPLETADA</span>
+                      </div>
+                    }
+                    @if (card.status === 'next') {
+                      <div class="fc-tag-next">PRÓXIMA CARRERA</div>
+                    }
+                  </div>
+
+                  <div class="fc-card-body">
+                    <h2 class="fc-card-title">{{ card.race.raceName }}</h2>
+
+                    <div class="fc-card-meta">
+                      <svg width="9" height="12" viewBox="0 0 9 12" class="fc-pin">
+                        <path d="M4.5 0C2 0 0 2 0 4.5C0 7.5 4.5 12 4.5 12S9 7.5 9 4.5C9 2 7 0 4.5 0ZM4.5 6A1.5 1.5 0 1 1 4.5 3A1.5 1.5 0 0 1 4.5 6Z"/>
+                      </svg>
+                      <span class="fc-loc">{{ card.race.locality }}, {{ card.race.country }}</span>
+                    </div>
+
+                    @if (card.status === 'done') {
+                      <div class="fc-podium">
+                        <div class="fc-podium-title">Podio</div>
+                        @if (card.podium.length) {
+                          @for (p of card.podium; track p.position) {
+                            <div class="fc-podium-row">
+                              <span class="fc-pos" [style.color]="positionColor(p.position)">
+                                {{ positionLabel(p.position) }}
+                              </span>
+                              <span class="fc-team-bar" [style.background]="p.teamColor"></span>
+                              <span class="fc-podium-driver">{{ p.driver }}</span>
+                              <span class="fc-podium-team">{{ p.team }}</span>
+                              @if (p.time) {
+                                <span class="fc-podium-time"
+                                      [class.winner]="p.position === 1">{{ p.time }}</span>
+                              }
+                            </div>
+                          }
+                        } @else {
+                          <div class="fc-podium-empty">Sincronizando resultado…</div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </a>
+              }
+            </div>
+          </section>
+        }
+
+        <footer class="fc-footer">
+          <span>BeEngine · Calendario {{ catLabel() }} 2026</span>
+          <div class="fc-footer-links">
+            <a [routerLink]="homePath()">← Home</a>
+            <a [routerLink]="homePath() + '/pilotos'">Pilotos →</a>
+            <a [routerLink]="homePath() + '/escuderias'">Escuderías →</a>
+          </div>
+        </footer>
+      }
+    </main>
+  </div>
+</div>
