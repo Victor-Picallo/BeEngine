@@ -35,6 +35,8 @@ export class AuthService {
 
   private client: SupabaseClient | null = null;
   private initPromise: Promise<void> | null = null;
+  private profileRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private profileRefreshInFlight: Promise<MeProfile | null> | null = null;
 
   readonly ready = signal(false);
   readonly configured = signal(false);
@@ -113,6 +115,10 @@ export class AuthService {
         },
       });
 
+      if (this.isRecoveryLanding()) {
+        this.passwordRecovery.set(true);
+      }
+
       this.client.auth.onAuthStateChange((event, sess) => {
         if (event === 'PASSWORD_RECOVERY') {
           this.passwordRecovery.set(true);
@@ -124,18 +130,14 @@ export class AuthService {
           return;
         }
         if (this.passwordRecovery()) return;
-        void this.refreshProfile().then(() => this.applyPendingBootstrap());
+        if (!this.shouldRefreshProfileOnEvent(event)) return;
+        this.scheduleProfileRefresh();
       });
-
-      if (this.readRecoveryFromUrlHash()) {
-        this.passwordRecovery.set(true);
-      }
 
       const { data: sessionData } = await this.client.auth.getSession();
       this.session.set(sessionData.session);
       if (sessionData.session && !this.passwordRecovery()) {
-        await this.refreshProfile();
-        await this.applyPendingBootstrap();
+        this.scheduleProfileRefresh(true);
       }
     } catch (err) {
       this.initError.set(this.describeInitFailure(err));
@@ -205,12 +207,35 @@ export class AuthService {
     }
   }
 
-  private readRecoveryFromUrlHash(): boolean {
+  private isRecoveryLanding(): boolean {
     if (typeof window === 'undefined') return false;
+    const search = new URLSearchParams(window.location.search);
+    if (search.get('tab') === 'new-password') return true;
     const hash = window.location.hash.replace(/^#/, '');
     if (!hash) return false;
-    const params = new URLSearchParams(hash);
-    return params.get('type') === 'recovery';
+    return new URLSearchParams(hash).get('type') === 'recovery';
+  }
+
+  private shouldRefreshProfileOnEvent(event: string): boolean {
+    return event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'INITIAL_SESSION';
+  }
+
+  /** Evita ráfagas de GET /api/me (y 429 en Supabase Auth). */
+  private scheduleProfileRefresh(immediate = false): void {
+    if (this.passwordRecovery() || !this.session()) return;
+    if (this.profileRefreshTimer) {
+      clearTimeout(this.profileRefreshTimer);
+      this.profileRefreshTimer = null;
+    }
+    const run = () => {
+      this.profileRefreshTimer = null;
+      void this.refreshProfile().then(() => this.applyPendingBootstrap());
+    };
+    if (immediate) {
+      run();
+      return;
+    }
+    this.profileRefreshTimer = setTimeout(run, 400);
   }
 
   private clearRecoveryHashFromUrl(): void {
@@ -250,17 +275,26 @@ export class AuthService {
   }
 
   async refreshProfile(): Promise<MeProfile | null> {
-    if (!this.session()) return null;
-    try {
-      const body = await firstValueFrom(
-        this.http.get<{ success: boolean; data: MeProfile }>(`${this.apiBaseUrl}/me`),
-      );
-      this.profile.set(body.data);
-      return body.data;
-    } catch {
-      this.profile.set(null);
-      return null;
-    }
+    if (!this.session() || this.passwordRecovery()) return null;
+    if (this.profileRefreshInFlight) return this.profileRefreshInFlight;
+    this.profileRefreshInFlight = (async () => {
+      try {
+        const body = await firstValueFrom(
+          this.http.get<{ success: boolean; data: MeProfile }>(`${this.apiBaseUrl}/me`),
+        );
+        this.profile.set(body.data);
+        return body.data;
+      } catch (err) {
+        if (err instanceof HttpErrorResponse && err.status === 429) {
+          console.warn('[auth] Perfil no cargado: límite de peticiones (429). Reintenta en un momento.');
+        }
+        this.profile.set(null);
+        return null;
+      } finally {
+        this.profileRefreshInFlight = null;
+      }
+    })();
+    return this.profileRefreshInFlight;
   }
 
   mapAuthError(err: unknown): string {

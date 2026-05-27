@@ -28,5 +28,8 @@ export function authErrorMessage(err: unknown): string {
   if (msg.includes('password')) {
     return 'La contraseña debe tener al menos 8 caracteres.';
   }
+  if (msg.includes('rate limit') || msg.includes('too many')) {
+    return 'Demasiados intentos seguidos. Espera un minuto e inténtalo de nuevo.';
+  }
   return e.message || 'No se pudo completar la operación. Inténtalo de nuevo.';
 }

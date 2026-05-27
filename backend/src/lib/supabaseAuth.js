@@ -33,8 +33,13 @@ export async function verifyAccessToken(accessToken) {
   }
   const { data, error } = await supabase.auth.getUser(accessToken);
   if (error || !data?.user) {
-    const err = new Error('Sesión inválida o expirada');
-    err.status = 401;
+    const status = error?.status === 429 ? 429 : 401;
+    const err = new Error(
+      status === 429
+        ? 'Demasiadas comprobaciones de sesión. Espera un minuto e inténtalo de nuevo.'
+        : 'Sesión inválida o expirada',
+    );
+    err.status = status;
     throw err;
   }
   return data.user;
