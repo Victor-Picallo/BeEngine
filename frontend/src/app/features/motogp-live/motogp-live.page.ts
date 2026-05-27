@@ -51,6 +51,7 @@ import type {
 } from '../f1-live/f1-live.types';
 import type { MotogpLiveFeedPayload, MotogpLiveTimingRider } from './motogp-live.types';
 import { resolveMotogpCircuitMapUrl } from '../motogp/motogp-circuit-media';
+import { accentForeground } from '../../core/series/series-accent.utils';
 import {
   fetchCircuitPathFromSvgUrl,
   pickCircuitSvgUrl,
@@ -83,6 +84,7 @@ const toTireType = (raw: string | null | undefined): TireType | null => {
   encapsulation: ViewEncapsulation.None,
   host: {
     '[style.--fl-accent]': 'accent()',
+    '[style.--fl-accent-fg]': 'accentFg()',
     '[style.--fl-accent-soft]': 'accentSoft()',
   },
 })
@@ -98,6 +100,7 @@ export class MotogpLivePageComponent implements OnInit, OnDestroy {
   private readonly zone = inject(NgZone);
 
   readonly accent = computed(() => this.seriesCtx.config().accent);
+  readonly accentFg = computed(() => accentForeground(this.accent()));
   readonly accentSoft = computed(() => {
     const hex = this.accent().replace('#', '');
     if (hex.length !== 6) return 'rgba(0,82,204,0.12)';

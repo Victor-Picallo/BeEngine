@@ -28,6 +28,28 @@ button { background: none; border: none; cursor: pointer; font-family: inherit; 
   background: #fafafa;
   color: #1a1a1a;
   overflow: hidden;
+  /* --fl-accent: hereda del host (app-f1-live-page / app-motogp-live-page) */
+}
+
+/* Acento por serie (no redefinir en .fl-root genérico: pisaba el host MotoGP) */
+app-f1-live-page,
+app-f1-live-page .fl-root {
+  --fl-accent: #ffd100;
+  --fl-accent-fg: #000;
+}
+
+app-motogp-live-page,
+app-motogp-live-page .fl-root,
+.fl-root.fl-root--motogp {
+  --fl-accent: #0052cc;
+  --fl-accent-fg: #fff;
+}
+
+/* Badges de estado en MotoGP (no bandera amarilla F1) */
+.fl-root--motogp .fl-badge-yellow {
+  background: color-mix(in srgb, var(--fl-accent) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fl-accent) 55%, transparent);
+  color: var(--fl-accent);
 }
 
 /* ── Fixed-height chrome ──────────────────────────────────────────────────── */
@@ -56,8 +78,13 @@ button { background: none; border: none; cursor: pointer; font-family: inherit; 
 /* Live header: 42px title + status strip — tallest chrome element (~130px) */
 .fl-live-header {
   flex-shrink: 0;
-  background: linear-gradient(135deg, #fffbe6, #fafafa 45%, #ffffff);
-  border-bottom: 1px solid rgba(255, 209, 0, .35);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--fl-accent) 10%, #fff),
+    #fafafa 45%,
+    #ffffff
+  );
+  border-bottom: 1px solid color-mix(in srgb, var(--fl-accent) 35%, #e5e5e7);
   padding: 16px 20px;
   position: relative;
   overflow: hidden;
@@ -183,23 +210,23 @@ button { background: none; border: none; cursor: pointer; font-family: inherit; 
 }
 .fl-topbar-live-badge {
   display: flex; align-items: center; gap: 6px;
-  background: rgba(255,209,0,.18);
-  border: 1px solid rgba(255,209,0,.4);
+  background: color-mix(in srgb, var(--fl-accent) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fl-accent) 40%, transparent);
   border-radius: 4px;
   padding: 4px 10px;
 }
 .fl-topbar-live-text {
   font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
-  font-size: 11px; color: #FFD100; letter-spacing: 1.5px;
+  font-size: 11px; color: var(--fl-accent); letter-spacing: 1.5px;
 }
 .fl-topbar-link {
   font-size: 12px; color: #888; font-weight: 500;
 }
 .fl-topbar-avatar {
   width: 28px; height: 28px;
-  background: #FFD100; border-radius: 50%;
+  background: var(--fl-accent); border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700; color: #000;
+  font-size: 12px; font-weight: 700; color: var(--fl-accent-fg, #000);
   flex-shrink: 0;
 }
 
@@ -221,7 +248,7 @@ button { background: none; border: none; cursor: pointer; font-family: inherit; 
 }
 .fl-session-vta-num {
   font-family: 'Barlow Condensed', sans-serif; font-weight: 800;
-  font-size: 18px; color: #FFD100;
+  font-size: 18px; color: var(--fl-accent);
 }
 .fl-session-vta-slash {
   font-family: 'Barlow Condensed', sans-serif;
@@ -237,7 +264,7 @@ button { background: none; border: none; cursor: pointer; font-family: inherit; 
 }
 .fl-session-elapsed-time {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 12px; color: #FFD100; font-weight: 600;
+  font-size: 12px; color: var(--fl-accent); font-weight: 600;
 }
 .fl-session-elapsed-label {
   font-size: 10px; color: #999;
@@ -254,14 +281,14 @@ button { background: none; border: none; cursor: pointer; font-family: inherit; 
 .fl-header-label { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
 .fl-header-en-directo {
   font-family: 'Barlow Condensed', sans-serif; font-weight: 900;
-  font-size: 11px; color: #FFD100;
+  font-size: 11px; color: var(--fl-accent);
   letter-spacing: 3px; text-transform: uppercase;
 }
 .fl-header-title-big {
   font-family: 'Barlow Condensed', sans-serif; font-weight: 900;
   font-size: 42px; color: #1a1a1a; line-height: 1; letter-spacing: -1px;
 }
-.fl-header-title-big span { color: #FFD100; }
+.fl-header-title-big span { color: var(--fl-accent); }
 
 /* GP info block */
 .fl-header-gp { flex-shrink: 0; min-width: 0; max-width: 260px; }

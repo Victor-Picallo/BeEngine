@@ -1,11 +1,13 @@
 /* ── Scrollbar ─────────────────────────────────────────────────────────── */
-app-f1-live-page ::-webkit-scrollbar { width: 3px; background: #f0f0f0; }
-app-f1-live-page ::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 2px; }
+app-f1-live-page ::-webkit-scrollbar,
+app-motogp-live-page ::-webkit-scrollbar { width: 3px; background: #f0f0f0; }
+app-f1-live-page ::-webkit-scrollbar-thumb,
+app-motogp-live-page ::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 2px; }
 
 /* ── Keyframes ─────────────────────────────────────────────────────────── */
 @keyframes live-pulse {
-  0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255,209,0,.5); }
-  50%      { opacity: .7; box-shadow: 0 0 0 6px rgba(255,209,0,0); }
+  0%,100% { opacity: 1; box-shadow: 0 0 0 0 color-mix(in srgb, var(--fl-accent) 50%, transparent); }
+  50%      { opacity: .7; box-shadow: 0 0 0 6px transparent; }
 }
 @keyframes scan {
   0%   { transform: translateY(-100%); }
@@ -64,21 +66,22 @@ app-f1-live-page ::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius:
 /* ── Logo diamond (clip-path) ──────────────────────────────────────────── */
 .fl-topbar-diamond {
   width: 24px; height: 24px;
-  background: #FFD100;
+  background: var(--fl-accent);
   clip-path: polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%);
 }
-/* Yellow spans inside titles */
-.fl-topbar-title span { color: #FFD100; }
-.fl-header-title span { color: #FFD100; }
+/* Acento en títulos */
+.fl-topbar-title span { color: var(--fl-accent); }
+.fl-header-title span { color: var(--fl-accent); }
+.fl-header-title-big span { color: var(--fl-accent); }
 
 /* ── Animated elements ─────────────────────────────────────────────────── */
 .fl-live-dot {
   width: 7px; height: 7px; border-radius: 50%;
-  background: #FFD100;
+  background: var(--fl-accent);
   animation: live-pulse 1.5s infinite;
 }
 .fl-header-pulse {
-  width: 8px; height: 8px; border-radius: 50%; background: #FFD100;
+  width: 8px; height: 8px; border-radius: 50%; background: var(--fl-accent);
   animation: live-pulse 1.5s infinite;
 }
 .fl-panel-live-dot {
@@ -88,7 +91,7 @@ app-f1-live-page ::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius:
 .fl-session-live-dot {
   position: absolute; top: 6px; right: 6px;
   width: 5px; height: 5px; border-radius: 50%;
-  background: #FFD100;
+  background: var(--fl-accent);
   animation: live-pulse 1.5s infinite;
 }
 /* Ticker animation */
@@ -101,17 +104,17 @@ app-f1-live-page ::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius:
 /* Header decorative elements */
 .fl-header-accent-line {
   position: absolute; top: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, #FFD100, transparent);
+  background: linear-gradient(90deg, transparent, var(--fl-accent), transparent);
 }
 .fl-header-scan {
   position: absolute; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,209,0,.35), transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--fl-accent) 35%, transparent), transparent);
   animation: scan 4s linear infinite;
   pointer-events: none;
 }
 .fl-header-glow {
   position: absolute; top: -50%; left: 10%; width: 40%; height: 200%;
-  background: radial-gradient(ellipse, rgba(255,209,0,.12) 0%, transparent 70%);
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--fl-accent) 12%, transparent) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -126,8 +129,8 @@ app-f1-live-page ::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius:
 }
 .fl-cat-btn.active {
   color: #1a1a1a;
-  background: rgba(255,209,0,.18);
-  border-bottom-color: #FFD100;
+  background: color-mix(in srgb, var(--fl-accent) 18%, transparent);
+  border-bottom-color: var(--fl-accent);
   font-weight: 700;
 }
 .fl-cat-btn:hover { color: #1a1a1a; }
@@ -140,7 +143,9 @@ app-f1-live-page ::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius:
   position: relative; transition: all 0.15s;
 }
 .fl-session-btn.active {
-  background: #FFD100; color: #000; font-weight: 800;
+  background: var(--fl-accent);
+  color: var(--fl-accent-fg, #000);
+  font-weight: 800;
 }
 .fl-session-btn:hover { color: #1a1a1a; }
 
@@ -163,8 +168,8 @@ app-f1-live-page ::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius:
 }
 .fl-top-session:hover { color: #1a1a1a; opacity: .95; }
 .fl-top-session.active {
-  background: #FFD100;
-  color: #000;
+  background: var(--fl-accent);
+  color: var(--fl-accent-fg, #000);
   box-shadow: 0 1px 0 rgba(0,0,0,.06);
 }
 .fl-champ-tab {
@@ -175,7 +180,7 @@ app-f1-live-page ::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius:
   color: #888; font-weight: 500;
   border-bottom: 2px solid transparent; transition: all 0.15s;
 }
-.fl-champ-tab.active { color: #FFD100; font-weight: 800; border-bottom-color: #FFD100; }
+.fl-champ-tab.active { color: var(--fl-accent); font-weight: 800; border-bottom-color: var(--fl-accent); }
 .fl-radio-filter-btn {
   padding: 3px 10px; border-radius: 3px;
   background: transparent; border: 1px solid #e0e0e0;
@@ -211,14 +216,14 @@ app-f1-live-page ::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius:
   border-left: 3px solid transparent;
 }
 .fl-timing-row:hover { background: rgba(0,0,0,.03) !important; }
-.fl-timing-row.leader { background: rgba(255,209,0,.10); border-left-color: #FFD100; }
-.fl-timing-row.in-pit { background: rgba(255,209,0,.04); border-left-color: #aaa; }
+.fl-timing-row.leader { background: color-mix(in srgb, var(--fl-accent) 10%, transparent); border-left-color: var(--fl-accent); }
+.fl-timing-row.in-pit { background: color-mix(in srgb, var(--fl-accent) 4%, transparent); border-left-color: #aaa; }
 /* Timing cells */
 .fl-cell-pos {
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 800; font-size: 20px; color: #aaa; align-self: center;
 }
-.fl-cell-pos.top3 { color: #FFD100; }
+.fl-cell-pos.top3 { color: var(--fl-accent); }
 .fl-cell-num {
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 700; font-size: 16px; color: #1a1a1a;
@@ -234,7 +239,7 @@ app-f1-live-page ::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius:
   font-family: 'JetBrains Mono', monospace;
   font-size: 13px; color: #666; text-align: right; align-self: center;
 }
-.fl-cell-gap.leader-gap { color: #FFD100; font-weight: 600; }
+.fl-cell-gap.leader-gap { color: var(--fl-accent); font-weight: 600; }
 .fl-cell-last, .fl-cell-best {
   font-family: 'JetBrains Mono', monospace;
   font-size: 13px; text-align: right; align-self: center;
@@ -287,7 +292,7 @@ app-f1-live-page ::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius:
   border-left: 3px solid #d5d5d8;
   transition: background 0.1s;
 }
-.fl-radio-msg.urgent  { background: rgba(255,209,0,.10); border-left-color: #FFD100; }
+.fl-radio-msg.urgent  { background: color-mix(in srgb, var(--fl-accent) 10%, transparent); border-left-color: var(--fl-accent); }
 .fl-radio-msg.control { border-left-color: #999; }
 .fl-radio-msg-meta {
   display: flex; align-items: center; gap: 6px; margin-bottom: 3px;
@@ -407,7 +412,7 @@ app-f1-live-page ::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius:
 .fl-tt-bar {
   width: 3px; height: 16px;
   border-radius: 1px; flex-shrink: 0;
-  background: #FFD100;
+  background: var(--fl-accent);
 }
 .fl-tt-title {
   font-family: 'Barlow Condensed', sans-serif;
