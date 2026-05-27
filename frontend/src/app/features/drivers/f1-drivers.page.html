@@ -47,7 +47,10 @@
                   [class.done]="card.pos > 3"
                   [style.animation-delay.ms]="cardDelay(i)"
                 >
-                  <div class="fc-card-circuit fd-card-circuit">
+                  <div
+                    class="fc-card-circuit fd-card-circuit"
+                    [class.fd-card-circuit--feeder]="seriesCtx.id() === 'f2' || seriesCtx.id() === 'f3'"
+                  >
                     <div class="fc-grid-pattern"></div>
                     @if (card.pos === 1) {
                       <div class="fc-glow"></div>
@@ -128,7 +131,10 @@
                 [class.done]="card.pos > 3"
                 [style.animation-delay.ms]="cardDelay(i)"
               >
-                <div class="fc-card-circuit fd-card-circuit">
+                <div
+                  class="fc-card-circuit fd-card-circuit"
+                  [class.fd-card-circuit--feeder]="seriesCtx.id() === 'f2' || seriesCtx.id() === 'f3'"
+                >
                   <div class="fc-grid-pattern"></div>
                   @if (card.pos === 1) {
                     <div class="fc-glow"></div>

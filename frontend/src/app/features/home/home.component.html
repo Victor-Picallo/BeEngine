@@ -109,7 +109,12 @@
           </a>
         }
 
-        <app-race-card [nextRace]="data().nextRace" [accent]="accent()" [countdown]="countdown()" />
+        <app-race-card
+          [nextRace]="data().nextRace"
+          [accent]="accent()"
+          [countdown]="countdown()"
+          [formulaOutline]="true"
+        />
 
         <div class="hm-grid-2">
           <app-standings-table [standings]="data().standings.slice(0, 13)" [accent]="accent()" />

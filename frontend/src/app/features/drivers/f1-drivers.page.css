@@ -34,7 +34,7 @@
   display: block;
   /* Full pilot in frame — no aggressive crop (cover was only nose/mouth). */
   object-fit: contain;
-  object-position: center center;
+  object-position: center bottom;
 }
 
 .fd-photo-fallback {

@@ -10,9 +10,11 @@ import { HomeCircuitPreviewComponent } from '../home-circuit-preview/home-circui
   imports: [HomeCircuitPreviewComponent],
 })
 export class RaceCardComponent {
-  nextRace  = input.required<NextRace>();
-  accent    = input.required<string>();
+  nextRace = input.required<NextRace>();
+  accent = input.required<string>();
   countdown = input.required<CountdownTime>();
+  /** Trazado blanco estilo calendario (F1/F2/F3). */
+  formulaOutline = input(false);
 
   countdownUnits = computed(() => {
     const t = this.countdown();

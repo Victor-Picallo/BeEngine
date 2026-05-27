@@ -5,6 +5,11 @@ import { moto3DriverHeadshotUrl } from '../moto3/moto3-media';
 
 export const ACCENT = '#FFD100';
 
+/** F2/F3 usan retratos FIA de cuerpo entero (mismo tratamiento CSS). */
+export function isFeederPortraitSeries(sid: SeriesId | string | null | undefined): boolean {
+  return sid === 'f2' || sid === 'f3';
+}
+
 export const TEAM_COLORS: Record<string, string> = {
   mercedes: '#27F4D2',
   'red bull': '#3671C6',
@@ -260,4 +265,66 @@ export function flagCdnUrl(alpha2: string): string {
   const cc = alpha2.trim().toUpperCase();
   if (cc.length !== 2 || !/^[A-Z]{2}$/.test(cc)) return '';
   return `https://flagcdn.com/w40/${cc.toLowerCase()}.png`;
+}
+
+/** Cruce standings ↔ OpenF1 (mismo criterio que la página de pilotos). */
+export function matchOpenF1Driver(
+  j: JolpikaDriverStanding,
+  open: OpenF1Driver[],
+): OpenF1Driver | undefined {
+  if (!open.length) return undefined;
+  const jn = normalize(j.driver);
+  const jTeam = normalize(j.team);
+  const jLast = jn.split(/\s+/).pop() ?? '';
+
+  const exact = open.find((o) => normalize(o.fullName) === jn);
+  if (exact) return exact;
+
+  return open.find((o) => {
+    const fn = normalize(o.fullName);
+    const parts = fn.split(/\s+/);
+    const oLast = parts[parts.length - 1] ?? '';
+    return oLast === jLast && normalize(o.teamName) === jTeam;
+  });
+}
+
+export interface AuthDriverPickerOption {
+  driverId: string;
+  driver: string;
+  team: string;
+  teamColor: string;
+  headshotUrl: string;
+  /** Dorsal (OpenF1 en F1); null si no hay fuente fiable. */
+  number: number | null;
+}
+
+export function driverDisplayInitials(full: string): string {
+  const parts = full.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+export function buildAuthDriverPickerOptions(
+  rows: JolpikaDriverStanding[],
+  open: OpenF1Driver[],
+  seriesId: SeriesId,
+): AuthDriverPickerOption[] {
+  return rows.map((j) => {
+    const o = matchOpenF1Driver(j, open);
+    const headshotUrl = resolveDriverHeadshotUrl(
+      j.driverId ?? '',
+      j.driver,
+      j.headshotUrl ?? o?.headshotUrl,
+      { size: 'card', seriesId },
+    );
+    return {
+      driverId: j.driverId,
+      driver: j.driver,
+      team: j.team,
+      teamColor: teamColor(j.team, j.teamColor ?? o?.teamColour),
+      headshotUrl,
+      number: o?.driverNumber ?? null,
+    };
+  });
 }

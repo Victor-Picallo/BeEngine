@@ -1,0 +1,491 @@
+<div class="auth-root" style="--auth-accent: #ffd100">
+  <aside class="auth-left" aria-hidden="false">
+    <div class="auth-left-accent-line"></div>
+    <div class="auth-left-glow-a"></div>
+    <div class="auth-left-glow-b"></div>
+
+    <div class="auth-circuit-deco">
+      <svg viewBox="0 0 460 250" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <path
+          d="M 341,202 L 351,202 L 361,201 L 369,197 L 380,193 L 394,186 L 407,180 L 417,174 L 423,172 L 430,164 L 433,154 L 425,153 L 420,148 L 414,143 L 409,148 L 404,153 L 404,162 L 396,167 L 393,159 L 397,150 L 404,143 L 407,134 L 414,129 L 404,124 L 394,124 L 385,124 L 375,124 L 365,124 L 351,119 L 341,119 L 327,129 L 327,139 L 317,158 L 303,167 L 284,159 L 266,148 L 263,134 L 245,129 L 228,119 L 213,105 L 197,91 L 183,76 L 163,57 L 144,48 L 127,56 L 115,81 L 96,110 L 79,129 L 63,134 L 48,153 L 40,172 L 43,177 L 29,162 L 34,148 L 45,129 L 64,105 L 80,88 L 99,72 L 114,62"
+          fill="none"
+          stroke="#FFD100"
+          stroke-width="3"
+          stroke-linejoin="round"
+          stroke-linecap="round"
+        />
+        <circle cx="341" cy="202" r="6" fill="#FFD100" />
+      </svg>
+    </div>
+
+    <div class="auth-logo">
+      <div class="auth-logo-mark"></div>
+      <span class="auth-logo-text">Be<span class="auth-logo-accent">Engine</span></span>
+    </div>
+
+    <div class="auth-hero">
+      <div class="auth-hero-kicker">Motor Sports Platform</div>
+      <h1 class="auth-hero-title">
+        Todo el motor.<br />
+        En un solo<br />
+        <span class="auth-logo-accent">lugar.</span>
+      </h1>
+      <p class="auth-hero-desc">
+        Formula 1, Fórmula 2, Fórmula 3, MotoGP, Moto2 y Moto3. Timing en directo,
+        clasificaciones, fichas de pilotos y equipos, calendario y noticias. Todo actualizado al
+        momento.
+      </p>
+    </div>
+
+    <div class="auth-features">
+      @for (f of features; track f.text; let i = $index) {
+        <div class="auth-feature" [style.animation-delay.s]="400 + i * 70">
+          <div class="auth-feature-icon" [innerHTML]="f.icon"></div>
+          <span class="auth-feature-text">{{ f.text }}</span>
+        </div>
+      }
+    </div>
+  </aside>
+
+  <main class="auth-right">
+    @if (done()) {
+      <div class="auth-panel auth-done">
+        <div class="auth-done-icon" aria-hidden="true">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <path
+              d="M6 16L13 23L26 9"
+              stroke="#FFD100"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </div>
+        <h2 class="auth-done-title">
+          {{ mode() === 'login' ? '¡Bienvenido de vuelta!' : '¡Cuenta creada!' }}
+        </h2>
+        <p class="auth-done-desc">
+          {{
+            mode() === 'login'
+              ? 'Redirigiendo a la home…'
+              : 'Ya puedes acceder a BeEngine.'
+          }}
+        </p>
+        <a class="auth-done-link" routerLink="/">Ir a la home →</a>
+      </div>
+    } @else {
+      <div class="auth-panel">
+        @if (mode() !== 'reset') {
+          <div class="auth-mode-switch" role="tablist">
+            <button
+              type="button"
+              class="auth-mode-btn"
+              [class.active]="mode() === 'login'"
+              (click)="setMode('login')"
+              role="tab"
+              [attr.aria-selected]="mode() === 'login'"
+            >
+              Iniciar sesión
+            </button>
+            <button
+              type="button"
+              class="auth-mode-btn"
+              [class.active]="mode() === 'register'"
+              (click)="setMode('register')"
+              role="tab"
+              [attr.aria-selected]="mode() === 'register'"
+            >
+              Crear cuenta
+            </button>
+          </div>
+        }
+
+        @if (mode() === 'reset') {
+          <div>
+            <button type="button" class="auth-reset-back" (click)="setMode('login')">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path
+                  d="M9 2L4 7L9 12"
+                  stroke="#888"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                />
+              </svg>
+              Volver
+            </button>
+            <h2 class="auth-title" style="font-size: 30px">Recuperar contraseña</h2>
+            <p class="auth-subtitle">Te enviaremos un enlace a tu correo.</p>
+          </div>
+          <form class="auth-form" (ngSubmit)="onSubmit($event)">
+            <div>
+              <label class="auth-label" for="reset-email">Email</label>
+              <input
+                id="reset-email"
+                class="auth-input"
+                type="email"
+                [(ngModel)]="email"
+                name="email"
+                placeholder="tu@email.com"
+                required
+                autocomplete="email"
+              />
+            </div>
+            <button type="submit" class="auth-submit" [disabled]="loading()">
+              @if (loading()) {
+                <svg
+                  class="auth-spinner"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="10"
+                    cy="10"
+                    r="8"
+                    stroke="rgba(255,255,255,.3)"
+                    stroke-width="2"
+                  />
+                  <path
+                    d="M10 2 A8 8 0 0 1 18 10"
+                    stroke="#fff"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              } @else {
+                Enviar enlace
+              }
+            </button>
+          </form>
+        } @else {
+          <div style="margin-bottom: 28px">
+            <h2 class="auth-title">
+              {{ mode() === 'login' ? 'Iniciar sesión' : 'Crear cuenta' }}
+            </h2>
+            <p class="auth-subtitle">
+              {{
+                mode() === 'login'
+                  ? 'Accede a tu cuenta BeEngine.'
+                  : 'Únete a la comunidad de motor.'
+              }}
+            </p>
+          </div>
+
+          <button type="button" class="auth-google-btn" (click)="onGoogle()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M15.5 8.18c0-.57-.05-1.12-.14-1.64H8v3.1h4.22a3.6 3.6 0 0 1-1.57 2.36v1.96h2.54C14.8 12.73 15.5 10.63 15.5 8.18z"
+                fill="#4285F4"
+              />
+              <path
+                d="M8 16c2.13 0 3.92-.7 5.22-1.9l-2.54-1.97c-.71.47-1.61.75-2.68.75-2.06 0-3.8-1.39-4.43-3.26H.96v2.03A7.99 7.99 0 0 0 8 16z"
+                fill="#34A853"
+              />
+              <path
+                d="M3.57 9.62A4.79 4.79 0 0 1 3.32 8c0-.56.1-1.1.25-1.62V4.35H.96A7.98 7.98 0 0 0 0 8c0 1.29.31 2.51.96 3.65l2.61-2.03z"
+                fill="#FBBC05"
+              />
+              <path
+                d="M8 3.18c1.16 0 2.2.4 3.02 1.18l2.26-2.26A7.97 7.97 0 0 0 8 0 7.99 7.99 0 0 0 .96 4.35L3.57 6.38C4.2 4.57 5.94 3.18 8 3.18z"
+                fill="#EA4335"
+              />
+            </svg>
+            Google
+          </button>
+
+          <div class="auth-divider">
+            <div class="auth-divider-line"></div>
+            <span class="auth-divider-text">O CON EMAIL</span>
+            <div class="auth-divider-line"></div>
+          </div>
+
+          <form class="auth-form" (ngSubmit)="onSubmit($event)">
+            @if (mode() === 'register') {
+              <div>
+                <label class="auth-label" for="auth-name">Nombre</label>
+                <input
+                  id="auth-name"
+                  class="auth-input"
+                  type="text"
+                  [(ngModel)]="name"
+                  name="name"
+                  placeholder="Tu nombre"
+                  required
+                  autocomplete="name"
+                />
+              </div>
+            }
+
+            <div>
+              <label class="auth-label" for="auth-email">Email</label>
+              <input
+                id="auth-email"
+                class="auth-input"
+                type="email"
+                [(ngModel)]="email"
+                name="email"
+                placeholder="tu@email.com"
+                required
+                autocomplete="email"
+              />
+            </div>
+
+            <div>
+              <div class="auth-pass-row">
+                <label class="auth-label" style="margin-bottom: 0" for="auth-password"
+                  >Contraseña</label
+                >
+                @if (mode() === 'login') {
+                  <button type="button" class="auth-forgot" (click)="setMode('reset')">
+                    ¿Olvidaste la contraseña?
+                  </button>
+                }
+              </div>
+              <div class="auth-pass-wrap">
+                <input
+                  id="auth-password"
+                  class="auth-input auth-pass-input"
+                  [type]="showPassword() ? 'text' : 'password'"
+                  [(ngModel)]="password"
+                  name="password"
+                  [placeholder]="
+                    mode() === 'login' ? 'Tu contraseña' : 'Mínimo 8 caracteres'
+                  "
+                  required
+                  [attr.autocomplete]="
+                    mode() === 'login' ? 'current-password' : 'new-password'
+                  "
+                />
+                <button
+                  type="button"
+                  class="auth-pass-toggle"
+                  (click)="showPassword.set(!showPassword())"
+                  [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                >
+                  @if (showPassword()) {
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path
+                        d="M2 8s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z"
+                        stroke="#bbb"
+                        stroke-width="1.2"
+                      />
+                      <circle cx="8" cy="8" r="2" stroke="#bbb" stroke-width="1.2" />
+                      <line
+                        x1="2"
+                        y1="2"
+                        x2="14"
+                        y2="14"
+                        stroke="#bbb"
+                        stroke-width="1.2"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  } @else {
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path
+                        d="M2 8s2.5-5 6-5 6 5 6 5-2.5 5-6 5-6-5-6-5z"
+                        stroke="#bbb"
+                        stroke-width="1.2"
+                      />
+                      <circle cx="8" cy="8" r="2" stroke="#bbb" stroke-width="1.2" />
+                    </svg>
+                  }
+                </button>
+              </div>
+              @if (mode() === 'register' && password.length > 0) {
+                <div class="auth-pass-strength">
+                  @for (i of strengthBars; track i) {
+                    <div
+                      class="auth-pass-bar"
+                      [style.background]="i <= passwordStrength() ? strengthColor() : '#e0e0da'"
+                    ></div>
+                  }
+                  <span class="auth-pass-label">{{ passwordStrengthLabel() }}</span>
+                </div>
+              }
+            </div>
+
+            @if (mode() === 'register') {
+              <div class="auth-fav-block">
+                <label class="auth-label">Categoría favorita</label>
+                <div class="auth-cats">
+                  @for (cat of favCategories; track cat.id) {
+                    <button
+                      type="button"
+                      class="auth-cat-btn"
+                      [class.selected]="favCategory() === cat.id"
+                      [style.--cat-color]="cat.color"
+                      [style.--cat-fg]="cat.fg"
+                      (click)="selectFavCategory(cat.id)"
+                    >
+                      {{ cat.label }}
+                    </button>
+                  }
+                </div>
+
+                @if (favCategory()) {
+                  <div class="auth-driver-panel">
+                    <span class="auth-label" id="auth-fav-driver-label">
+                      Piloto favorito
+                      <span class="auth-driver-cat">({{ selectedCategoryLabel() }})</span>
+                    </span>
+
+                    @if (driversLoading()) {
+                      <div class="auth-driver-loading">Cargando pilotos…</div>
+                    } @else if (driverOptions().length) {
+                      <input type="hidden" name="favDriverId" [(ngModel)]="favDriverId" required />
+
+                      @if (selectedDriverOption(); as sel) {
+                        <div
+                          class="auth-driver-selected"
+                          [style.--team-color]="sel.teamColor"
+                          aria-live="polite"
+                        >
+                          <div class="auth-driver-selected-bg" aria-hidden="true"></div>
+                          <div
+                            class="auth-driver-photo auth-driver-photo--sm"
+                            [class.auth-driver-photo--feeder]="isFeederPortrait(favCategory())"
+                          >
+                            @if (sel.headshotUrl) {
+                              <img
+                                class="auth-driver-thumb"
+                                [src]="sel.headshotUrl"
+                                [alt]="sel.driver"
+                                loading="lazy"
+                                (error)="driverImgError($event, sel)"
+                              />
+                            }
+                            <span class="auth-driver-thumb-initials">{{
+                              driverInitials(sel.driver)
+                            }}</span>
+                          </div>
+                          <div class="auth-driver-selected-text">
+                            @if (sel.number != null) {
+                              <span class="auth-driver-num">{{ sel.number }}</span>
+                            }
+                            <span class="auth-driver-name">{{ sel.driver }}</span>
+                            <span class="auth-driver-team">{{ sel.team }}</span>
+                          </div>
+                        </div>
+                      }
+
+                      <div
+                        class="auth-driver-list"
+                        role="listbox"
+                        aria-labelledby="auth-fav-driver-label"
+                      >
+                        @for (d of driverOptions(); track d.driverId) {
+                          <button
+                            type="button"
+                            class="auth-driver-row"
+                            role="option"
+                            [class.selected]="favDriverId === d.driverId"
+                            [attr.aria-selected]="favDriverId === d.driverId"
+                            [style.--team-color]="d.teamColor"
+                            (click)="selectFavDriver(d.driverId)"
+                          >
+                            <div class="auth-driver-row-bg" aria-hidden="true"></div>
+                            <div
+                              class="auth-driver-photo"
+                              [class.auth-driver-photo--feeder]="isFeederPortrait(favCategory())"
+                            >
+                              @if (d.headshotUrl) {
+                                <img
+                                  class="auth-driver-thumb"
+                                  [src]="d.headshotUrl"
+                                  alt=""
+                                  loading="lazy"
+                                  (error)="driverImgError($event, d)"
+                                />
+                              }
+                              <span class="auth-driver-thumb-initials">{{
+                                driverInitials(d.driver)
+                              }}</span>
+                            </div>
+                            <div class="auth-driver-row-text">
+                              @if (d.number != null) {
+                                <span class="auth-driver-num">{{ d.number }}</span>
+                              }
+                              <span class="auth-driver-name">{{ d.driver }}</span>
+                              <span class="auth-driver-team">{{ d.team }}</span>
+                            </div>
+                            @if (favDriverId === d.driverId) {
+                              <span class="auth-driver-check" aria-hidden="true">
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                  <path
+                                    d="M2 7L5.5 10.5L12 3.5"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                  />
+                                </svg>
+                              </span>
+                            }
+                          </button>
+                        }
+                      </div>
+                    } @else {
+                      <p class="auth-driver-empty">
+                        No hay pilotos disponibles para esta categoría.
+                      </p>
+                    }
+                  </div>
+                }
+              </div>
+            }
+
+            @if (errorMessage()) {
+              <p style="font-size: 13px; color: #c0392b">{{ errorMessage() }}</p>
+            }
+
+            <button type="submit" class="auth-submit" [disabled]="loading()">
+              @if (loading()) {
+                <svg
+                  class="auth-spinner"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <circle cx="10" cy="10" r="8" stroke="rgba(255,255,255,.3)" stroke-width="2" />
+                  <path
+                    d="M10 2 A8 8 0 0 1 18 10"
+                    stroke="#fff"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              } @else {
+                {{ mode() === 'login' ? 'Entrar' : 'Crear cuenta' }}
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path
+                    d="M3 8H13M9 4L13 8L9 12"
+                    stroke="#fff"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              }
+            </button>
+          </form>
+
+          <div class="auth-switch">
+            {{ mode() === 'login' ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?' }}
+            <button
+              type="button"
+              class="auth-switch-btn"
+              (click)="setMode(mode() === 'login' ? 'register' : 'login')"
+            >
+              {{ mode() === 'login' ? 'Regístrate gratis' : 'Iniciar sesión' }}
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </main>
+</div>

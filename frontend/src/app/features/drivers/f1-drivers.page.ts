@@ -21,7 +21,7 @@ import { SeriesAccentDirective } from '../../core/series/series-accent.directive
 import {
   countryCodesForDriver,
   flagCdnUrl as driverFlagCdnUrl,
-  normalize,
+  matchOpenF1Driver,
   resolveDriverHeadshotRawUrl,
   resolveDriverHeadshotUrl,
   teamColor,
@@ -45,26 +45,6 @@ function initials(full: string): string {
   if (!parts.length) return '?';
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-function matchOpenF1Driver(
-  j: JolpikaDriverStanding,
-  open: OpenF1Driver[],
-): OpenF1Driver | undefined {
-  if (!open.length) return undefined;
-  const jn = normalize(j.driver);
-  const jTeam = normalize(j.team);
-  const jLast = jn.split(/\s+/).pop() ?? '';
-
-  const exact = open.find(o => normalize(o.fullName) === jn);
-  if (exact) return exact;
-
-  return open.find(o => {
-    const fn = normalize(o.fullName);
-    const parts = fn.split(/\s+/);
-    const oLast = parts[parts.length - 1] ?? '';
-    return oLast === jLast && normalize(o.teamName) === jTeam;
-  });
 }
 
 function buildCards(

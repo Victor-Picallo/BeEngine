@@ -1,83 +1,252 @@
 /* F2 / F3: fondo oscuro en marcos de foto. */
 
+
+
 .fd-photo-wrap--feeder,
+
 .fd-photo-wrap--f2,
+
 .fd-photo-wrap--f3,
+
 .fd-photo-wrap--motogp,
+
 .cl-photo-wrap--feeder,
+
 .cl-photo-wrap--f2,
+
 .cl-photo-wrap--f3 {
+
   background: #0a0a0a;
+
 }
+
+
 
 .fd-photo-wrap--feeder.fd-photo-loaded .fd-photo-fallback,
+
 .fd-photo-wrap--f2.fd-photo-loaded .fd-photo-fallback,
+
 .fd-photo-wrap--f3.fd-photo-loaded .fd-photo-fallback,
+
 .fd-photo-wrap--motogp.fd-photo-loaded .fd-photo-fallback,
+
 .cl-photo-wrap--feeder.cl-photo-loaded .cl-photo-fallback,
+
 .cl-photo-wrap--f2.cl-photo-loaded .cl-photo-fallback,
+
 .cl-photo-wrap--f3.cl-photo-loaded .cl-photo-fallback {
+
   opacity: 0;
+
   pointer-events: none;
+
 }
 
-/* Tarjetas de pilotos: cuerpo entero visible (franja alta). */
+
+
+/*
+
+ * F2/F3 FIA: PNG con margen transparente/negro arriba.
+
+ * contain + bottom dejaba al piloto en miniatura; cover en cara/torso.
+
+ */
+
 .fd-headshot--feeder,
+
 .fd-headshot--f2,
+
 .fd-headshot--f3,
-.fd-headshot--motogp {
-  object-fit: contain;
-  object-position: center bottom;
+
+.cl-photo-wrap--feeder .cl-photo-img,
+
+.cl-photo-img--feeder,
+
+.cl-photo-img--f2,
+
+.cl-photo-img--f3,
+
+.auth-driver-photo--feeder .auth-driver-thumb,
+
+.dp-photo-wrap--feeder .dp-headshot,
+
+img.dp-headshot.dp-headshot--feeder {
+
+  min-width: 0;
+
+  min-height: 0;
+
+  object-fit: cover;
+
+  object-position: center 22%;
+
 }
 
-/* Clasificación: marco pequeño — recorte al rostro. */
-.cl-photo-img--feeder,
-.cl-photo-img--f2,
-.cl-photo-img--f3 {
-  object-fit: cover;
-  object-position: center 22%;
+
+
+.fd-headshot--feeder,
+
+.fd-headshot--f2,
+
+.fd-headshot--f3 {
+
+  object-position: center 18%;
+
 }
+
+
+
+.dp-photo-wrap--feeder .dp-headshot,
+
+img.dp-headshot.dp-headshot--feeder {
+
+  object-position: center 14%;
+
+}
+
+
+
+.auth-driver-photo--feeder .auth-driver-thumb {
+
+  object-position: center 26%;
+
+}
+
+
+
+/* MotoGP: cuerpo entero (Pulse), sin recorte agresivo. */
+
+.fd-headshot--motogp {
+
+  object-fit: contain;
+
+  object-position: center bottom;
+
+}
+
+
 
 .dp-photo-wrap--feeder,
+
 .dp-photo-wrap--f2,
+
 .dp-photo-wrap--f3,
+
 .dp-photo-wrap--motogp {
+
   background: #0a0a0a;
+
 }
+
+
 
 .dp-photo-wrap--feeder .dp-photo-fallback,
+
 .dp-photo-wrap--f2 .dp-photo-fallback,
+
 .dp-photo-wrap--f3 .dp-photo-fallback {
+
   background: radial-gradient(
+
     ellipse 85% 100% at 50% 100%,
+
     color-mix(in srgb, var(--dp-team, #444) 35%, #0a0a0a) 0%,
+
     #0a0a0a 70%
+
   );
+
 }
+
+
 
 .dp-photo-wrap--feeder.dp-photo-loaded .dp-photo-fallback,
+
 .dp-photo-wrap--f2.dp-photo-loaded .dp-photo-fallback,
+
 .dp-photo-wrap--f3.dp-photo-loaded .dp-photo-fallback,
+
 .dp-photo-wrap--motogp.dp-photo-loaded .dp-photo-fallback {
+
   opacity: 0;
+
   pointer-events: none;
+
 }
+
+
 
 .dp-photo-wrap--motogp .dp-photo-fallback {
+
   background: radial-gradient(
+
     ellipse 85% 100% at 50% 100%,
+
     color-mix(in srgb, var(--dp-team, #444) 35%, #0a0a0a) 0%,
+
     #0a0a0a 70%
+
   );
+
 }
 
+
+
 img.dp-headshot.dp-headshot--motogp {
+
   width: 100%;
+
   height: 100%;
+
   max-width: 100%;
+
   max-height: 100%;
+
   object-fit: contain;
+
   object-position: center bottom;
+
+}
+
+
+
+.dp-photo-wrap--feeder {
+
+  width: min(280px, 42vw);
+
+  height: 320px;
+
+}
+
+
+
+/* Registro: marco un poco más alto para el recorte. */
+
+.auth-driver-photo--feeder {
+
+  width: 52px;
+
+  height: 64px;
+
+}
+
+
+
+.auth-driver-photo--feeder.auth-driver-photo--sm {
+
+  width: 56px;
+
+  height: 68px;
+
+}
+
+
+
+/* Tarjetas pilotos: altura estándar (cover rellena el marco). */
+.fc-card-circuit.fd-card-circuit--feeder,
+.fd-card-circuit.fd-card-circuit--feeder {
+  height: 220px;
 }
 
 /* Ficha de piloto: estilos finos en f1-driver-profile.page.css (solo ahí). */
+

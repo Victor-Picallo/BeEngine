@@ -11,6 +11,17 @@ import { MOTO3_SERIES_PARENT_ROUTE } from './core/moto3/moto3-section.routes';
 export const routes: Routes = [
   { path: '', component: HomeComponent },
 
+  {
+    path: 'login',
+    loadComponent: () =>
+      import('./features/auth/auth-login.page').then((m) => m.AuthLoginPageComponent),
+  },
+  {
+    path: 'registro',
+    redirectTo: 'login?tab=register',
+    pathMatch: 'full',
+  },
+
   // Live race timing — F1
   {
     path: 'f1/live',
