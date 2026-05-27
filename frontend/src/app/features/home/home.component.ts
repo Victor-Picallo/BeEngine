@@ -660,6 +660,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       totalRounds,
       sessions,
       circuitSvgUrl: race.circuitSvgUrl ?? null,
+      circuitImageUrl: race.circuitImageUrl ?? null,
     };
   }
 
