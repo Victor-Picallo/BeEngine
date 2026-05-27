@@ -23,6 +23,12 @@ import {
   resolveDriverHeadshotRawUrl,
   isFeederPortraitSeries,
 } from '../drivers/drivers-shared';
+import { findCircuitOutline } from '../calendar/circuit-outline-lookup';
+import { projectCircuitCoords } from '../calendar/official-circuits';
+import {
+  buildCircuitSvg,
+  buildCircuitSvgFromFlatPoints,
+} from '../../shared/utils/circuit-svg.util';
 
 export type AuthMode = 'login' | 'register' | 'reset' | 'new-password';
 
@@ -79,6 +85,14 @@ export class AuthLoginPageComponent implements OnInit {
   favDriverId = '';
 
   readonly strengthBars = [1, 2, 3, 4];
+
+  /** Circuit de Barcelona-Catalunya (bacinger), estilo decorativo del panel izquierdo. */
+  readonly circuitDeco = (() => {
+    const outline = findCircuitOutline('catalunya', 'Barcelona');
+    if (!outline) return buildCircuitSvg('catalunya', 'Barcelona');
+    const points = projectCircuitCoords(outline.coords);
+    return buildCircuitSvgFromFlatPoints(points, { innerW: 300, innerH: 165 });
+  })();
 
   readonly favCategories: FavCategoryOption[] = [
     { id: 'f1', label: 'F1', color: '#FFD100', fg: '#000' },
