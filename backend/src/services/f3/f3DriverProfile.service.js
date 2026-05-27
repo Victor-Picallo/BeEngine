@@ -5,17 +5,6 @@ import {
   getRaceResultsByRound,
 } from './f3Data.service.js';
 
-const splitName = (driver) => {
-  const parts = driver.driver.split(/\s+/).filter(Boolean);
-  if (parts.length < 2) {
-    return { givenName: parts[0] ?? '', familyName: '' };
-  }
-  return {
-    givenName: parts.slice(0, -1).join(' '),
-    familyName: parts[parts.length - 1],
-  };
-};
-
 export const getDriverProfile = async (driverId, _careerPage = 1) => {
   const grid = await findDriverGrid(driverId);
   if (!grid) throw new Error('Driver not found');
@@ -46,22 +35,24 @@ export const getDriverProfile = async (driverId, _careerPage = 1) => {
     }
   }
 
-  const { givenName, familyName } = splitName(grid);
+  const podiums = currentSeason.filter((x) => x.pos <= 3).length;
 
   return {
+    source: 'db',
     driverId: grid.driverId,
-    givenName,
-    familyName,
-    code: familyName.slice(0, 3).toUpperCase(),
+    givenName: grid.givenName,
+    familyName: grid.familyName,
+    code: grid.familyName.slice(0, 3).toUpperCase() || grid.givenName.slice(0, 3).toUpperCase(),
     number: null,
     dateOfBirth: null,
     nationality: grid.nationality,
+    headshotUrl: grid.headshotUrl,
     championships: 0,
     debut: '2026',
     currentSeasonYear: 2026,
     stats: {
       wins: row?.wins ?? 0,
-      podiums: currentSeason.filter((x) => x.pos <= 3).length,
+      podiums,
       poles: 0,
       fastestLaps: 0,
       races: currentSeason.length,
@@ -75,7 +66,7 @@ export const getDriverProfile = async (driverId, _careerPage = 1) => {
         team: grid.team,
         races: currentSeason.length,
         wins: row?.wins ?? 0,
-        podiums: currentSeason.filter((x) => x.pos <= 3).length,
+        podiums,
         poles: 0,
         pts: row?.points ?? 0,
         pos: row?.pos ?? null,

@@ -1,0 +1,22 @@
+// AUTO-GENERATED — npm run circuit:pulse-map
+export const PULSE_CIRCUIT_OUTLINE_MAP: Record<string, string> = {
+  "b980a310-9440-48ce-bd19-5f398c179726": "pt-2008",
+  "9580e398-61a6-4852-8020-adb5d4c0cb2b": "it-1914",
+  "3df492f2-b8e0-4c2b-b6e9-86a153127965": "osm-buriram",
+  "cbbe87ac-472a-405e-b0ed-5b9e0743c80a": "es-1991",
+  "a39e1baa-2b1e-4818-95d0-b9b6b7acd881": "us-2012",
+  "c5e48a7a-42d3-4e5d-8a40-2efc77eb36b6": "osm-valencia",
+  "3e9b0470-2340-401f-9a0c-04293d85248f": "osm-jerez",
+  "76811715-9014-461b-8eeb-687a7d585179": "osm-bugatti",
+  "e203e31d-24d3-49e9-8163-d2b8d0355fea": "qa-2004",
+  "1a6556bb-eec6-4fee-bd0b-337dfd098373": "it-1953",
+  "8bf0e0e7-6eb6-43b6-bab3-2aa21abad3ae": "osm-motegi",
+  "1fe3401e-aad9-4b68-bfae-079caad4b9da": "osm-aragon",
+  "2622df05-51ed-4a5e-a350-7949694bd7cd": "osm-mandalika",
+  "6c1390e6-d9dd-4a5b-bef1-eb6b33b4e3d6": "my-1999",
+  "669a9a68-a181-45a6-9973-9a1cf73bd79e": "osm-phillip-island",
+  "649d99cb-fbbd-4e16-b674-faaf1a4e47a1": "at-1969",
+  "29557159-9464-4c2c-81c7-40c2af39171d": "osm-sachsenring",
+  "f718f757-19a9-44d0-979f-8e9381b15bf9": "gb-1948",
+  "82ac933f-bfc6-4a48-b0c4-b3b84313bdee": "osm-assen"
+};

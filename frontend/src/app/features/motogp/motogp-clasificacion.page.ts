@@ -32,6 +32,7 @@ import {
   buildMotogpTeamRows,
   MotogpTeamClRow,
 } from './motogp-clasificacion-build';
+import { motogpTeamLogoCardClass } from './motogp-media';
 import { SeriesContextService } from '../../core/series/series-context.service';
 import { mergeDataSources, type DataSource } from '../../core/data-source';
 import { DataSourceBadgeComponent } from '../../shared/components/data-source-badge/data-source-badge.component';
@@ -48,7 +49,11 @@ import { DataSourceBadgeComponent } from '../../shared/components/data-source-ba
     DataSourceBadgeComponent,
   ],
   templateUrl: './motogp-clasificacion.page.html',
-  styleUrls: ['../standings/f1-clasificacion.page.css', '../drivers/driver-portrait.css'],
+  styleUrls: [
+    '../standings/f1-clasificacion.page.css',
+    '../drivers/driver-portrait.css',
+    './motogp-team-logo.css',
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MotogpClasificacionPageComponent {
@@ -210,6 +215,10 @@ export class MotogpClasificacionPageComponent {
     const key = this.teamImgKey(c);
     if (this.failedTeamImg().has(key)) return null;
     return c.logoImageUrl;
+  }
+
+  teamLogoCardClass(c: MotogpTeamClRow): string {
+    return motogpTeamLogoCardClass(c.constructorId);
   }
 
   teamImgError(c: MotogpTeamClRow): void {

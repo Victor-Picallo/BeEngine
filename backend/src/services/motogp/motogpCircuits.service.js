@@ -87,24 +87,39 @@ export const getCircuitById = async (circuitId, seasonYear) => {
   );
 };
 
-const STOP_WORDS = new Set(['circuit', 'international', 'grand', 'prix', 'gp', 'raceway', 'track']);
+const STOP_WORDS = new Set([
+  'circuit',
+  'international',
+  'grand',
+  'prix',
+  'gp',
+  'gran',
+  'premio',
+  'raceway',
+  'track',
+  'de',
+  'del',
+  'the',
+  'of',
+]);
+
+const GP_TITLE_SLUG = /^(gran-)?premio|grand-prix|gp-|grosser/;
 
 /** Resuelve SVG/metadata por nombre de circuito (calendario / home). */
 export const findCircuitByName = async (name, seasonYear) => {
   const q = slugify(name);
-  if (!q) return null;
+  if (!q || GP_TITLE_SLUG.test(q)) return null;
   const { items } = await getCircuits(seasonYear);
-  const exact =
-    items.find((c) => slugify(c.name) === q) ??
-    items.find((c) => slugify(c.name).includes(q) || q.includes(slugify(c.name)));
+  const exact = items.find((c) => slugify(c.name) === q);
   if (exact) return exact;
 
-  const tokens = q.split('-').filter((t) => t.length > 3 && !STOP_WORDS.has(t));
+  const tokens = q.split('-').filter((t) => t.length >= 4 && !STOP_WORDS.has(t));
   if (!tokens.length) return null;
-  return (
-    items.find((c) => {
-      const cs = slugify(c.name);
-      return tokens.every((t) => cs.includes(t));
-    }) ?? null
-  );
+
+  const segmentMatch = items.filter((c) => {
+    const parts = slugify(c.name).split('-').filter(Boolean);
+    return tokens.every((t) => parts.includes(t));
+  });
+  if (segmentMatch.length === 1) return segmentMatch[0];
+  return null;
 };

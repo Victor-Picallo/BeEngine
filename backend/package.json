@@ -16,6 +16,8 @@
     "refresh:weekend": "node scripts/refresh-all.mjs --weekend",
     "refresh:formula": "node scripts/refresh-formula.mjs",
     "refresh:moto": "node scripts/refresh-moto.mjs",
+    "circuit:outlines": "node scripts/generate-bacinger-outlines.mjs",
+    "circuit:pulse-map": "node scripts/generate-pulse-outline-map.mjs",
     "db:enrich:moto-circuits": "node scripts/sync/enrich-moto-circuits.mjs",
     "db:enrich:formula-circuits": "node scripts/sync/enrich-formula-circuits.mjs",
     "db:sync": "node scripts/sync/sync-all.mjs",

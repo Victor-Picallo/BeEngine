@@ -1,4 +1,10 @@
 import {
+  buildFeederConstructorAggregates,
+  buildFeederConstructorBio,
+  buildFeederConstructorSeasonRows,
+  buildFeederConstructorStats,
+} from '../shared/feederProfile.shared.js';
+import {
   findConstructorGrid,
   getCalendar,
   getConstructorStandings,
@@ -21,77 +27,66 @@ export const getConstructorProfile = async (constructorId, _careerPage = 1) => {
     return race ? race.raceName.replace(/ Grand Prix$/i, '') : `Ronda ${round}`;
   };
 
-  const currentSeason = [];
+  const currentSeason = await buildFeederConstructorSeasonRows(
+    drivers,
+    maxRound,
+    gpLabel,
+    getRaceResultsByRound,
+  );
+
+  let teamPodiums = 0;
   for (let r = 1; r <= maxRound; r += 1) {
-    let pts = 0;
-    let bestPos = 99;
-    for (const d of drivers) {
-      try {
-        const race = await getRaceResultsByRound(r);
+    try {
+      const race = await getRaceResultsByRound(r);
+      for (const d of drivers) {
         const result = race.results.find((x) => x.driverId === d.driverId);
-        if (result) {
-          pts += result.points;
-          bestPos = Math.min(bestPos, result.position);
-        }
-      } catch {
-        /* skip */
+        if (result?.position <= 3) teamPodiums += 1;
       }
-    }
-    if (pts > 0) {
-      currentSeason.push({
-        round: r,
-        gp: gpLabel(r),
-        pts,
-        pos: bestPos < 99 ? bestPos : null,
-      });
+    } catch {
+      /* skip */
     }
   }
 
+  const careerRow = {
+    year: 2026,
+    wins: row?.wins ?? 0,
+    podiums: teamPodiums,
+    poles: 0,
+    pts: row?.points ?? 0,
+    pos: row?.pos ?? 0,
+    standingsRound: maxRound,
+    titleWon: false,
+  };
+
   return {
+    source: 'db',
     constructorId: grid.constructorId,
     name: grid.team,
     nationality: grid.nationality,
+    wikiUrl: null,
+    logoUrl: grid.logoUrl,
+    bikeImageUrl: grid.bikeImageUrl,
+    teamColor: grid.teamColor,
     currentSeasonYear: 2026,
-    championships: 0,
-    stats: {
-      wins: row?.wins ?? 0,
-      podiums: 0,
-      poles: 0,
-      races: maxRound,
-      points: row?.points ?? 0,
-    },
-    drivers: drivers.map((d) => ({
-      driverId: d.driverId,
-      givenName: d.givenName,
-      familyName: d.familyName,
-      nationality: d.nationality,
-    })),
+    standing: row
+      ? { pos: row.pos, points: row.points, wins: row.wins }
+      : null,
+    stats: buildFeederConstructorStats(row, teamPodiums),
+    drivers,
     currentSeason,
-    careerHistory: [
-      {
-        year: 2026,
-        team: grid.team,
-        races: maxRound,
-        wins: row?.wins ?? 0,
-        podiums: 0,
-        poles: 0,
-        pts: row?.points ?? 0,
-        pos: row?.pos ?? null,
-        seasonComplete: false,
-        titleWon: false,
-      },
-    ],
-    careerHistoryPagination: null,
+    bioText: buildFeederConstructorBio(grid.team, grid.nationality, 'Fórmula 2', 2026),
+    careerHistory: [careerRow],
+    careerHistoryPagination: {
+      page: 1,
+      pageSize: 1,
+      totalYears: 1,
+      totalPages: 1,
+      maxPts: row?.points ?? 1,
+    },
   };
 };
 
 export const getConstructorProfileAggregates = async (constructorId) => {
   const profile = await getConstructorProfile(constructorId);
-  return {
-    championships: 0,
-    stats: profile.stats,
-    debut: '2026',
-    maxCareerPts: profile.stats.points,
-    partial: false,
-  };
+  return buildFeederConstructorAggregates(profile);
 };

@@ -172,9 +172,10 @@ export class F1DriverProfilePageComponent {
     const p = this.profile();
     const full = p ? `${p.givenName} ${p.familyName}`.trim() : '';
     const sid = this.seriesCtx.id();
-    const mediaUrl = isMotoPulseSeries(sid)
-      ? p?.headshotUrl
-      : this.openf1()?.headshotUrl;
+    const mediaUrl =
+      isMotoPulseSeries(sid) || sid === 'f2' || sid === 'f3'
+        ? p?.headshotUrl
+        : this.openf1()?.headshotUrl;
     return resolveDriverHeadshotUrl(p?.driverId ?? '', full, mediaUrl, {
       // F2/F3: «card» = imagen completa; «large» solo en clasificación.
       ...(sid === 'f2' || sid === 'f3' ? { size: 'card' as const } : {}),

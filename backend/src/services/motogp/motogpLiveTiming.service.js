@@ -26,7 +26,12 @@ export const fetchLiveTimingLite = async (categoryId = 'motogp') => {
     return { active: false, categoryId, head: null, riders: [] };
   }
 
-  const raw = await pulseliveClient.get(LIVE_TIMING_PATH, { freshTtlMs: LIVE_CACHE_MS });
+  let raw;
+  try {
+    raw = await pulseliveClient.get(LIVE_TIMING_PATH, { freshTtlMs: LIVE_CACHE_MS });
+  } catch {
+    return { active: false, categoryId, head: null, riders: [] };
+  }
   const head = raw?.head ?? null;
   const riderMap = raw?.rider ?? {};
   const riders = Object.values(riderMap)

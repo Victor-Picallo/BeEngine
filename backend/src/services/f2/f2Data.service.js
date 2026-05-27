@@ -1,4 +1,13 @@
-import { FIA_F2_ENABLED } from '../../config/env.js';
+import { DB_ENABLED, FIA_F2_ENABLED } from '../../config/env.js';
+import { seasonIdFor } from '../../repositories/db/season.repository.js';
+import {
+  enrichConstructorStandingsWithMedia,
+  getConstructorSeasonMediaMap,
+} from '../../repositories/db/constructorMedia.js';
+import {
+  getEventCircuitMediaMap,
+  mergeCalendarWithCircuitMedia,
+} from '../../repositories/db/eventCircuitMedia.js';
 import { resolveWithFallbackOrEmpty } from '../shared/resolveWithFallback.js';
 import {
   getCalendarFromDb,
@@ -10,7 +19,7 @@ import {
   getDriverEntriesForConstructor,
 } from '../../repositories/db/feeder.repository.js';
 import { getF2FiaApi } from './f2FiaApi.js';
-import { resolveFormulaMediaUrl } from '../shared/formulaMedia.js';
+import { toPublicMediaUrl } from '../../lib/supabaseStorage.js';
 
 const SERIES = 'f2';
 
@@ -75,7 +84,16 @@ export const getConstructorStandings = async () => {
     [],
     { liveEnabled: FIA_F2_ENABLED },
   );
-  return withSource(resolved, { items: resolved.data });
+  let items = resolved.data;
+  if (DB_ENABLED && items.length) {
+    try {
+      const media = await getConstructorSeasonMediaMap(seasonIdFor(SERIES));
+      items = enrichConstructorStandingsWithMedia(items, media);
+    } catch {
+      /* medios opcionales */
+    }
+  }
+  return withSource(resolved, { items });
 };
 
 export const getCalendar = async () => {
@@ -86,7 +104,16 @@ export const getCalendar = async () => {
     [],
     { liveEnabled: FIA_F2_ENABLED },
   );
-  return withSource(resolved, { items: resolved.data });
+  let items = resolved.data;
+  if (DB_ENABLED && items.length) {
+    try {
+      const media = await getEventCircuitMediaMap(seasonIdFor(SERIES));
+      items = mergeCalendarWithCircuitMedia(items, media);
+    } catch {
+      /* circuitos opcionales */
+    }
+  }
+  return withSource(resolved, { items });
 };
 
 export const getLastRace = async () => {
@@ -118,27 +145,24 @@ export const getRaceResultsByRound = async (round) => {
 export const findDriverGrid = async (driverId) => {
   const entry = await findDriverSeasonEntry(SERIES, driverId);
   if (!entry) return null;
-  const parts = entry.displayName.split(' ');
+  const { namesFromDriverEntry } = await import('../shared/feederProfile.shared.js');
+  const { givenName, familyName } = namesFromDriverEntry(entry);
   return {
     driverId: entry.driverId,
-    givenName: parts[0] ?? '',
-    familyName: parts.slice(1).join(' ') || '',
+    givenName,
+    familyName,
     driver: entry.displayName,
     team: entry.teamName,
     nationality: entry.driver?.nationality ?? '',
     gridOrder: entry.gridOrder ?? 99,
-    headshotUrl: resolveFormulaMediaUrl(
-      SERIES,
-      entry.driverId,
-      'headshot',
-      entry.headshotUrl ?? entry.driver?.headshotUrl,
-    ),
+    headshotUrl: toPublicMediaUrl(entry.headshotUrl ?? entry.driver?.headshotUrl),
   };
 };
 
 export const findConstructorGrid = async (constructorId) => {
   const prisma = (await import('../../lib/prisma.js')).requirePrisma();
   const { seasonIdFor } = await import('../../repositories/db/season.repository.js');
+  const { getF2ConstructorGridEntry } = await import('../../data/f2/f2ConstructorsGrid2026.js');
   const cs = await prisma.constructorSeason.findUnique({
     where: {
       seasonId_constructorId: {
@@ -148,21 +172,19 @@ export const findConstructorGrid = async (constructorId) => {
     },
   });
   if (!cs) return null;
+  const curated = getF2ConstructorGridEntry(constructorId);
   return {
     constructorId,
     team: cs.name,
-    logoUrl: resolveFormulaMediaUrl(SERIES, constructorId, 'logo', cs.logoUrl),
-    bikeImageUrl: resolveFormulaMediaUrl(SERIES, constructorId, 'car', cs.bikeImageUrl),
+    nationality: curated?.nationality ?? '',
+    teamColor: cs.teamColor ?? null,
+    logoUrl: toPublicMediaUrl(cs.logoUrl),
+    bikeImageUrl: toPublicMediaUrl(cs.bikeImageUrl),
   };
 };
 
 export const getDriversForConstructor = async (constructorId) => {
   const entries = await getDriverEntriesForConstructor(SERIES, constructorId);
-  return entries.map((e) => ({
-    driverId: e.driverId,
-    driver: e.displayName,
-    team: e.teamName,
-    nationality: e.driver?.nationality ?? '',
-    gridOrder: e.gridOrder ?? 99,
-  }));
+  const { mapConstructorProfileDriver } = await import('../shared/feederProfile.shared.js');
+  return entries.map((e) => mapConstructorProfileDriver(e));
 };

@@ -12,7 +12,7 @@ import { catchError, map, of, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MotogpPulseService } from './motogp-pulse.service';
 import type { MotogpTeamStanding } from './motogp.types';
-import { motogpTeamLogoUrl } from './motogp-media';
+import { motogpTeamLogoGridClass, motogpTeamLogoUrl } from './motogp-media';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
 import { SeriesAccentDirective } from '../../core/series/series-accent.directive';
@@ -66,6 +66,7 @@ function buildCards(rows: MotogpTeamStanding[]): MotogpTeamCard[] {
     '../calendar/f1-calendar.page.css',
     '../drivers/f1-drivers.page.css',
     '../constructors/f1-constructors.page.css',
+    './motogp-team-logo.css',
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -122,8 +123,7 @@ export class MotogpTeamsPageComponent {
   }
 
   teamLogoClass(card: MotogpTeamCard): string {
-    const base = 'fc-team-showcase-img';
-    return card.constructorId === 'honda-hrc-castrol' ? `${base} fc-team-showcase-img--sm` : base;
+    return motogpTeamLogoGridClass(card.constructorId);
   }
 
   private fetchTeams(): void {

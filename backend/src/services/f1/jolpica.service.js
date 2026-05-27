@@ -1,4 +1,13 @@
-import { JOLPICA_F1_ENABLED } from '../../config/env.js';
+import { DB_ENABLED, JOLPICA_F1_ENABLED } from '../../config/env.js';
+import { seasonIdFor } from '../../repositories/db/season.repository.js';
+import {
+  enrichConstructorStandingsWithMedia,
+  getConstructorSeasonMediaMap,
+} from '../../repositories/db/constructorMedia.js';
+import {
+  getEventCircuitMediaMap,
+  mergeCalendarWithCircuitMedia,
+} from '../../repositories/db/eventCircuitMedia.js';
 import { resolveWithFallback, resolveWithFallbackOrEmpty } from '../shared/resolveWithFallback.js';
 import {
   getCalendarFromDb,
@@ -42,7 +51,16 @@ export const getConstructorStandings = async () => {
     [],
     { liveEnabled: JOLPICA_F1_ENABLED },
   );
-  return withSource(resolved, { items: resolved.data });
+  let items = resolved.data;
+  if (DB_ENABLED && items.length) {
+    try {
+      const media = await getConstructorSeasonMediaMap(seasonIdFor('f1'));
+      items = enrichConstructorStandingsWithMedia(items, media);
+    } catch {
+      /* medios opcionales */
+    }
+  }
+  return withSource(resolved, { items });
 };
 
 export const getCalendar = async () => {
@@ -52,7 +70,16 @@ export const getCalendar = async () => {
     [],
     { liveEnabled: JOLPICA_F1_ENABLED },
   );
-  return withSource(resolved, { items: resolved.data });
+  let items = resolved.data;
+  if (DB_ENABLED && items.length) {
+    try {
+      const media = await getEventCircuitMediaMap(seasonIdFor('f1'));
+      items = mergeCalendarWithCircuitMedia(items, media);
+    } catch {
+      /* circuitos opcionales */
+    }
+  }
+  return withSource(resolved, { items });
 };
 
 export const getLastRace = async () => {

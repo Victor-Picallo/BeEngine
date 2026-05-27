@@ -128,7 +128,7 @@ async function syncCalendar() {
   let count = 0;
   let circuitsEnriched = 0;
   for (const raw of items) {
-    const r = await enrichCalendarRow(raw, year);
+    const r = await enrichCalendarRow(raw, year, { formulaOnly: true });
     if (r.circuitImageUrl || r.circuitSvgUrl) circuitsEnriched += 1;
     await upsertCalendarEvent(prisma, SEASON_ID, r);
     count += 1;

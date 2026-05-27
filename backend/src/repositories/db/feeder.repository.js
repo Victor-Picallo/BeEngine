@@ -1,7 +1,7 @@
 import { requirePrisma } from '../../lib/prisma.js';
 import { seasonIdFor } from './season.repository.js';
 import { mergeDriverStandingsWithGrid } from './mappers/f1.mappers.js';
-import { resolveFormulaMediaUrl } from '../../services/shared/formulaMedia.js';
+import { toPublicMediaUrl } from '../../lib/supabaseStorage.js';
 
 const seasonId = (seriesId) => seasonIdFor(seriesId);
 
@@ -22,8 +22,8 @@ export async function getCalendarFromDb(seriesId) {
     time: e.time ?? null,
     resultsAvailable: e.resultsAvailable === true,
     circuitId: e.circuitId ?? null,
-    circuitImageUrl: e.circuitImageUrl ?? null,
-    circuitSvgUrl: e.circuitSvgUrl ?? null,
+    circuitImageUrl: toPublicMediaUrl(e.circuitImageUrl) ?? toPublicMediaUrl(e.circuitSvgUrl),
+    circuitSvgUrl: toPublicMediaUrl(e.circuitSvgUrl),
   }));
 }
 
@@ -59,12 +59,7 @@ export async function getDriverStandingsFromDb(seriesId) {
       points: row.points,
       wins: row.wins,
       nationality: d.nationality ?? '',
-      headshotUrl: resolveFormulaMediaUrl(
-        seriesId,
-        row.driverId,
-        'headshot',
-        entry?.headshotUrl ?? d.headshotUrl,
-      ),
+      headshotUrl: toPublicMediaUrl(entry?.headshotUrl ?? d.headshotUrl),
     };
   });
 
@@ -102,8 +97,8 @@ export async function getConstructorStandingsFromDb(seriesId) {
       wins: row.wins,
       nationality: '',
       teamColor: cs?.teamColor ?? null,
-      logoUrl: resolveFormulaMediaUrl(seriesId, row.constructorId, 'logo', cs?.logoUrl),
-      bikeImageUrl: resolveFormulaMediaUrl(seriesId, row.constructorId, 'car', cs?.bikeImageUrl),
+      logoUrl: toPublicMediaUrl(cs?.logoUrl),
+      bikeImageUrl: toPublicMediaUrl(cs?.bikeImageUrl),
     };
   });
 }
@@ -158,12 +153,7 @@ export async function getDriverGridFromDb(seriesId) {
     givenName: e.driver.givenName,
     familyName: e.driver.familyName,
     nationality: e.driver.nationality,
-    headshotUrl: resolveFormulaMediaUrl(
-      seriesId,
-      e.driverId,
-      'headshot',
-      e.headshotUrl ?? e.driver?.headshotUrl,
-    ),
+    headshotUrl: toPublicMediaUrl(e.headshotUrl ?? e.driver?.headshotUrl),
   }));
 }
 
@@ -178,8 +168,8 @@ export async function getConstructorGridFromDb(seriesId) {
   return rows.map((c) => ({
     constructorId: c.constructorId,
     team: c.name,
-    logoUrl: resolveFormulaMediaUrl(seriesId, c.constructorId, 'logo', c.logoUrl),
-    bikeImageUrl: resolveFormulaMediaUrl(seriesId, c.constructorId, 'car', c.bikeImageUrl),
+    logoUrl: toPublicMediaUrl(c.logoUrl),
+    bikeImageUrl: toPublicMediaUrl(c.bikeImageUrl),
   }));
 }
 

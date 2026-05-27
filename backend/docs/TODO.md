@@ -27,6 +27,15 @@ Comprobar medios al 100 %:
 npm run verify:media -- --strict
 ```
 
+**Circuitos F1/F2/F3 sin colores (trazado liso blanco, coggs/f1_svg → Postgres + Supabase):**
+
+```bash
+npm run db:enrich:formula-circuits
+npm run storage:upload:circuits -- --formula-only
+```
+
+El calendario API fusiona `circuitSvgUrl` / `circuitImageUrl` desde la tabla `events` (no Pulse).
+
 ---
 
 ## Medios en DB — cerrado (6 series)
@@ -51,7 +60,8 @@ npm run verify:media -- --strict
 | Área | Notas |
 |------|--------|
 | Noticias | F1 + MotoGP en DB |
-| Perfiles | `profile_meta` en Postgres (check en `refresh`; sin JS local) |
+| Perfiles | `profile_meta` en Postgres (`db:sync:profiles` = verificación) |
+| Medios UI | Solo URLs del API; sin `public/*/teams` ni mapas CDN en Angular |
 | Cron | Manual post-GP; sin scheduler en repo |
 
 ## Comandos sueltos

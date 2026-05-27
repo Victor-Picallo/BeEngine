@@ -18,13 +18,15 @@ import { Moto3LiveService } from './moto3-live.service';
 import type { JolpikaCalendarRace, JolpikaRaceResult } from '../f1-live/f1-live.types';
 import { slugifyRace } from '../race/race-slug';
 import { teamColor } from '../drivers/drivers-shared';
+import { motoRaceHasCircuitMap } from '../motogp/moto-calendar-circuit.util';
+import { MotoCircuitCardMapComponent } from '../motogp/moto-circuit-card-map.component';
 
 type CalendarFilter = 'all' | 'completed' | 'upcoming';
 
 interface Moto3CalendarCard {
   race: JolpikaCalendarRace;
   status: 'done' | 'next' | 'upcoming';
-  circuitSvgUrl: string | null;
+  hasCircuitMap: boolean;
   dateLabel: string;
   slug: string;
   defaultSession: string;
@@ -44,7 +46,14 @@ const MONTHS = [
 @Component({
   selector: 'app-moto3-calendar-page',
   standalone: true,
-  imports: [RouterLink, ReturnNavDirective, AppHeaderComponent, AppSidebarComponent, SeriesAccentDirective],
+  imports: [
+    RouterLink,
+    ReturnNavDirective,
+    AppHeaderComponent,
+    AppSidebarComponent,
+    SeriesAccentDirective,
+    MotoCircuitCardMapComponent,
+  ],
   templateUrl: './moto3-calendar.page.html',
   styleUrl: '../calendar/f1-calendar.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -88,7 +97,7 @@ export class Moto3CalendarPageComponent {
       return {
         race,
         status,
-        circuitSvgUrl: race.circuitSvgUrl ?? null,
+        hasCircuitMap: motoRaceHasCircuitMap(race),
         dateLabel: this.formatRaceDate(race),
         slug: slugifyRace(race),
         defaultSession: 'race',

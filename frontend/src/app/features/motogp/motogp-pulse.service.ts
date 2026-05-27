@@ -1,9 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { catchError, forkJoin, map, Observable, of, shareReplay } from 'rxjs';
-import {
-  mergeOfficialTeamsGrid,
-  type MotogpPulseTeam,
-} from './motogp-official-grid';
+import { catchError, map, Observable, of, shareReplay } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import type {
   JolpikaCalendarRace,
@@ -91,14 +87,13 @@ export class MotogpPulseService {
   getOfficialTeamsGrid(forceRefresh = false): Observable<MotogpTeamStanding[]> {
     if (forceRefresh) this.officialTeams$ = undefined;
     if (!this.officialTeams$) {
-      this.officialTeams$ = forkJoin({
-        teams: this.api.get<SourceWrapped<MotogpPulseTeam>>(`${this.prefix}/teams`),
-        standings: this.getTeamStandings(forceRefresh),
-      }).pipe(
-        map(({ teams, standings }) => mergeOfficialTeamsGrid(teams.items ?? [], standings)),
-        catchError(() => of([] as MotogpTeamStanding[])),
-        shareReplay({ bufferSize: 1, refCount: false }),
-      );
+      this.officialTeams$ = this.api
+        .get<SourceWrapped<MotogpTeamStanding>>(`${this.prefix}/official-teams`)
+        .pipe(
+          map((res) => res.items ?? []),
+          catchError(() => this.getTeamStandings(forceRefresh)),
+          shareReplay({ bufferSize: 1, refCount: false }),
+        );
     }
     return this.officialTeams$;
   }

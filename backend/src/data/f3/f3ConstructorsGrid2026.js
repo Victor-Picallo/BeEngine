@@ -17,6 +17,14 @@ export const F3_CONSTRUCTORS_GRID_2026 = [
   { constructorId: 'dams', team: 'DAMS Lucas Oil', nationality: 'French', gridOrder: 10 },
 ];
 
+const GRID_BY_ID = new Map(
+  F3_CONSTRUCTORS_GRID_2026.map((e) => [e.constructorId.toLowerCase(), e]),
+);
+
+export function getF3ConstructorGridEntry(constructorId) {
+  return GRID_BY_ID.get(String(constructorId || '').trim().toLowerCase()) ?? null;
+}
+
 export const F3_CONSTRUCTOR_POINTS_2026 = {
   van_amersfoort: 30,
   campos: 27,

@@ -1,4 +1,4 @@
-/** Parrilla Moto3 2026 — snapshot BeEngine. Regenerar: node scripts/generate-moto3-local-data.mjs */
+/** Parrilla Moto3 2026 — IDs para sync/prune (medios en Postgres). */
 export const MOTO3_DRIVERS_GRID_2026 = [
   {
     "driverId": "01f85422-d97e-4901-9492-1be9694a4cc2",

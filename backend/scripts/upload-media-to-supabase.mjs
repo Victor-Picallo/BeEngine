@@ -24,7 +24,6 @@ import { F1_CONSTRUCTORS_GRID_2026 } from '../src/data/f1/f1ConstructorsGrid2026
 import { F1_DRIVERS_GRID_2026 } from '../src/data/f1/f1DriversGrid2026.js';
 import { f1TeamCarImageUrl, f1TeamShowcaseImageUrl } from '../src/services/f1/teamMedia.js';
 import { getDrivers } from '../src/services/f1/openf1.service.js';
-
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const publicRoot = join(root, 'frontend', 'public');
 const SERIES = ['motogp', 'moto2', 'moto3'];

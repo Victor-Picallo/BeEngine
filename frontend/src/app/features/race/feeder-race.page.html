@@ -353,7 +353,7 @@
     }
   </div>
 } @else {
-  <div class="fc-root fr-root" [style.--fr-accent]="accent()">
+  <div class="fc-root fr-root" [attr.data-series]="seriesCtx.id()" [style.--fr-accent]="accent()">
     <app-header></app-header>
 
     <div class="fc-body">

@@ -1,6 +1,6 @@
 import { getNewsArticles, fetchOgImage } from './newsFeed.service.js';
 import { resolveWinnerHeadshotUrl } from '../f1/driverMedia.js';
-import { f1TeamCarImageUrl } from '../f1/teamMedia.js';
+import { getConstructorBikeImageUrl } from '../../repositories/db/f1.repository.js';
 
 const MIN_SCORE_STRICT = 9;
 const MIN_SCORE_OG = 7;
@@ -129,8 +129,10 @@ export async function resolveLastRaceImageUrl(race) {
     if (headshot) return headshot;
 
     const constructorId = winner.constructorId;
-    const car = f1TeamCarImageUrl(constructorId);
-    if (car) return car;
+    if (constructorId) {
+      const car = await getConstructorBikeImageUrl(constructorId);
+      if (car) return car;
+    }
   }
 
   return null;

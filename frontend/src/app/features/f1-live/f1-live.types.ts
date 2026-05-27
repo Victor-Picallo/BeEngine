@@ -341,6 +341,11 @@ export interface JolpikaLastRaceResult {
   status: string;
   points: number;
   time: string | null;
+  /** MotoGP carrera: diferencia al líder (— en P1). */
+  gap?: string | null;
+  interval?: string | null;
+  bestLap?: string | null;
+  raceTime?: string | null;
 }
 
 export interface JolpikaLastRace {
@@ -353,6 +358,7 @@ export interface JolpikaLastRace {
   /** Imagen de circuito / podio (Pulse Live o RSS). */
   imageUrl?: string | null;
   circuitSvgUrl?: string | null;
+  circuitImageUrl?: string | null;
 }
 
 export interface JolpikaRaceResult extends JolpikaLastRace {
@@ -370,6 +376,7 @@ export interface MotogpRoundSessionsPayload {
   raceName: string;
   circuitName: string;
   circuitSvgUrl?: string | null;
+  circuitImageUrl?: string | null;
   sessions: {
     sessionKey: string;
     label: string;
@@ -407,6 +414,10 @@ export interface TimingDriver {
   speed: number;
   /** MotoGP: fabricante de moto */
   bikeLabel?: string;
+  /** MotoGP: neumático delantero (s/m/h/i/w) */
+  frontTire?: TireType;
+  /** MotoGP: neumático trasero */
+  rearTire?: TireType;
   headshotUrl?: string | null;
   driverId?: string | null;
 }

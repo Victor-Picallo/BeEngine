@@ -1,4 +1,4 @@
-<div class="fc-root">
+<div class="fc-root" data-series="moto2">
   <app-header></app-header>
 
   <div class="fc-body">
@@ -115,23 +115,22 @@
                       <div class="fc-dim"></div>
                     }
 
-                    <div class="fc-circuit-svg-wrap">
-                      @if (card.circuitSvgUrl) {
-                        <img
-                          class="fc-circuit-svg fc-circuit-svg--img"
-                          [src]="card.circuitSvgUrl"
+                    <div class="fc-circuit-svg-wrap fc-circuit-svg-wrap--moto">
+                      @if (card.hasCircuitMap) {
+                        <app-moto-circuit-card-map
+                          [race]="card.race"
                           [alt]="card.race.circuitName"
-                          loading="lazy"
                         />
                       } @else {
-                        <svg class="fc-circuit-svg" viewBox="0 0 300 170"
-                             preserveAspectRatio="xMidYMid meet"
-                             [attr.aria-label]="card.race.circuitName">
+                        <svg
+                          class="fc-circuit-svg fc-circuit-svg--moto-fallback"
+                          viewBox="0 0 300 170"
+                          preserveAspectRatio="xMidYMid meet"
+                          [attr.aria-label]="card.race.circuitName"
+                        >
                           <path class="fc-circuit-glow" d="M 24 92 C 46 30 124 18 164 58 C 198 92 262 34 276 84 C 288 128 228 146 174 126 C 118 106 86 156 42 130 C 18 116 16 100 24 92 Z"></path>
                           <path class="fc-circuit-asphalt" d="M 24 92 C 46 30 124 18 164 58 C 198 92 262 34 276 84 C 288 128 228 146 174 126 C 118 106 86 156 42 130 C 18 116 16 100 24 92 Z"></path>
                           <path class="fc-circuit-line" d="M 24 92 C 46 30 124 18 164 58 C 198 92 262 34 276 84 C 288 128 228 146 174 126 C 118 106 86 156 42 130 C 18 116 16 100 24 92 Z"></path>
-                          <circle class="fc-start-outer" cx="24" cy="92" r="5.5"></circle>
-                          <circle class="fc-start-inner" cx="24" cy="92" r="2.8"></circle>
                         </svg>
                       }
                     </div>

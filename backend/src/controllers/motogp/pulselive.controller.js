@@ -200,11 +200,17 @@ export const circuitDetail = async (req, res) => {
 };
 
 export const liveTiming = async (req, res) => {
+  const categoryId = getCategoryId(req);
   try {
-    const data = await fetchLiveTimingLite(getCategoryId(req));
+    const data = await fetchLiveTimingLite(categoryId);
     success(res, data, 200, { 'Cache-Control': CACHE_LIVE });
   } catch (err) {
-    error(res, err.message);
+    success(
+      res,
+      { active: false, categoryId, head: null, riders: [], degraded: true, error: err.message },
+      200,
+      { 'Cache-Control': CACHE_LIVE },
+    );
   }
 };
 
@@ -218,7 +224,26 @@ export const liveFeed = async (req, res) => {
     );
     success(res, data, 200, { 'Cache-Control': CACHE_LIVE });
   } catch (err) {
-    error(res, err.message);
+    const round = Number.parseInt(req.query.round, 10) || 1;
+    success(
+      res,
+      {
+        source: `pulselive-${getCategoryId(req)}`,
+        categoryId: getCategoryId(req),
+        round,
+        sessionKey: String(req.query.session ?? 'race').toLowerCase(),
+        timing: { active: false, categoryId: getCategoryId(req), head: null, riders: [] },
+        sessionResults: null,
+        weather: null,
+        weatherSource: 'none',
+        sectorsSource: 'none',
+        messages: [],
+        degraded: true,
+        error: err.message,
+      },
+      200,
+      { 'Cache-Control': CACHE_LIVE },
+    );
   }
 };
 

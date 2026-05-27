@@ -1,4 +1,4 @@
-<div class="fl-root">
+<div class="fl-root fl-root--motogp">
 
   <app-header></app-header>
 
@@ -65,7 +65,7 @@
           }
         </div>
         <div class="fl-header-title-big">
-          {{ liveHeaderData().raceName }}
+          {{ activeSessionLabel() }}
           @if (racePhase() === 'live') { <span>LIVE</span> }
         </div>
       </div>
@@ -74,7 +74,7 @@
 
       <div class="fl-header-gp">
         <div class="fl-header-gp-label">GRAN PREMIO</div>
-        <div class="fl-header-race-name">{{ activeSessionLabel() }}</div>
+        <div class="fl-header-race-name">{{ liveHeaderData().raceName }}</div>
         <div class="fl-header-circuit-info">
           <svg width="10" height="12" viewBox="0 0 10 12" fill="#555"><path d="M5 0C2.5 0 0 2.2 0 5C0 8 5 12 5 12S10 8 10 5C10 2.2 7.5 0 5 0ZM5 7A2 2 0 1 1 5 3A2 2 0 0 1 5 7Z"/></svg>
           <span style="overflow:hidden;text-overflow:ellipsis">{{ liveHeaderData().circuitName }}</span>
@@ -264,7 +264,7 @@
             <div class="fl-th fl-th-right">S1</div>
             <div class="fl-th fl-th-right">S2</div>
             <div class="fl-th fl-th-right">S3</div>
-            <div class="fl-th fl-th-right">MOTO</div>
+            <div class="fl-th fl-th-right">NEUM.</div>
           </div>
 
           <div style="flex:1;overflow-y:auto;min-height:0">
@@ -294,11 +294,14 @@
                 <div class="fl-cell-sector fl-mono" [ngClass]="d.s2c" [style.font-weight]="d.s2c !== 'sec-white' ? 700 : 400">{{ d.s2 }}</div>
                 <div class="fl-cell-sector fl-mono" [ngClass]="d.s3c" [style.font-weight]="d.s3c !== 'sec-white' ? 700 : 400">{{ d.s3 }}</div>
                 <div class="fl-cell-extra">
-                  <div class="fl-tire-stack">
+                  <div class="fl-tire-stack fl-moto-tyres">
                     @if (riderOnPit(d.num)) {
                       <span class="fl-tire-age">BOX</span>
                     }
-                    <span class="tire tire-m" [style.font-size]="'9px'">{{ d.bikeLabel ?? '—' }}</span>
+                    <span class="fl-moto-tyre-pair" title="Delantero / Trasero">
+                      <span class="tire" [class]="'tire-' + (d.frontTire ?? d.tire)">{{ (d.frontTire ?? d.tire).toUpperCase() }}</span>
+                      <span class="tire" [class]="'tire-' + (d.rearTire ?? d.tire)">{{ (d.rearTire ?? d.tire).toUpperCase() }}</span>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -335,7 +338,14 @@
               }
             </span>
           </div>
-          <canvas #mapCanvas width="308" height="218" class="fl-map-canvas" style="flex:1;width:100%;height:auto;display:block"></canvas>
+          <canvas
+            #mapCanvas
+            width="308"
+            height="218"
+            class="fl-map-canvas"
+            style="flex:1;width:100%;height:auto;display:block"
+            [attr.aria-label]="'Minimapa ' + liveHeaderData().circuitName"
+          ></canvas>
         </div>
 
         <div class="fl-card" style="flex:1;overflow:hidden;min-height:120px;display:flex;flex-direction:column">

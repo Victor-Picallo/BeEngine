@@ -50,6 +50,12 @@ import type {
   TimingDriver,
 } from '../f1-live/f1-live.types';
 import type { MotogpLiveFeedPayload, MotogpLiveTimingRider } from './motogp-live.types';
+import { resolveMotogpCircuitMapUrl } from '../motogp/motogp-circuit-media';
+import {
+  fetchCircuitPathFromSvgUrl,
+  pickCircuitSvgUrl,
+} from '../../shared/utils/circuit-path-from-svg.util';
+import type { TireType } from '../f1-live/f1-live.types';
 
 const driverShort = (name: string): string => {
   const parts = name.trim().split(/\s+/);
@@ -57,11 +63,14 @@ const driverShort = (name: string): string => {
   return (parts[0][0] + parts[parts.length - 1]).toUpperCase();
 };
 
-const bikeLabelFrom = (name: string): string => {
-  const n = String(name ?? '').trim();
-  if (!n || n === '—') return '—';
-  if (n.length <= 4) return n.toUpperCase();
-  return n.slice(0, 3).toUpperCase();
+const TIRE_CHARS = new Set(['s', 'm', 'h', 'i', 'w']);
+
+const toTireType = (raw: string | null | undefined): TireType | null => {
+  const c = String(raw ?? '')
+    .trim()
+    .toLowerCase()
+    .slice(0, 1);
+  return TIRE_CHARS.has(c) ? (c as TireType) : null;
 };
 
 @Component({
@@ -129,6 +138,8 @@ export class MotogpLivePageComponent implements OnInit, OnDestroy {
   round = signal(1);
   standingsTab = signal<'drivers' | 'constructors'>('drivers');
   now = signal(new Date());
+  /** Contorno del circuito cargado desde SVG (Supabase / Pulse). */
+  circuitSvgPath = signal<[number, number][] | null>(null);
 
   inCalendarRoute = computed(() => Boolean(this.raceSlug()));
 
@@ -196,6 +207,20 @@ export class MotogpLivePageComponent implements OnInit, OnDestroy {
     return 'upcoming';
   });
 
+  private readonly circuitMediaCandidates = computed(() => [
+    this.currentRace()?.circuitImageUrl,
+    this.raceResult()?.circuitImageUrl,
+    this.feed()?.circuitImageUrl,
+    this.currentRace()?.circuitSvgUrl,
+    this.raceResult()?.circuitSvgUrl,
+    this.feed()?.circuitSvgUrl,
+  ]);
+
+  circuitSvgSourceUrl = computed(() =>
+    pickCircuitSvgUrl(...this.circuitMediaCandidates()) ??
+    resolveMotogpCircuitMapUrl(...this.circuitMediaCandidates()),
+  );
+
   liveHeaderData = computed(() => {
     const f = this.feed();
     const race = this.currentRace();
@@ -235,19 +260,39 @@ export class MotogpLivePageComponent implements OnInit, OnDestroy {
         .sort((a, b) => a.pos - b.pos);
     }
 
+    const enriched = liveRiders.filter((r) => r.position > 0);
+    if (enriched.length) {
+      return enriched
+        .map((r) => this.riderToTimingRow(r))
+        .sort((a, b) => a.pos - b.pos);
+    }
+
     const official = this.raceResult()?.results ?? [];
     if (official.length) {
-      const sectorByShort = new Map<string, { s1: string; s2: string; s3: string }>();
-      for (const r of liveRiders) {
-        const key = (r.shortName || '').toUpperCase();
-        if (key) sectorByShort.set(key, { s1: r.s1 ?? '—', s2: r.s2 ?? '—', s3: r.s3 ?? '—' });
-      }
+      const liveByDriver = new Map(
+        liveRiders.map((lr) => [String(lr.driver ?? '').toLowerCase(), lr]),
+      );
+      const liveByNum = new Map(
+        liveRiders.map((lr) => [Number(lr.riderNumber) || lr.position, lr]),
+      );
       return official.map((r) => {
         const short = driverShort(r.driver);
-        const sec = sectorByShort.get(short.toUpperCase());
-        const s1c = (liveRiders.find((lr) => lr.shortName?.toUpperCase() === short.toUpperCase())?.s1c as SectorColor) ?? 'sec-white';
-        const s2c = (liveRiders.find((lr) => lr.shortName?.toUpperCase() === short.toUpperCase())?.s2c as SectorColor) ?? 'sec-white';
-        const s3c = (liveRiders.find((lr) => lr.shortName?.toUpperCase() === short.toUpperCase())?.s3c as SectorColor) ?? 'sec-white';
+        const live =
+          liveByDriver.get(r.driver.toLowerCase()) ??
+          liveByNum.get(Number(r.number) || r.position) ??
+          null;
+        const s1c = (live?.s1c as SectorColor) ?? 'sec-white';
+        const s2c = (live?.s2c as SectorColor) ?? 'sec-white';
+        const s3c = (live?.s3c as SectorColor) ?? 'sec-white';
+        const gap =
+          r.gap ??
+          (r.position === 1
+            ? '—'
+            : r.time?.startsWith('+')
+              ? r.time
+              : r.time && !r.time.includes("'")
+                ? r.time
+                : '—');
         return {
           pos: r.position,
           num: r.number ?? r.position,
@@ -255,25 +300,21 @@ export class MotogpLivePageComponent implements OnInit, OnDestroy {
           short,
           team: r.team,
           teamColor: r.teamColor ?? this.accent(),
-          gap: r.position === 1 ? '—' : r.time?.startsWith('+') ? r.time : r.time ?? '—',
-          interval: '—',
-          lastLap: '—',
-          bestLap:
-            r.position === 1 && r.time && !r.time.startsWith('+')
-              ? r.time
-              : r.time ?? '—',
-          tire: 'm' as const,
+          gap,
+          interval: r.interval ?? live?.interval ?? '—',
+          lastLap: live?.lastLap ?? '—',
+          bestLap: r.bestLap ?? live?.bestLap ?? '—',
+          ...this.tyresForRow(live),
           tyreAge: 0,
           laps: r.laps > 0 ? r.laps : 0,
           drs: false,
-          s1: sec?.s1 ?? '—',
-          s2: sec?.s2 ?? '—',
-          s3: sec?.s3 ?? '—',
+          s1: live?.s1 ?? '—',
+          s2: live?.s2 ?? '—',
+          s3: live?.s3 ?? '—',
           s1c,
           s2c,
           s3c,
           speed: 0,
-          bikeLabel: '—',
           driverId: r.driverId ?? null,
         };
       });
@@ -446,6 +487,29 @@ export class MotogpLivePageComponent implements OnInit, OnDestroy {
           { replaceUrl: true },
         );
       });
+    });
+
+    effect(() => {
+      const svgUrl = this.circuitSvgSourceUrl();
+      untracked(() => {
+        this.circuitSvgPath.set(null);
+        if (!svgUrl) return;
+        void fetchCircuitPathFromSvgUrl(svgUrl).then((path) => {
+          if (svgUrl !== this.circuitSvgSourceUrl()) return;
+          if (path?.length) this.circuitSvgPath.set(path);
+          queueMicrotask(() => this.restartMap());
+        });
+      });
+    });
+
+    effect(() => {
+      this.loading();
+      this.sessionLoading();
+      this.circuitSvgPath();
+      this.circuitSvgSourceUrl();
+      this.timingRows();
+      this.racePhase();
+      untracked(() => queueMicrotask(() => this.restartMap()));
     });
   }
 
@@ -687,6 +751,14 @@ export class MotogpLivePageComponent implements OnInit, OnDestroy {
     });
   }
 
+  private tyresForRow(
+    r: Pick<MotogpLiveTimingRider, 'frontTyre' | 'rearTyre'> | null | undefined,
+  ): { tire: TireType; frontTire: TireType; rearTire: TireType } {
+    const rear = toTireType(r?.rearTyre) ?? toTireType(r?.frontTyre) ?? 'm';
+    const front = toTireType(r?.frontTyre) ?? rear;
+    return { tire: rear, frontTire: front, rearTire: rear };
+  }
+
   private riderToTimingRow(r: MotogpLiveTimingRider): TimingDriver {
     const s1 = r.s1 ?? '—';
     const s2 = r.s2 ?? '—';
@@ -706,7 +778,7 @@ export class MotogpLivePageComponent implements OnInit, OnDestroy {
       interval: r.interval,
       lastLap: r.lastLap,
       bestLap: r.bestLap,
-      tire: 'm',
+      ...this.tyresForRow(r),
       tyreAge: 0,
       laps: r.laps,
       drs: false,
@@ -717,7 +789,6 @@ export class MotogpLivePageComponent implements OnInit, OnDestroy {
       s2c,
       s3c,
       speed: 0,
-      bikeLabel: bikeLabelFrom(bikeName),
       driverId: r.riderId || null,
     };
   }
@@ -736,6 +807,12 @@ export class MotogpLivePageComponent implements OnInit, OnDestroy {
           }))
         : [];
     const head = this.feed()?.timing?.head;
+    const race = this.currentRace();
+    const circuitLabel =
+      head?.circuitName?.trim() ||
+      this.liveHeaderData().circuitName ||
+      race?.circuitName ||
+      '';
     const leader = rows.find((r) => r.pos === 1);
     const lapProgress =
       head?.totalLaps && leader?.laps
@@ -744,10 +821,11 @@ export class MotogpLivePageComponent implements OnInit, OnDestroy {
           ? 100
           : 12;
     this.zone.runOutsideAngular(() => {
-      this.mapHandle = startCircuitMapAnimation(canvas, head?.circuitName ?? '', dots, {
+      this.mapHandle = startCircuitMapAnimation(canvas, circuitLabel, dots, {
         accent: this.accent(),
-        locality: this.currentRace()?.locality,
+        locality: race?.locality,
         lapProgress,
+        externalPath: this.circuitSvgPath(),
         zone: this.zone,
       });
     });

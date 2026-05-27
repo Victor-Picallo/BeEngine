@@ -5,7 +5,7 @@ import {
   mergeDriverStandingsWithGrid,
   sessionPayloadToLastRace,
 } from './mappers/f1.mappers.js';
-import { resolveFormulaMediaUrl } from '../../services/shared/formulaMedia.js';
+import { toPublicMediaUrl } from '../../lib/supabaseStorage.js';
 
 const F1_SEASON = () => seasonIdFor('f1');
 
@@ -50,12 +50,7 @@ export async function getDriverStandingsFromDb() {
       points: row.points,
       wins: row.wins,
       nationality: d.nationality ?? '',
-      headshotUrl: resolveFormulaMediaUrl(
-        'f1',
-        row.driverId,
-        'headshot',
-        entry?.headshotUrl ?? d.headshotUrl,
-      ),
+      headshotUrl: toPublicMediaUrl(entry?.headshotUrl ?? d.headshotUrl),
     };
   });
 
@@ -96,10 +91,23 @@ export async function getConstructorStandingsFromDb() {
       wins: row.wins,
       nationality: '',
       teamColor: cs?.teamColor ?? null,
-      logoUrl: resolveFormulaMediaUrl('f1', cid, 'logo', cs?.logoUrl),
-      bikeImageUrl: resolveFormulaMediaUrl('f1', cid, 'car', cs?.bikeImageUrl),
+      logoUrl: toPublicMediaUrl(cs?.logoUrl),
+      bikeImageUrl: toPublicMediaUrl(cs?.bikeImageUrl),
     };
   });
+}
+
+export async function getConstructorBikeImageUrl(constructorId) {
+  const prisma = requirePrisma();
+  const cs = await prisma.constructorSeason.findUnique({
+    where: {
+      seasonId_constructorId: {
+        seasonId: F1_SEASON(),
+        constructorId: String(constructorId || '').trim().toLowerCase(),
+      },
+    },
+  });
+  return toPublicMediaUrl(cs?.bikeImageUrl) ?? null;
 }
 
 export async function getLastRaceFromDb() {

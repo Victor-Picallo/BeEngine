@@ -9,6 +9,8 @@ import {
 } from '../../external/motogp/pulselive.client.js';
 import { getRidersIndex } from './motogpRiders.service.js';
 import { getCircuits, findCircuitByName } from './motogpCircuits.service.js';
+import { getSessionSectors, normalizeRiderShortName } from './motogpSectors.service.js';
+import { pickCircuitMapUrl } from './motogpCircuitMedia.js';
 import { getTeamsIndex, enrichStandingRow } from './motogpTeams.service.js';
 import { resolveOfficialConstructorSlug } from '../shared/profileMeta.service.js';
 import {
@@ -162,7 +164,9 @@ export const normalizeCalendar = (events) =>
   events.map((e, i) => ({
     round: i + 1,
     raceName: e.sponsored_name?.trim() || e.name,
-    circuitName: resolveCircuitDisplayName(e.circuit?.name ?? '—', e),
+    circuitName:
+      String(e.circuit?.name ?? '').trim() ||
+      resolveCircuitDisplayName(e.circuit?.name ?? '—', e),
     circuitId: e.circuit?.id ?? null,
     locality: e.circuit?.place ?? e.circuit?.city ?? '',
     country: e.country?.name ?? e.circuit?.nation ?? e.circuit?.country ?? '',
@@ -254,12 +258,13 @@ export const fetchCalendar = async (categoryId = 'motogp') => {
     items = items.map((row) => {
       const c =
         (row.circuitId && byId.get(row.circuitId)) ||
-        bySlug.get(slugify(row.circuitName));
+        bySlug.get(slugify(row.circuitName)) ||
+        null;
       if (!c) return row;
       return {
         ...row,
-        circuitSvgUrl: c.svgUrl,
-        circuitImageUrl: c.imageUrl,
+        circuitImageUrl: c.imageUrl ?? null,
+        circuitSvgUrl: c.svgUrl ?? null,
       };
     });
   } catch {
@@ -277,19 +282,59 @@ const fetchEventSessions = async (event, categoryId = 'motogp') => {
   );
 };
 
+const parseGapNum = (raw) => {
+  const g = String(raw ?? '')
+    .trim()
+    .replace(/^\+/, '')
+    .replace(/s$/i, '');
+  if (!g || g === '0.000' || g === '0') return 0;
+  const n = Number.parseFloat(g);
+  return Number.isFinite(n) ? n : null;
+};
+
+const formatGapSeconds = (raw) => {
+  const g = String(raw ?? '').trim();
+  if (!g || g === '0.000' || g === '0') return '—';
+  if (g.includes('+') || g.includes(':')) return g;
+  return `+${g}s`;
+};
+
+/** Columna GAP en carrera: tiempo total del líder; diferencia al líder para el resto. */
+const formatRaceGap = (r) => {
+  if (r.position === 1) return '—';
+  return formatGapSeconds(r.gap?.first);
+};
+
+/** Diferencia al piloto de delante (gap Pulse o delta entre gaps al líder). */
+const formatRaceInterval = (r, allRaw = []) => {
+  if (r.position === 1) return '—';
+  const direct = r.gap?.second ?? r.gap?.prev ?? r.gap?.previous;
+  if (direct && direct !== '0.000' && direct !== '0') return formatGapSeconds(direct);
+  const ahead = allRaw.find((x) => x.position === r.position - 1);
+  if (!ahead) return '—';
+  const cur = parseGapNum(r.gap?.first);
+  const prev = parseGapNum(ahead.gap?.first);
+  if (cur == null || prev == null || cur < prev) return '—';
+  const diff = cur - prev;
+  if (diff <= 0) return '—';
+  return `+${diff.toFixed(3)}s`;
+};
+
+const formatBestLapTime = (r) => r.best_lap?.time ?? '—';
+
 const formatClassificationTime = (r, sessionType) => {
   if (sessionType !== 'RAC' && sessionType !== 'SPR') {
-    return r.best_lap?.time ?? r.time ?? '—';
+    return formatBestLapTime(r);
   }
-  if (r.position === 1) return r.time ?? r.best_lap?.time ?? '—';
-  const gapFirst = r.gap?.first;
-  if (gapFirst && gapFirst !== '0.000' && gapFirst !== '0') return `+${gapFirst}s`;
-  return r.best_lap?.time ?? r.time ?? '—';
+  if (r.position === 1) return r.time ?? '—';
+  return formatRaceGap(r);
 };
 
 const normalizeClassification = (cls, session) => {
   const sessionType = session?.type ?? 'RAC';
-  return (cls?.classification ?? []).map((r) => ({
+  const isRace = sessionType === 'RAC' || sessionType === 'SPR';
+  const rawRows = cls?.classification ?? [];
+  return rawRows.map((r) => ({
     position: r.position,
     driver: r.rider?.full_name ?? '—',
     driverId: r.rider?.riders_api_uuid ?? r.rider?.id ?? slugify(r.rider?.full_name),
@@ -297,6 +342,10 @@ const normalizeClassification = (cls, session) => {
     constructorId: slugify(r.constructor?.name ?? r.team?.name),
     points: sessionType === 'RAC' ? Number(r.points) || 0 : 0,
     time: formatClassificationTime(r, sessionType),
+    gap: isRace ? formatRaceGap(r) : '—',
+    interval: isRace ? formatRaceInterval(r, rawRows) : '—',
+    bestLap: formatBestLapTime(r),
+    raceTime: isRace && r.position === 1 ? r.time ?? null : null,
     grid: Number(r.start_position ?? r.grid ?? r.position) || null,
     laps: Number(r.total_laps) || 0,
     status: r.status ?? 'Finished',
@@ -352,7 +401,8 @@ export const fetchRoundSessionsMeta = async (round, categoryId = 'motogp') => {
     round: cleanRound,
     raceName: event.sponsored_name?.trim() || event.name,
     circuitName: resolveCircuitDisplayName(event.circuit?.name ?? '—', event),
-    circuitSvgUrl: circuit?.svgUrl ?? null,
+    circuitSvgUrl: pickCircuitMapUrl(circuit),
+    circuitImageUrl: circuit?.imageUrl ?? null,
     sessions: [...byKey.values()],
   };
 };
@@ -380,7 +430,8 @@ export const fetchRaceResultsByRound = async (
     round: cleanRound,
     raceName: event.sponsored_name?.trim() || event.name,
     circuitName: resolveCircuitDisplayName(event.circuit?.name ?? '—', event),
-    circuitSvgUrl: circuit?.svgUrl ?? null,
+    circuitSvgUrl: pickCircuitMapUrl(circuit),
+    circuitImageUrl: circuit?.imageUrl ?? null,
     date: session.date?.slice(0, 10) ?? event.date_start?.slice(0, 10) ?? '',
     sessionKey: pulseSessionToKey(session),
     sessionLabel: pulseSessionLabel(session),
@@ -407,25 +458,56 @@ export const fetchRaceResultsByRound = async (
   const enriched = await enrichRaceResultsHeadshots(rows, season.year, categoryId);
   const hasRows = enriched.length > 0;
 
+  let sectorByDriver = new Map();
+  try {
+    const sectorPack = await getSessionSectors(cleanRound, sessionKey, categoryId, {
+      cacheMs: 60_000,
+    });
+    for (const s of sectorPack.riders ?? []) {
+      if (s.fullName) sectorByDriver.set(String(s.fullName).toLowerCase(), s);
+      sectorByDriver.set(normalizeRiderShortName(s.riderShortName), s);
+    }
+  } catch {
+    sectorByDriver = new Map();
+  }
+
+  const lookupSector = (driver) =>
+    sectorByDriver.get(String(driver ?? '').toLowerCase()) ??
+    sectorByDriver.get(
+      normalizeRiderShortName(
+        `${String(driver ?? '').split(/\s+/)[0]?.[0] ?? ''}.${String(driver ?? '').split(/\s+/).pop() ?? ''}`,
+      ),
+    ) ??
+    null;
+
   return {
     ...base,
     sessionPending: live && hasRows && !official,
     live: live && hasRows && !official,
-    results: enriched.map((r) => ({
-      position: r.position,
-      driver: r.driver,
-      driverId: r.driverId,
-      team: r.team,
-      constructorId: r.constructorId,
-      teamColor: r.teamColor ?? null,
-      headshotUrl: r.headshotUrl ?? null,
-      grid: r.grid ?? r.position,
-      laps: r.laps,
-      status: r.status,
-      points: r.points,
-      time: r.time,
-      number: r.number ?? null,
-    })),
+    results: enriched.map((r) => {
+      const sec = lookupSector(r.driver);
+      const bestLap =
+        r.bestLap && r.bestLap !== '—' ? r.bestLap : sec?.bestLap && sec.bestLap !== '—' ? sec.bestLap : null;
+      return {
+        position: r.position,
+        driver: r.driver,
+        driverId: r.driverId,
+        team: r.team,
+        constructorId: r.constructorId,
+        teamColor: r.teamColor ?? null,
+        headshotUrl: r.headshotUrl ?? null,
+        grid: r.grid ?? r.position,
+        laps: r.laps,
+        status: r.status,
+        points: r.points,
+        time: r.time,
+        gap: r.gap ?? null,
+        interval: r.interval ?? null,
+        bestLap,
+        raceTime: r.raceTime ?? null,
+        number: r.number ?? null,
+      };
+    }),
   };
 };
 

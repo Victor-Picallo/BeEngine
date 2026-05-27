@@ -8,14 +8,9 @@ import {
   getDriverStandings,
   getRaceResultsByRound,
 } from './pulseLive.service.js';
-import {
-  findMoto2DriverGrid,
-  MOTO2_DRIVER_PORTRAIT_URL,
-} from '../moto2/moto2Data.service.js';
-import {
-  findMoto3DriverGrid,
-  MOTO3_DRIVER_PORTRAIT_URL,
-} from '../moto3/moto3Data.service.js';
+import { findMoto2DriverGrid } from '../moto2/moto2Data.service.js';
+import { findMoto3DriverGrid } from '../moto3/moto3Data.service.js';
+import { toPublicMediaUrl } from '../../lib/supabaseStorage.js';
 import {
   findRider,
   getRiderDetail,
@@ -163,13 +158,8 @@ export const getDriverProfile = async (driverId, opts = {}) => {
     dateOfBirth: rider?.birthDate ?? null,
     nationality: rider?.nationality ?? row?.nationality ?? '',
     headshotUrl:
-      rider?.portraitUrl ??
-      row?.headshotUrl ??
-      (categoryId === 'moto2'
-        ? MOTO2_DRIVER_PORTRAIT_URL[row?.driverId ?? rider?.id ?? driverId]
-        : categoryId === 'moto3'
-          ? MOTO3_DRIVER_PORTRAIT_URL[row?.driverId ?? rider?.id ?? driverId]
-          : null) ??
+      toPublicMediaUrl(rider?.portraitUrl) ??
+      toPublicMediaUrl(row?.headshotUrl) ??
       localGrid?.headshotUrl ??
       null,
     championships,

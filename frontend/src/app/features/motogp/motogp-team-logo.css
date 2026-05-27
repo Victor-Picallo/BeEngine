@@ -1,0 +1,16 @@
+/* Logos de escudería en tarjetas / clasificación (no texturas Pulse ni fotos de moto) */
+:host ::ng-deep .fc-constructors .fc-team-showcase-img.motogp-team-logo,
+:host ::ng-deep .cl-const-car-img.motogp-team-logo {
+  object-fit: contain;
+  object-position: center center;
+  padding: 8%;
+  box-sizing: border-box;
+}
+
+:host ::ng-deep .fc-constructors .fc-team-showcase-img.motogp-team-logo--wide {
+  padding: 6% 10%;
+}
+
+:host ::ng-deep .fc-constructors .fc-team-showcase-img.motogp-team-logo--compact {
+  padding: 12%;
+}

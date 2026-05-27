@@ -6,6 +6,7 @@ import {
   getRaceResultsFromDb as feederRace,
 } from './feeder.repository.js';
 import { requirePrisma } from '../../lib/prisma.js';
+import { toPublicMediaUrl } from '../../lib/supabaseStorage.js';
 import { seasonIdFor } from './season.repository.js';
 
 const sid = (categoryId) => seasonIdFor(categoryId);
@@ -49,8 +50,8 @@ export async function getOfficialTeamsGridFromDb(categoryId) {
       wins: row.wins,
       nationality: '',
       teamColor: cs?.teamColor ?? null,
-      logoUrl: cs?.logoUrl ?? null,
-      bikeImageUrl: cs?.bikeImageUrl ?? null,
+      logoUrl: toPublicMediaUrl(cs?.logoUrl),
+      bikeImageUrl: toPublicMediaUrl(cs?.bikeImageUrl),
     };
   });
 }

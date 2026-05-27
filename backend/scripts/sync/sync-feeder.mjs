@@ -108,6 +108,7 @@ async function syncFromApi(api) {
         externalEventId: raw.fiaRaceId,
       },
       year,
+      { formulaOnly: true },
     );
     if (r.circuitImageUrl || r.circuitSvgUrl) circuitsEnriched += 1;
     await upsertCalendarEvent(prisma, SEASON_ID, r);

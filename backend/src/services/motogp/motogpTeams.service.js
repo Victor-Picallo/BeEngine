@@ -77,8 +77,9 @@ const normalizeRider = (r) => ({
 const isBikePicture = (url) =>
   Boolean(url && /\/main-picture\.|FrontalBike_/i.test(String(url)));
 
+/** Solo escudos oficiales; picture/background son texturas o motos, no logos. */
 const pickPulseTeamLogo = (t) => {
-  const candidates = [t.logo?.main, t.logo?.secondary, t.picture, t.background_picture];
+  const candidates = [t.logo?.main, t.logo?.secondary];
   for (const url of candidates) {
     if (url && !isBikePicture(url)) return url;
   }
@@ -178,15 +179,19 @@ export const enrichStandingRow = (row, idx, _categoryId = 'motogp') => {
       ...row,
       constructorId: rowSlug,
       logoUrl: toPublicMediaUrl(row.logoUrl) ?? null,
+      bikeImageUrl: toPublicMediaUrl(row.bikeImageUrl) ?? null,
     };
   }
+
+  const dbLogo = toPublicMediaUrl(row.logoUrl);
+  const pulseLogo = toPublicMediaUrl(team.logoUrl);
 
   return {
     ...row,
     constructorId: rowSlug,
     teamId: team.teamId ?? row.teamId,
     teamColor: team.color ?? row.teamColor,
-    logoUrl: toPublicMediaUrl(row.logoUrl) ?? toPublicMediaUrl(team.logoUrl) ?? null,
-    bikeImageUrl: toPublicMediaUrl(row.bikeImageUrl) ?? team.bikeImageUrl ?? null,
+    logoUrl: dbLogo ?? pulseLogo ?? null,
+    bikeImageUrl: toPublicMediaUrl(row.bikeImageUrl) ?? toPublicMediaUrl(team.bikeImageUrl) ?? null,
   };
 };

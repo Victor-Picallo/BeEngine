@@ -188,6 +188,13 @@
   filter: drop-shadow(0 0 14px color-mix(in srgb, var(--fr-accent) 45%, transparent));
 }
 
+.fr-root[data-series='f1'] .fr-hero .fc-circuit-svg--img,
+.fr-root[data-series='f2'] .fr-hero .fc-circuit-svg--img,
+.fr-root[data-series='f3'] .fr-hero .fc-circuit-svg--img {
+  filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(255, 255, 255, 0.15));
+  opacity: 0.9;
+}
+
 .fr-hero .fc-circuit-glow {
   fill: none;
   stroke: var(--fr-accent);

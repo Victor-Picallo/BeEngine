@@ -18,6 +18,14 @@ export const F2_CONSTRUCTORS_GRID_2026 = [
   { constructorId: 'aix', team: 'AIX Racing', nationality: 'German', gridOrder: 11 },
 ];
 
+const GRID_BY_ID = new Map(
+  F2_CONSTRUCTORS_GRID_2026.map((e) => [e.constructorId.toLowerCase(), e]),
+);
+
+export function getF2ConstructorGridEntry(constructorId) {
+  return GRID_BY_ID.get(String(constructorId || '').trim().toLowerCase()) ?? null;
+}
+
 export const F2_CONSTRUCTOR_POINTS_2026 = {
   mp_motorsport: 69,
   campos: 68,

@@ -509,6 +509,108 @@
   filter: drop-shadow(0 0 12px rgba(255, 120, 0, 0.25));
 }
 
+/* Trazado liso blanco (F1/F2/F3): anula sectores de color en SVG de DB o legacy Pulse */
+.fc-root[data-series='f1'] .fc-circuit-svg--img,
+.fc-root[data-series='f2'] .fc-circuit-svg--img,
+.fc-root[data-series='f3'] .fc-circuit-svg--img {
+  filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(255, 255, 255, 0.15));
+  opacity: 0.9;
+}
+
+/* ── MotoGP / Moto2 / Moto3: un solo estilo de mapa en cards ── */
+.fc-root[data-series='motogp'] .fc-card-circuit,
+.fc-root[data-series='moto2'] .fc-card-circuit,
+.fc-root[data-series='moto3'] .fc-card-circuit {
+  background: #0a0a0a;
+}
+
+.fc-root[data-series='motogp'] .fc-card.next .fc-glow,
+.fc-root[data-series='moto2'] .fc-card.next .fc-glow,
+.fc-root[data-series='moto3'] .fc-card.next .fc-glow {
+  display: none;
+}
+
+.fc-root[data-series='motogp'] .fc-circuit-svg-wrap--moto,
+.fc-root[data-series='moto2'] .fc-circuit-svg-wrap--moto,
+.fc-root[data-series='moto3'] .fc-circuit-svg-wrap--moto {
+  inset: 8px 10px;
+}
+
+.fc-root[data-series='motogp'] .fc-circuit-svg--moto-fallback .fc-circuit-line,
+.fc-root[data-series='moto2'] .fc-circuit-svg--moto-fallback .fc-circuit-line,
+.fc-root[data-series='moto3'] .fc-circuit-svg--moto-fallback .fc-circuit-line {
+  stroke: #e8e8e8;
+  stroke-width: 2.5;
+  opacity: 0.85;
+}
+
+.fc-root[data-series='motogp'] .fc-circuit-svg--moto-fallback .fc-circuit-asphalt,
+.fc-root[data-series='moto2'] .fc-circuit-svg--moto-fallback .fc-circuit-asphalt,
+.fc-root[data-series='moto3'] .fc-circuit-svg--moto-fallback .fc-circuit-asphalt {
+  stroke: #333;
+  stroke-width: 6;
+}
+
+.fc-root[data-series='motogp'] .fc-circuit-svg--moto-fallback .fc-circuit-glow,
+.fc-root[data-series='moto2'] .fc-circuit-svg--moto-fallback .fc-circuit-glow,
+.fc-root[data-series='moto3'] .fc-circuit-svg--moto-fallback .fc-circuit-glow {
+  stroke: #555;
+  opacity: 0.08;
+}
+
+.fc-root[data-series='motogp'] .fc-circuit-svg--moto-outline,
+.fc-root[data-series='moto2'] .fc-circuit-svg--moto-outline,
+.fc-root[data-series='moto3'] .fc-circuit-svg--moto-outline {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+}
+
+.fc-root[data-series='motogp'] .fc-circuit-svg--moto-outline .moto-circuit-glow,
+.fc-root[data-series='moto2'] .fc-circuit-svg--moto-outline .moto-circuit-glow,
+.fc-root[data-series='moto3'] .fc-circuit-svg--moto-outline .moto-circuit-glow {
+  fill: none;
+  stroke: #555;
+  stroke-width: 9;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.1;
+}
+
+.fc-root[data-series='motogp'] .fc-circuit-svg--moto-outline .moto-circuit-asphalt,
+.fc-root[data-series='moto2'] .fc-circuit-svg--moto-outline .moto-circuit-asphalt,
+.fc-root[data-series='moto3'] .fc-circuit-svg--moto-outline .moto-circuit-asphalt {
+  fill: none;
+  stroke: #1a1a1a;
+  stroke-width: 6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.fc-root[data-series='motogp'] .fc-circuit-svg--moto-outline .moto-circuit-line,
+.fc-root[data-series='moto2'] .fc-circuit-svg--moto-outline .moto-circuit-line,
+.fc-root[data-series='moto3'] .fc-circuit-svg--moto-outline .moto-circuit-line {
+  fill: none;
+  stroke: #ececec;
+  stroke-width: 2.5;
+  opacity: 0.92;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.14));
+}
+
+.fc-root[data-series='motogp'] app-moto-circuit-card-map,
+.fc-root[data-series='moto2'] app-moto-circuit-card-map,
+.fc-root[data-series='moto3'] app-moto-circuit-card-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 .fc-circuit-svg {
   width: 100%;
   height: 100%;

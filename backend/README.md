@@ -135,7 +135,7 @@ Datos de temporada: **API en vivo primero**, fallback **Postgres** (`source: liv
 2. `npm run db:migrate` — migraciones (CLI usa `DIRECT_URL` vía `prisma.config.ts`)
 3. `npm run db:seed` — series F1–Moto3 + temporadas 2026
 4. Cliente: `src/lib/prisma.js` (`@prisma/adapter-pg` + pooler en runtime)
-5. **Post-GP (todo en uno):** `npm run refresh` — sync 6 series + perfiles + noticias → circuitos → Storage (coches + motos) → auditoría 100% → smoke DB
+5. **Post-GP (todo en uno):** `npm run refresh` — sync 6 series + check `profile_meta` + noticias → circuitos → Storage → auditoría 100% → smoke DB
 6. **Solo fin de semana:** `npm run refresh:weekend`
 7. Comandos sueltos si hace falta: `db:sync`, `storage:upload:*`, `verify:media`, `smoke:db` (ver `package.json`)
 8. **Health:** `GET /api/health` incluye `db.ok` y `lastSync` por serie

@@ -33,6 +33,8 @@ export interface MotogpLiveTimingRider {
   s1c?: string;
   s2c?: string;
   s3c?: string;
+  frontTyre?: string | null;
+  rearTyre?: string | null;
 }
 
 export interface MotogpLiveTimingPayload {
@@ -76,4 +78,6 @@ export interface MotogpLiveFeedPayload {
   messages: MotogpRaceMessage[];
   eventName: string | null;
   circuitName: string | null;
+  circuitSvgUrl?: string | null;
+  circuitImageUrl?: string | null;
 }

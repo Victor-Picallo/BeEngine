@@ -38,17 +38,13 @@ export function publicStorageUrl(storagePath) {
   return `${base}/${clean}`;
 }
 
-/**
- * Convierte ruta local del frontend (/moto2/teams/foo.png) → URL Supabase.
- * Si ya es http(s), se devuelve tal cual.
- */
+/** URL pública absoluta desde Postgres; ignora rutas locales `/...` del frontend. */
 export function toPublicMediaUrl(pathOrUrl) {
   if (!pathOrUrl) return null;
-  const s = String(pathOrUrl);
+  const s = String(pathOrUrl).trim();
   if (s.startsWith('http://') || s.startsWith('https://')) return s;
-  const m = s.match(/^\/(motogp|moto2|moto3)\/teams\/(.+)$/i);
-  if (!m || !SUPABASE_STORAGE_PUBLIC_BASE) return s;
-  return publicStorageUrl(`${m[1]}/constructors/${m[2]}`);
+  if (s.startsWith('/')) return null;
+  return publicStorageUrl(s);
 }
 
 const MIME = {

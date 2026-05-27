@@ -102,7 +102,7 @@ async function syncFromPulse() {
   const calendar = await fetchCalendar(categoryId);
   let circuitsEnriched = 0;
   for (const raw of calendar) {
-    const r = await enrichCalendarRow(raw, year);
+    const r = await enrichCalendarRow(raw, year, { seasonId: SEASON_ID });
     if (r.circuitImageUrl || r.circuitSvgUrl) circuitsEnriched += 1;
     await upsertCalendarEvent(prisma, SEASON_ID, r);
   }

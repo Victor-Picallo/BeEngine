@@ -1,4 +1,5 @@
-import { createPrismaClient } from '../../lib/prisma.js';
+import { DB_ENABLED } from '../../config/env.js';
+import { requirePrisma } from '../../lib/prisma.js';
 
 const DRIVER_ALIASES = { lindblad: 'arvid_lindblad' };
 
@@ -17,9 +18,8 @@ let byId = new Map();
 let teamProfilesByConstructorId = new Map();
 
 async function loadAll() {
-  const prisma = createPrismaClient();
-  if (!prisma) return;
-  const rows = await prisma.profileMeta.findMany();
+  if (!DB_ENABLED) return;
+  const rows = await requirePrisma().profileMeta.findMany();
   byId = new Map(rows.map((r) => [r.id, { kind: r.kind, seriesId: r.seriesId, payload: r.payload }]));
   teamProfilesByConstructorId = new Map();
   for (const row of rows) {
@@ -29,7 +29,6 @@ async function loadAll() {
       teamProfilesByConstructorId.set(slugify(def.constructorId), def);
     }
   }
-  await prisma.$disconnect();
 }
 
 export async function ensureProfileMetaLoaded() {

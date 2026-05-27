@@ -1,3 +1,5 @@
+import { toPublicMediaUrl } from '../../../lib/supabaseStorage.js';
+
 /** @param {import('../../../generated/prisma/index.js').Event} e */
 export function eventToCalendarRow(e) {
   return {
@@ -10,8 +12,8 @@ export function eventToCalendarRow(e) {
     time: e.time ?? null,
     resultsAvailable: e.resultsAvailable === true,
     circuitId: e.circuitId ?? null,
-    circuitImageUrl: e.circuitImageUrl ?? null,
-    circuitSvgUrl: e.circuitSvgUrl ?? null,
+    circuitImageUrl: toPublicMediaUrl(e.circuitImageUrl) ?? toPublicMediaUrl(e.circuitSvgUrl),
+    circuitSvgUrl: toPublicMediaUrl(e.circuitSvgUrl),
   };
 }
 

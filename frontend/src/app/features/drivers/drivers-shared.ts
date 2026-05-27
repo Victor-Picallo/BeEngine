@@ -1,9 +1,7 @@
 import type { SeriesId } from '../../core/series/series.types';
 import type { JolpikaDriverStanding, OpenF1Driver } from '../f1-live/f1-live.types';
-import { f2DriverHeadshotRawUrl, f2DriverHeadshotUrl } from '../f2/f2-media';
 import { moto2DriverHeadshotUrl } from '../moto2/moto2-media';
 import { moto3DriverHeadshotUrl } from '../moto3/moto3-media';
-import { f3DriverHeadshotRawUrl, f3DriverHeadshotUrl } from '../f3/f3-media';
 
 export const ACCENT = '#FFD100';
 
@@ -232,78 +230,30 @@ export function hiResF1HeadshotUrl(url: string): string {
   return url.replace(/\.transform\/\d+col\//, '.transform/8col/');
 }
 
-/**
- * Retrato en `media.formula1.com` cuando OpenF1 aún no expone `headshotUrl`
- * (misma ruta que precarga la web oficial).
- *
- * Ergast usa `driverId` **arvid_lindblad** (no `lindblad`); por eso varias claves
- * y un fallback por nombre normalizado.
- *
- * El asset `…arvlin01right.webp` es **cuerpo entero**; OpenF1 usa bustos. Cloudinary
- * `c_thumb` + `g_face` recorta en torno a la cara para alinear el encuadre con el resto.
- */
-const ARVID_LINDBLAD_HEADSHOT =
-  'https://media.formula1.com/image/upload/c_thumb,w_720,h_900,g_face,q_auto,f_auto/f_auto/q_auto/v1740000001/common/f1/2026/racingbulls/arvlin01/2026racingbullsarvlin01right.webp';
-
-const F1_OFFICIAL_HEADSHOT_BY_DRIVER_ID: Record<string, string> = {
-  lindblad: ARVID_LINDBLAD_HEADSHOT,
-  arvid_lindblad: ARVID_LINDBLAD_HEADSHOT,
-};
-
-export function f1OfficialHeadshotWhenOpenF1Missing(
-  driverId: string,
-  driverFullName?: string,
-): string | null {
-  const id = (driverId || '').trim().toLowerCase();
-  const byId = id ? F1_OFFICIAL_HEADSHOT_BY_DRIVER_ID[id] : undefined;
-  if (byId) return byId;
-  const nn = normalize(driverFullName ?? '');
-  if (nn === 'arvid lindblad') return ARVID_LINDBLAD_HEADSHOT;
-  return null;
-}
-
-/**
- * OpenF1 a veces devuelve un `headshotUrl` genérico o roto; si tenemos retrato
- * oficial en el mapa, ese gana siempre.
- */
+/** Retrato desde el API (Supabase / OpenF1 / Pulse). Sin mapas CDN en el cliente. */
 export function resolveDriverHeadshotUrl(
-  driverId: string,
-  driverFullName: string | undefined,
-  openF1HeadshotUrl: string | undefined | null,
+  _driverId: string,
+  _driverFullName: string | undefined,
+  apiHeadshotUrl: string | undefined | null,
   options?: { size?: 'card' | 'large'; seriesId?: SeriesId },
 ): string {
-  const apiUrl = (openF1HeadshotUrl && String(openF1HeadshotUrl).trim()) || '';
+  const apiUrl = (apiHeadshotUrl && String(apiHeadshotUrl).trim()) || '';
+  if (!apiUrl) return '';
 
-  if (options?.seriesId === 'f2') {
-    if (apiUrl) return apiUrl;
-    return f2DriverHeadshotUrl(driverId, options?.size ?? 'card') ?? '';
-  }
-  if (options?.seriesId === 'f3') {
-    if (apiUrl) return apiUrl;
-    return f3DriverHeadshotUrl(driverId, options?.size ?? 'card') ?? '';
-  }
-  const sid = options?.seriesId as string | undefined;
-  if (sid === 'moto2') {
-    return moto2DriverHeadshotUrl(driverId, openF1HeadshotUrl);
-  }
-  if (sid === 'moto3') {
-    return moto3DriverHeadshotUrl(driverId, openF1HeadshotUrl);
-  }
-  if (sid === 'motogp') {
-    const url = (openF1HeadshotUrl && String(openF1HeadshotUrl).trim()) || '';
-    return url;
-  }
-
-  const official = f1OfficialHeadshotWhenOpenF1Missing(driverId, driverFullName);
-  if (official) return official;
-  const raw = (openF1HeadshotUrl && String(openF1HeadshotUrl).trim()) || '';
-  return raw ? hiResF1HeadshotUrl(raw) : '';
+  const sid = options?.seriesId;
+  if (sid === 'moto2') return moto2DriverHeadshotUrl(_driverId, apiHeadshotUrl) ?? '';
+  if (sid === 'moto3') return moto3DriverHeadshotUrl(_driverId, apiHeadshotUrl) ?? '';
+  if (sid === 'f1' || !sid) return hiResF1HeadshotUrl(apiUrl);
+  return apiUrl;
 }
 
-export function resolveDriverHeadshotRawUrl(driverId: string, seriesId?: SeriesId): string {
-  if (seriesId === 'f3') return f3DriverHeadshotRawUrl(driverId) ?? '';
-  if (seriesId === 'f2') return f2DriverHeadshotRawUrl(driverId) ?? '';
-  return '';
+/** Fallback secundario en `<img>`: misma URL que el API (sin transform local). */
+export function resolveDriverHeadshotRawUrl(
+  _driverId: string,
+  _seriesId?: SeriesId,
+  apiHeadshotUrl?: string | null,
+): string {
+  return (apiHeadshotUrl && String(apiHeadshotUrl).trim()) || '';
 }
 
 export function flagCdnUrl(alpha2: string): string {

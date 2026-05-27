@@ -118,7 +118,7 @@
                 <div class="cl-const-car" [style.--cl-team]="c.teamColor">
                   @if (teamLogoImage(c); as imgUrl) {
                     <img
-                      class="cl-const-car-img"
+                      [class]="'cl-const-car-img ' + teamLogoCardClass(c)"
                       [src]="imgUrl"
                       [alt]="'Logo ' + c.team"
                       loading="lazy"

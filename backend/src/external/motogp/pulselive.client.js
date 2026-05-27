@@ -52,7 +52,16 @@ const fetchOnce = async (path, timeoutMs) => {
         continue;
       }
       if (!res.ok) throw new Error(`PulseLive HTTP ${res.status}: ${res.statusText}`);
-      return await res.json();
+      const body = await res.text();
+      if (!body.trim()) {
+        if (path.includes('livetiming')) return { head: null, rider: {} };
+        return [];
+      }
+      try {
+        return JSON.parse(body);
+      } catch {
+        throw new Error(`PulseLive invalid JSON (${path})`);
+      }
     } finally {
       clearTimeout(timer);
     }

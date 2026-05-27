@@ -4,7 +4,16 @@ import {
   MOTO2_CATEGORY_UUID,
   MOTO3_CATEGORY_UUID,
 } from '../../external/motogp/pulselive.client.js';
-import { PULSE_LIVE_ENABLED } from '../../config/env.js';
+import { DB_ENABLED, PULSE_LIVE_ENABLED } from '../../config/env.js';
+import { seasonIdFor } from '../../repositories/db/season.repository.js';
+import {
+  enrichConstructorStandingsWithMedia,
+  getConstructorSeasonMediaMap,
+} from '../../repositories/db/constructorMedia.js';
+import {
+  getEventCircuitMediaMap,
+  mergeCalendarWithCircuitMedia,
+} from '../../repositories/db/eventCircuitMedia.js';
 import { getRidersIndex } from './motogpRiders.service.js';
 import { resolveWithFallback, resolveWithFallbackOrEmpty } from '../shared/resolveWithFallback.js';
 import {
@@ -28,6 +37,7 @@ import {
   resolveCircuitDisplayName,
 } from './pulseLive.fetch.js';
 import { getCircuits, findCircuitByName } from './motogpCircuits.service.js';
+import { pickCircuitMapUrl } from './motogpCircuitMedia.js';
 import { getTeamsIndex, enrichStandingRow } from './motogpTeams.service.js';
 import {
   enrichMoto2DriverStandings,
@@ -72,10 +82,19 @@ const motoFeederApi = (categoryId) => {
 };
 
 const mergeDbCalendarFlags = async (items, categoryId) => {
+  let merged = items;
+  if (DB_ENABLED) {
+    try {
+      const mediaMap = await getEventCircuitMediaMap(seasonIdFor(categoryId));
+      merged = mergeCalendarWithCircuitMedia(items, mediaMap);
+    } catch {
+      /* circuitos opcionales */
+    }
+  }
   const db = await getCalendarFromDb(categoryId);
-  if (!db?.length) return items;
+  if (!db?.length) return merged;
   const flags = new Map(db.map((r) => [r.round, r.resultsAvailable]));
-  return items.map((row) => ({
+  return merged.map((row) => ({
     ...row,
     resultsAvailable:
       row.resultsAvailable ||
@@ -378,7 +397,16 @@ export const getConstructorStandings = async (categoryId = 'motogp') => {
     [],
     pulseOpts,
   );
-  return { items: resolved.data, source: resolved.source };
+  let items = resolved.data;
+  if (DB_ENABLED && items.length) {
+    try {
+      const media = await getConstructorSeasonMediaMap(seasonIdFor(categoryId));
+      items = enrichConstructorStandingsWithMedia(items, media);
+    } catch {
+      /* logos opcionales */
+    }
+  }
+  return { items, source: resolved.source };
 };
 
 export const getOfficialTeamsGrid = async (categoryId = 'motogp') => {
@@ -388,7 +416,16 @@ export const getOfficialTeamsGrid = async (categoryId = 'motogp') => {
     [],
     pulseOpts,
   );
-  return { items: resolved.data, source: resolved.source };
+  let items = resolved.data;
+  if (DB_ENABLED && items.length) {
+    try {
+      const media = await getConstructorSeasonMediaMap(seasonIdFor(categoryId));
+      items = enrichConstructorStandingsWithMedia(items, media);
+    } catch {
+      /* logos opcionales */
+    }
+  }
+  return { items, source: resolved.source };
 };
 
 export const getCalendar = async (categoryId = 'motogp') => {
@@ -449,7 +486,7 @@ export const getNextRaceSessions = async (categoryId = 'motogp') => {
         date: next.date_start,
         round: events.filter((e) => e.status === 'FINISHED').length + 1,
         totalRounds: events.length,
-        circuitSvgUrl: circuit?.svgUrl ?? null,
+        circuitSvgUrl: pickCircuitMapUrl(circuit),
         circuitImageUrl: circuit?.imageUrl ?? null,
       },
       sessions: sessions.map((s) => ({
