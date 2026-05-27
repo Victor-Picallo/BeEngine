@@ -1,5 +1,9 @@
 import { BACINGER_OUTLINES } from './bacinger-outlines.generated';
 import { PULSE_CIRCUIT_OUTLINE_MAP } from './pulse-circuit-outline-map.generated';
+import {
+  MOTO_CIRCUIT_OUTLINES,
+  PULSE_CIRCUIT_MOTO_MAP,
+} from './moto-circuits.generated';
 import { OFFICIAL_CIRCUITS, type OfficialCircuit } from './official-circuits';
 
 export interface RaceCircuitFields {
@@ -9,8 +13,10 @@ export interface RaceCircuitFields {
   country?: string | null;
 }
 
+// Los trazados de motos (SVG oficial de Pulse) van primero: sobrescriben los
+// `osm-*` de OpenStreetMap, que eran poco fiables (contornos del recinto).
 const outlineById = new Map<string, OfficialCircuit>();
-for (const c of [...OFFICIAL_CIRCUITS, ...BACINGER_OUTLINES]) {
+for (const c of [...MOTO_CIRCUIT_OUTLINES, ...OFFICIAL_CIRCUITS, ...BACINGER_OUTLINES]) {
   if (!outlineById.has(c.id)) outlineById.set(c.id, c);
 }
 const ALL_OUTLINES = [...outlineById.values()];
@@ -28,7 +34,6 @@ const OUTLINE_ID_ALIASES: Record<string, string> = {
   'autodromo internazionale del mugello': 'it-1914',
   'scarperia e san piero': 'it-1914',
   hungaroring: 'hu-1986',
-  balatonfokajar: 'hu-1986',
   'red bull ring': 'at-1969',
   spielberg: 'at-1969',
   silverstone: 'gb-1948',
@@ -73,6 +78,15 @@ const OUTLINE_ID_ALIASES: Record<string, string> = {
   misano: 'it-1953',
   'misano world circuit': 'it-1953',
   'marco simoncelli': 'it-1953',
+  goiania: 'osm-goiania',
+  'autodromo internacional de goiania': 'osm-goiania',
+  'ayrton senna': 'osm-goiania',
+  brno: 'osm-brno',
+  'automotodrom brno': 'osm-brno',
+  masaryk: 'osm-brno',
+  balaton: 'osm-balaton',
+  'balaton park': 'osm-balaton',
+  balatonfokajar: 'osm-balaton',
 };
 
 const stripAccents = (s: string) =>
@@ -134,7 +148,7 @@ export function findCircuitOutline(
 export function findCircuitOutlineForRace(race: RaceCircuitFields): OfficialCircuit | null {
   const pulseId = String(race.circuitId ?? '').trim();
   if (pulseId) {
-    const mapped = PULSE_CIRCUIT_OUTLINE_MAP[pulseId];
+    const mapped = PULSE_CIRCUIT_MOTO_MAP[pulseId] ?? PULSE_CIRCUIT_OUTLINE_MAP[pulseId];
     if (mapped) {
       const hit = outlineByOutlineId(mapped);
       if (hit) return hit;

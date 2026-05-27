@@ -1,7 +1,10 @@
 // AUTO-GENERATED — npm run circuit:pulse-map
 export const PULSE_CIRCUIT_OUTLINE_MAP: Record<string, string> = {
+  "206ca7d6-e857-4a4d-be01-addd9090173d": "osm-goiania",
   "b980a310-9440-48ce-bd19-5f398c179726": "pt-2008",
   "9580e398-61a6-4852-8020-adb5d4c0cb2b": "it-1914",
+  "e48e53a2-cdd9-4fd2-b7a0-c8045dd55c18": "osm-brno",
+  "7eea1369-6fbc-43b0-ba65-644dcbb9489e": "osm-balaton",
   "3df492f2-b8e0-4c2b-b6e9-86a153127965": "osm-buriram",
   "cbbe87ac-472a-405e-b0ed-5b9e0743c80a": "es-1991",
   "a39e1baa-2b1e-4818-95d0-b9b6b7acd881": "us-2012",

@@ -18,6 +18,7 @@
     "refresh:moto": "node scripts/refresh-moto.mjs",
     "circuit:outlines": "node scripts/generate-bacinger-outlines.mjs",
     "circuit:pulse-map": "node scripts/generate-pulse-outline-map.mjs",
+    "circuit:moto-svg": "node scripts/generate-moto-svg-outlines.mjs",
     "db:enrich:moto-circuits": "node scripts/sync/enrich-moto-circuits.mjs",
     "db:enrich:formula-circuits": "node scripts/sync/enrich-formula-circuits.mjs",
     "db:sync": "node scripts/sync/sync-all.mjs",
@@ -54,6 +55,7 @@
     "pg": "^8.21.0"
   },
   "devDependencies": {
-    "prisma": "^7.8.0"
+    "prisma": "^7.8.0",
+    "svg-path-properties": "^2.0.2"
   }
 }

@@ -16,11 +16,11 @@ import { RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
 import { forkJoin } from 'rxjs';
 import { F1LiveService } from '../f1-live/f1-live.service';
-import { findOfficialCircuit, projectCircuitCoords } from './official-circuits';
 import { defaultSessionFor, slugifyRace } from '../race/race-slug';
 import { defaultMotogpSession } from '../race/motogp-session';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
+import { FormulaCircuitCardMapComponent } from './formula-circuit-card-map.component';
 import type { JolpikaCalendarRace, JolpikaRaceResult } from '../f1-live/f1-live.types';
 
 type CalendarFilter = 'all' | 'completed' | 'upcoming';
@@ -29,11 +29,6 @@ interface CalendarCard {
   race: JolpikaCalendarRace;
   status: 'done' | 'next' | 'upcoming';
   description: string;
-  circuitSvgUrl: string | null;
-  circuitPath: string;
-  viewBox: string;
-  startX: number;
-  startY: number;
   laps: number | null;
   km: string | null;
   dateLabel: string;
@@ -51,8 +46,6 @@ const MONTHS = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
-
-const GENERIC_PATH = 'M 24 92 C 46 30 124 18 164 58 C 198 92 262 34 276 84 C 288 128 228 146 174 126 C 118 106 86 156 42 130 C 18 116 16 100 24 92 Z';
 
 const CIRCUIT_DESCRIPTIONS: Record<string, string> = {
   'albert park circuit': 'Albert Park combina frenadas fuertes con secciones rápidas entre muros y parques. Es un circuito donde la tracción y la confianza al atacar pianos marcan diferencias.',
@@ -131,7 +124,14 @@ const normalize = (value: string) =>
 @Component({
   selector: 'app-f1-calendar-page',
   standalone: true,
-  imports: [RouterLink, ReturnNavDirective, AppHeaderComponent, AppSidebarComponent, SeriesAccentDirective],
+  imports: [
+    RouterLink,
+    ReturnNavDirective,
+    AppHeaderComponent,
+    AppSidebarComponent,
+    SeriesAccentDirective,
+    FormulaCircuitCardMapComponent,
+  ],
   templateUrl: './f1-calendar.page.html',
   styleUrl: './f1-calendar.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -175,17 +175,11 @@ export class F1CalendarPageComponent {
         done ? 'done' : race.round === nextRound ? 'next' : 'upcoming';
       const result = results[race.round];
       const stats = this.statsFor(race);
-      const { circuitPath, viewBox, startX, startY } = this.circuitSvg(race);
 
       return {
         race,
         status,
         description: this.descriptionFor(race),
-        circuitSvgUrl: race.circuitSvgUrl ?? null,
-        circuitPath,
-        viewBox,
-        startX,
-        startY,
         laps: stats?.laps ?? null,
         km: stats?.km ?? null,
         dateLabel: this.formatRaceDate(race),
@@ -343,36 +337,5 @@ export class F1CalendarPageComponent {
 
   private teamColor(team: string): string {
     return TEAM_COLORS[normalize(team)] ?? '#888';
-  }
-
-  private circuitSvg(race: JolpikaCalendarRace): {
-    circuitPath: string; viewBox: string; startX: number; startY: number;
-  } {
-    const fallback = { circuitPath: GENERIC_PATH, viewBox: '0 0 300 170', startX: 24, startY: 92 };
-    const official = findOfficialCircuit(race.circuitName) ?? findOfficialCircuit(race.locality);
-    if (!official) return fallback;
-
-    const points = projectCircuitCoords(official.coords);
-    if (points.length < 3) return fallback;
-
-    const minX = Math.min(...points.map(p => p[0]));
-    const maxX = Math.max(...points.map(p => p[0]));
-    const minY = Math.min(...points.map(p => p[1]));
-    const maxY = Math.max(...points.map(p => p[1]));
-    const width = Math.max(maxX - minX, 1);
-    const height = Math.max(maxY - minY, 1);
-    const scale = Math.min(260 / width, 130 / height);
-    const offsetX = (300 - width * scale) / 2 - minX * scale;
-    const offsetY = (170 - height * scale) / 2 - minY * scale;
-    const projected = points.map(([x, y]) => [x * scale + offsetX, y * scale + offsetY]);
-    const [first, ...rest] = projected;
-    const path = `M ${first[0].toFixed(1)} ${first[1].toFixed(1)} ${rest.map(([x, y]) => `L ${x.toFixed(1)} ${y.toFixed(1)}`).join(' ')}`;
-
-    return {
-      circuitPath: path,
-      viewBox: '0 0 300 170',
-      startX: Number(first[0].toFixed(1)),
-      startY: Number(first[1].toFixed(1)),
-    };
   }
 }

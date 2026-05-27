@@ -146,9 +146,15 @@ export const startCircuitMapAnimation = (
   let mapProgress = Math.min(100, Math.max(0, options.lapProgress ?? 12));
   const fixedProgress = options.lapProgress !== undefined;
 
-  const rawPath = hasUsablePath(options.externalPath ?? [])
-    ? (options.externalPath as [number, number][])
-    : buildCircuitPath(circuitName, options.locality);
+  // Prioriza el trazado GPS verificado (mismo que calendario y feeder Moto2/Moto3).
+  // El `externalPath` (SVG «info» de Pulse en Supabase) son sectores de color que
+  // se muestrean mal; solo se usa como fallback si no hay trazado GPS.
+  const gpsPath = buildCircuitPath(circuitName, options.locality);
+  const rawPath = hasUsablePath(gpsPath)
+    ? gpsPath
+    : hasUsablePath(options.externalPath ?? [])
+      ? (options.externalPath as [number, number][])
+      : FALLBACK_PATH;
   const trackPath = hasUsablePath(rawPath) ? rawPath : FALLBACK_PATH;
 
   const W = canvas.width;

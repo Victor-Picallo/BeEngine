@@ -611,6 +611,31 @@
   display: block;
 }
 
+/* ── F1 / F2 / F3: trazado normalizado en cards (sin <img>) ── */
+.fc-root[data-series='f1'] .fc-circuit-svg-wrap--formula,
+.fc-root[data-series='f2'] .fc-circuit-svg-wrap--formula,
+.fc-root[data-series='f3'] .fc-circuit-svg-wrap--formula {
+  inset: 10px 12px;
+}
+
+.fc-root[data-series='f1'] app-formula-circuit-card-map,
+.fc-root[data-series='f2'] app-formula-circuit-card-map,
+.fc-root[data-series='f3'] app-formula-circuit-card-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.fc-root[data-series='f1'] .fc-circuit-svg--formula-outline,
+.fc-root[data-series='f2'] .fc-circuit-svg--formula-outline,
+.fc-root[data-series='f3'] .fc-circuit-svg--formula-outline {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 .fc-circuit-svg {
   width: 100%;
   height: 100%;

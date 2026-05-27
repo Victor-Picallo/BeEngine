@@ -25,15 +25,26 @@ export function isGenericCircuitSvg(model: CircuitSvgModel): boolean {
   return model.circuitPath === GENERIC_PATH;
 }
 
-function pathModelFromPoints(points: [number, number][]): CircuitSvgModel {
+export type CircuitSvgFitOptions = {
+  /** Ancho útil dentro del viewBox 300×170 (default 260). */
+  innerW?: number;
+  innerH?: number;
+};
+
+function pathModelFromPoints(
+  points: [number, number][],
+  fit: CircuitSvgFitOptions = {},
+): CircuitSvgModel {
   if (points.length < 3) return FALLBACK;
+  const innerW = fit.innerW ?? 260;
+  const innerH = fit.innerH ?? 130;
   const minX = Math.min(...points.map(p => p[0]));
   const maxX = Math.max(...points.map(p => p[0]));
   const minY = Math.min(...points.map(p => p[1]));
   const maxY = Math.max(...points.map(p => p[1]));
   const width = Math.max(maxX - minX, 1);
   const height = Math.max(maxY - minY, 1);
-  const scale = Math.min(260 / width, 130 / height);
+  const scale = Math.min(innerW / width, innerH / height);
   const offsetX = (300 - width * scale) / 2 - minX * scale;
   const offsetY = (170 - height * scale) / 2 - minY * scale;
   const projected = points.map(([x, y]) => [x * scale + offsetX, y * scale + offsetY]);
@@ -52,10 +63,16 @@ function buildCircuitSvgFromOutline(official: { coords: [number, number][] }): C
   return pathModelFromPoints(projectCircuitCoords(official.coords));
 }
 
-/** Contorno ya muestreado (p. ej. desde SVG Pulse del race, como en vivo). */
-export function buildCircuitSvgFromFlatPoints(points: [number, number][]): CircuitSvgModel {
-  return pathModelFromPoints(points);
+/** Contorno ya muestreado (p. ej. desde SVG en DB). */
+export function buildCircuitSvgFromFlatPoints(
+  points: [number, number][],
+  fit?: CircuitSvgFitOptions,
+): CircuitSvgModel {
+  return pathModelFromPoints(points, fit);
 }
+
+/** Mismo viewBox que las cards del calendario, con margen extra para que no roce el borde. */
+export const CALENDAR_CARD_CIRCUIT_FIT: CircuitSvgFitOptions = { innerW: 232, innerH: 118 };
 
 export function buildCircuitSvg(circuitName: string, locality?: string): CircuitSvgModel {
   const official = findCircuitOutline(circuitName, locality);

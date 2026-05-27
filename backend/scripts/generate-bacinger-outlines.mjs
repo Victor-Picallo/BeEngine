@@ -44,6 +44,21 @@ const OSM_TRACKS = [
     osmType: 'way',
     osmId: 55839708,
   },
+  {
+    id: 'osm-goiania',
+    name: 'Autódromo Internacional Ayrton Senna',
+    location: 'Goiânia',
+    osmType: 'relation',
+    osmId: 15921950,
+  },
+  { id: 'osm-brno', name: 'Automotodrom Brno', location: 'Brno', osmType: 'way', osmId: 8585805 },
+  {
+    id: 'osm-balaton',
+    name: 'Balaton Park Circuit',
+    location: 'Balatonfőkajár',
+    osmType: 'way',
+    osmId: 338856660,
+  },
 ];
 
 function coordsFromGeoJsonFeature(feature) {
