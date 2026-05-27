@@ -30,12 +30,6 @@ import {
 import { getCircuits, findCircuitByName } from './motogpCircuits.service.js';
 import { getTeamsIndex, enrichStandingRow } from './motogpTeams.service.js';
 import {
-  resolveMotogpTeamLogoUrl,
-  resolveOfficialConstructorSlug,
-} from '../../data/motogp/motogpTeamLogos.js';
-import { resolveMoto2TeamLogoUrl } from '../../data/moto2/moto2TeamLogos.js';
-import { resolveMoto3TeamLogoUrl } from '../../data/moto3/moto3TeamLogos.js';
-import {
   enrichMoto2DriverStandings,
   enrichMoto2TeamStandings,
 } from '../moto2/moto2Data.service.js';
@@ -66,14 +60,12 @@ const motoFeederApi = (categoryId) => {
     return {
       enrichDrivers: enrichMoto2DriverStandings,
       enrichTeams: enrichMoto2TeamStandings,
-      resolveTeamLogo: resolveMoto2TeamLogoUrl,
     };
   }
   if (categoryId === 'moto3') {
     return {
       enrichDrivers: enrichMoto3DriverStandings,
       enrichTeams: enrichMoto3TeamStandings,
-      resolveTeamLogo: resolveMoto3TeamLogoUrl,
     };
   }
   return null;
@@ -186,10 +178,7 @@ const normalizeConstructorStandingsByTeam = (classificationRows, categoryId = 'm
         wins: c.wins,
         nationality: '',
         teamColor: null,
-        logoUrl:
-          categoryId === 'motogp'
-            ? resolveMotogpTeamLogoUrl(null, constructorId, c.team)
-            : motoFeederApi(categoryId)?.resolveTeamLogo(null, constructorId, c.team) ?? null,
+        logoUrl: null,
       };
     });
 };
@@ -390,32 +379,6 @@ export const getConstructorStandings = async (categoryId = 'motogp') => {
     pulseOpts,
   );
   return { items: resolved.data, source: resolved.source };
-};
-
-/** Parrilla oficial: 11 equipos Pulse + puntos/victorias agregados por equipo del grid. */
-const aggregateStandingsByOfficialTeam = (classificationRows, categoryId = 'motogp') => {
-  const bySlug = new Map();
-  for (const r of classificationRows) {
-    const teamName = r.team?.name ?? r.constructor?.name;
-    if (!teamName) continue;
-    const officialSlug =
-      categoryId === 'motogp'
-        ? resolveOfficialConstructorSlug(
-            r.team?.id ?? r.team?.uuid ?? null,
-            slugify(teamName),
-            teamName,
-          )
-        : slugify(teamName);
-    if (categoryId === 'motogp' && !officialSlug) continue;
-    if (!officialSlug) continue;
-    const pts = Number(r.points) || 0;
-    const wins = Number(r.race_wins) || 0;
-    const cur = bySlug.get(officialSlug) ?? { points: 0, wins: 0 };
-    cur.points += pts;
-    cur.wins += wins;
-    bySlug.set(officialSlug, cur);
-  }
-  return bySlug;
 };
 
 export const getOfficialTeamsGrid = async (categoryId = 'motogp') => {

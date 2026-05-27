@@ -51,7 +51,7 @@ npm run verify:media -- --strict
 | Área | Notas |
 |------|--------|
 | Noticias | F1 + MotoGP en DB |
-| Perfiles | `sync-profile-meta` (incluido en `refresh`) |
+| Perfiles | `profile_meta` en Postgres (check en `refresh`; sin JS local) |
 | Cron | Manual post-GP; sin scheduler en repo |
 
 ## Comandos sueltos

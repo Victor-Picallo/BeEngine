@@ -1,14 +1,14 @@
 /**
  * Sube medios → Supabase beengine-media y actualiza Postgres.
- * - Moto: logos en frontend/public + retratos/coches remotos
- * - F1/F2/F3: logos, coches y retratos desde CDN oficial (FOM / Cloudinary / OpenF1)
+ * - Moto/F2/F3: re-sube URLs remotas ya guardadas en Postgres (sin public/ local)
+ * - F1: CDN FOM + OpenF1 (requiere grids de sync en src/data/f1)
  *
  * Requiere en .env: SUPABASE_SERVICE_ROLE_KEY (+ DATABASE_URL)
  * Uso: npm run storage:upload
  */
 import 'dotenv/config';
-import { readdir, readFile } from 'node:fs/promises';
-import { join, extname, basename } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { createPrismaClient } from '../src/lib/prisma.js';
@@ -20,24 +20,10 @@ import {
 } from '../src/lib/supabaseStorage.js';
 import { seasonIdFor, currentSeasonYear } from '../src/repositories/db/season.repository.js';
 import { SUPABASE_STORAGE_PUBLIC_BASE } from '../src/config/env.js';
-import { MOTO2_DRIVER_PORTRAIT_URL } from '../src/data/moto2/moto2DriverPortraits.js';
-import { MOTO3_DRIVER_PORTRAIT_URL } from '../src/data/moto3/moto3DriverPortraits.js';
-import { MOTO2_TEAM_ASSETS } from '../src/data/moto2/moto2TeamAssets.js';
-import { MOTO3_TEAM_ASSETS } from '../src/data/moto3/moto3TeamAssets.js';
 import { F1_CONSTRUCTORS_GRID_2026 } from '../src/data/f1/f1ConstructorsGrid2026.js';
 import { F1_DRIVERS_GRID_2026 } from '../src/data/f1/f1DriversGrid2026.js';
 import { f1TeamCarImageUrl, f1TeamShowcaseImageUrl } from '../src/services/f1/teamMedia.js';
 import { getDrivers } from '../src/services/f1/openf1.service.js';
-import {
-  F2_DRIVER_HEADSHOT_URL,
-  F2_TEAM_CAR_URL,
-  F2_TEAM_LOGO_URL,
-} from '../src/data/f2/f2MediaAssets.js';
-import {
-  F3_DRIVER_HEADSHOT_URL,
-  F3_TEAM_CAR_URL,
-  F3_TEAM_LOGO_URL,
-} from '../src/data/f3/f3MediaAssets.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const publicRoot = join(root, 'frontend', 'public');
@@ -56,72 +42,88 @@ const needsRemoteUpload = (url) => {
   return true;
 };
 
-function constructorIdFromFile(fileName) {
-  return basename(fileName, extname(fileName));
-}
-
-async function uploadSeriesLogos(seriesId) {
-  const teamsDir = join(publicRoot, seriesId, 'teams');
-  let files;
-  try {
-    files = await readdir(teamsDir);
-  } catch {
-    console.warn(`  skip ${seriesId}: no ${teamsDir}`);
-    return { uploaded: 0, dbUpdated: 0 };
-  }
-
-  const images = files.filter((f) => /\.(png|jpe?g|svg|webp)$/i.test(f));
-  let uploaded = 0;
-  const urlByConstructor = new Map();
-
-  for (const file of images) {
-    const storagePath = `${seriesId}/constructors/${file}`;
-    const body = await readFile(join(teamsDir, file));
-    const url = await uploadFile(storagePath, body, mimeForFile(file));
-    const cid = constructorIdFromFile(file);
-    urlByConstructor.set(cid, url);
-    uploaded += 1;
-    console.log(`  ↑ ${storagePath}`);
-  }
-
-  return { uploaded, urlByConstructor };
-}
-
-async function updateDbLogos(prisma, seriesId, urlByConstructor) {
+/** Logos en constructor_season que aún apuntan fuera de Supabase. */
+async function uploadConstructorLogosFromDb(prisma, seriesId) {
   const seasonId = seasonIdFor(seriesId, currentSeasonYear());
+  let uploaded = 0;
   let dbUpdated = 0;
+  const teams = await prisma.constructorSeason.findMany({ where: { seasonId } });
 
-  for (const [constructorId, logoUrl] of urlByConstructor) {
-    const hit = await prisma.constructorSeason.updateMany({
-      where: { seasonId, constructorId },
-      data: { logoUrl },
-    });
-    if (hit.count > 0) {
-      dbUpdated += hit.count;
-      continue;
-    }
-    const fuzzy = await prisma.constructorSeason.findMany({ where: { seasonId } });
-    const match = fuzzy.find(
-      (r) =>
-        r.constructorId === constructorId ||
-        r.constructorId.includes(constructorId) ||
-        constructorId.includes(r.constructorId),
-    );
-    if (match) {
-      await prisma.constructorSeason.update({
-        where: {
-          seasonId_constructorId: {
-            seasonId,
-            constructorId: match.constructorId,
-          },
-        },
-        data: { logoUrl },
+  for (const t of teams) {
+    const remote = t.logoUrl;
+    if (!needsRemoteUpload(remote)) continue;
+    try {
+      const { path, url } = await uploadRemoteImage(
+        `${seriesId}/constructors/${t.constructorId}`,
+        remote,
+      );
+      console.log(`  ↑ ${path}`);
+      uploaded += 1;
+      const hit = await prisma.constructorSeason.updateMany({
+        where: { seasonId, constructorId: t.constructorId },
+        data: { logoUrl: url },
       });
-      dbUpdated += 1;
+      if (hit.count > 0) dbUpdated += hit.count;
+    } catch (e) {
+      console.warn(`  logo ${t.constructorId} skip:`, e.message);
     }
   }
 
-  return dbUpdated;
+  return { uploaded, dbUpdated };
+}
+
+/** Logo + moto/coche desde filas constructor_season (F2/F3/Moto). */
+async function uploadConstructorMediaFromDb(prisma, seriesId) {
+  const seasonId = seasonIdFor(seriesId, currentSeasonYear());
+  let uploaded = 0;
+  let dbUpdated = 0;
+  const teams = await prisma.constructorSeason.findMany({ where: { seasonId } });
+  const carFolder = ['motogp', 'moto2', 'moto3'].includes(seriesId) ? 'bikes' : 'cars';
+
+  for (const t of teams) {
+    let logoUrl;
+    let bikeImageUrl;
+
+    if (needsRemoteUpload(t.logoUrl)) {
+      try {
+        const { path, url } = await uploadRemoteImage(
+          `${seriesId}/constructors/${t.constructorId}`,
+          t.logoUrl,
+        );
+        console.log(`  ↑ ${path}`);
+        logoUrl = url;
+        uploaded += 1;
+      } catch (e) {
+        console.warn(`  logo ${t.constructorId} skip:`, e.message);
+      }
+    }
+
+    if (needsRemoteUpload(t.bikeImageUrl)) {
+      try {
+        const { path, url } = await uploadRemoteImage(
+          `${seriesId}/${carFolder}/${t.constructorId}`,
+          t.bikeImageUrl,
+        );
+        console.log(`  ↑ ${path}`);
+        bikeImageUrl = url;
+        uploaded += 1;
+      } catch (e) {
+        console.warn(`  ${carFolder} ${t.constructorId} skip:`, e.message);
+      }
+    }
+
+    if (!logoUrl && !bikeImageUrl) continue;
+    const data = {};
+    if (logoUrl) data.logoUrl = logoUrl;
+    if (bikeImageUrl) data.bikeImageUrl = bikeImageUrl;
+    const hit = await prisma.constructorSeason.updateMany({
+      where: { seasonId, constructorId: t.constructorId },
+      data,
+    });
+    if (hit.count > 0) dbUpdated += hit.count;
+  }
+
+  return { uploaded, dbUpdated };
 }
 
 function extFromResponse(remoteUrl, contentType) {
@@ -147,66 +149,6 @@ async function uploadRemoteImage(storagePath, remoteUrl) {
   const path = storagePath.includes('.') ? storagePath : `${storagePath}${ext}`;
   const url = await uploadFile(path, buf, mimeForFile(path));
   return { path, url };
-}
-
-async function uploadConstructorMedia(prisma, seriesId, logoMap, carMap) {
-  const seasonId = seasonIdFor(seriesId, currentSeasonYear());
-  let uploaded = 0;
-  let dbUpdated = 0;
-  const constructorIds = new Set([
-    ...Object.keys(logoMap || {}),
-    ...Object.keys(carMap || {}),
-  ]);
-
-  for (const constructorId of constructorIds) {
-    const logoRemote = logoMap?.[constructorId];
-    const carRemote = carMap?.[constructorId];
-
-    let logoUrl;
-    let bikeImageUrl;
-
-    if (logoRemote?.startsWith('http')) {
-      try {
-        const { path, url } = await uploadRemoteImage(
-          `${seriesId}/constructors/${constructorId}`,
-          logoRemote,
-        );
-        console.log(`  ↑ ${path}`);
-        logoUrl = url;
-        uploaded += 1;
-      } catch (e) {
-        console.warn(`  logo ${constructorId} skip:`, e.message);
-      }
-    }
-
-    if (carRemote?.startsWith('http')) {
-      try {
-        const { path, url } = await uploadRemoteImage(
-          `${seriesId}/cars/${constructorId}`,
-          carRemote,
-        );
-        console.log(`  ↑ ${path}`);
-        bikeImageUrl = url;
-        uploaded += 1;
-      } catch (e) {
-        console.warn(`  car ${constructorId} skip:`, e.message);
-      }
-    }
-
-    if (!logoUrl && !bikeImageUrl) continue;
-
-    const data = {};
-    if (logoUrl) data.logoUrl = logoUrl;
-    if (bikeImageUrl) data.bikeImageUrl = bikeImageUrl;
-
-    const hit = await prisma.constructorSeason.updateMany({
-      where: { seasonId, constructorId },
-      data,
-    });
-    if (hit.count > 0) dbUpdated += hit.count;
-  }
-
-  return { uploaded, dbUpdated };
 }
 
 const normalizeName = (s) =>
@@ -329,28 +271,6 @@ async function uploadFavicon() {
   return url;
 }
 
-async function uploadTeamBikes(prisma, seriesId, assetsMap) {
-  const seasonId = seasonIdFor(seriesId, currentSeasonYear());
-  let uploaded = 0;
-  for (const [constructorId, assets] of Object.entries(assetsMap)) {
-    if (!assets?.bikeImageUrl?.startsWith('http')) continue;
-    try {
-      const { path, url } = await uploadRemoteImage(
-        `${seriesId}/bikes/${constructorId}`,
-        assets.bikeImageUrl,
-      );
-      console.log(`  ↑ ${path}`);
-      await prisma.constructorSeason.updateMany({
-        where: { seasonId, constructorId },
-        data: { bikeImageUrl: url },
-      });
-      uploaded += 1;
-    } catch (e) {
-      console.warn(`  bike ${constructorId} skip:`, e.message);
-    }
-  }
-  return uploaded;
-}
 
 /**
  * MotoGP: motos y retratos desde Postgres (post db:sync:motogp) o Pulse si faltan.
@@ -563,20 +483,19 @@ async function uploadMotoSeriesPortraits(prisma, seriesId, portraitMap = {}) {
   return { uploaded, dbUpdated };
 }
 
-/** Motos desde assets curados y/o bikeImageUrl en constructor_season. */
-async function uploadMotoSeriesBikes(prisma, seriesId, assetsMap = {}) {
+/** Motos/coches desde bikeImageUrl en constructor_season. */
+async function uploadMotoSeriesBikes(prisma, seriesId) {
   const seasonId = seasonIdFor(seriesId, currentSeasonYear());
   let uploaded = 0;
   let dbUpdated = 0;
+  const folder = ['motogp', 'moto2', 'moto3'].includes(seriesId) ? 'bikes' : 'cars';
 
   const teams = await prisma.constructorSeason.findMany({ where: { seasonId } });
   for (const t of teams) {
-    const fromMap = assetsMap[t.constructorId]?.bikeImageUrl;
-    const remote =
-      needsRemoteUpload(t.bikeImageUrl) ? t.bikeImageUrl : fromMap?.startsWith('http') ? fromMap : null;
-    if (!remote?.startsWith('http') || !needsRemoteUpload(remote)) continue;
+    const remote = t.bikeImageUrl;
+    if (!needsRemoteUpload(remote)) continue;
     try {
-      const { path, url } = await uploadRemoteImage(`${seriesId}/bikes/${t.constructorId}`, remote);
+      const { path, url } = await uploadRemoteImage(`${seriesId}/${folder}/${t.constructorId}`, remote);
       console.log(`  ↑ ${path}`);
       uploaded += 1;
       await prisma.constructorSeason.updateMany({
@@ -591,37 +510,6 @@ async function uploadMotoSeriesBikes(prisma, seriesId, assetsMap = {}) {
   return { uploaded, dbUpdated };
 }
 
-async function uploadDriverPortraits(prisma, seriesId, portraitMap) {
-  const seasonId = seasonIdFor(seriesId, currentSeasonYear());
-  let uploaded = 0;
-  let dbUpdated = 0;
-
-  for (const [driverId, remoteUrl] of Object.entries(portraitMap)) {
-    if (!remoteUrl?.startsWith('http')) continue;
-    try {
-      const { path, url } = await uploadRemoteImage(
-        `${seriesId}/drivers/${driverId}`,
-        remoteUrl,
-      );
-      console.log(`  ↑ ${path}`);
-      uploaded += 1;
-
-      await prisma.driver.upsert({
-        where: { id: driverId },
-        create: { id: driverId, headshotUrl: url },
-        update: { headshotUrl: url },
-      });
-      const entry = await prisma.driverSeasonEntry.updateMany({
-        where: { seasonId, driverId },
-        data: { headshotUrl: url },
-      });
-      if (entry.count > 0) dbUpdated += entry.count;
-    } catch (e) {
-      console.warn(`  portrait ${driverId} skip:`, e.message);
-    }
-  }
-  return { uploaded, dbUpdated };
-}
 
 async function main() {
   if (!storageConfigured()) {
@@ -656,10 +544,10 @@ async function main() {
 
     if (motoOnly) {
       for (const seriesId of MOTO_SERIES) {
-        console.log(`\n=== ${seriesId} logos ===`);
-        const { uploaded, urlByConstructor } = await uploadSeriesLogos(seriesId);
-        totalUp += uploaded;
-        totalDb += await updateDbLogos(prisma, seriesId, urlByConstructor);
+        console.log(`\n=== ${seriesId} logos (DB) ===`);
+        const logos = await uploadConstructorLogosFromDb(prisma, seriesId);
+        totalUp += logos.uploaded;
+        totalDb += logos.dbUpdated;
       }
 
       console.log('\n=== motogp bikes + portraits ===');
@@ -667,15 +555,15 @@ async function main() {
       totalUp += mgp.uploaded;
       totalDb += mgp.dbUpdated;
 
-      console.log('\n=== moto2 media ===');
-      const m2b = await uploadMotoSeriesBikes(prisma, 'moto2', MOTO2_TEAM_ASSETS);
-      const m2p = await uploadMotoSeriesPortraits(prisma, 'moto2', MOTO2_DRIVER_PORTRAIT_URL);
+      console.log('\n=== moto2 media (DB) ===');
+      const m2b = await uploadMotoSeriesBikes(prisma, 'moto2');
+      const m2p = await uploadMotoSeriesPortraits(prisma, 'moto2');
       totalUp += m2b.uploaded + m2p.uploaded;
       totalDb += m2b.dbUpdated + m2p.dbUpdated;
 
-      console.log('\n=== moto3 media ===');
-      const m3b = await uploadMotoSeriesBikes(prisma, 'moto3', MOTO3_TEAM_ASSETS);
-      const m3p = await uploadMotoSeriesPortraits(prisma, 'moto3', MOTO3_DRIVER_PORTRAIT_URL);
+      console.log('\n=== moto3 media (DB) ===');
+      const m3b = await uploadMotoSeriesBikes(prisma, 'moto3');
+      const m3p = await uploadMotoSeriesPortraits(prisma, 'moto3');
       totalUp += m3b.uploaded + m3p.uploaded;
       totalDb += m3b.dbUpdated + m3p.dbUpdated;
 
@@ -701,12 +589,11 @@ async function main() {
 
     if (!skipMoto) {
     for (const seriesId of SERIES) {
-      console.log(`\n=== ${seriesId} ===`);
-      const { uploaded, urlByConstructor } = await uploadSeriesLogos(seriesId);
-      const dbUpdated = await updateDbLogos(prisma, seriesId, urlByConstructor);
-      totalUp += uploaded;
-      totalDb += dbUpdated;
-      console.log(`  ${uploaded} logos, ${dbUpdated} constructor_season rows`);
+      console.log(`\n=== ${seriesId} logos (DB) ===`);
+      const logos = await uploadConstructorLogosFromDb(prisma, seriesId);
+      totalUp += logos.uploaded;
+      totalDb += logos.dbUpdated;
+      console.log(`  ${logos.uploaded} logos, ${logos.dbUpdated} constructor_season rows`);
     }
 
     console.log('\n=== motogp bikes + portraits ===');
@@ -715,23 +602,17 @@ async function main() {
     totalDb += mgp.dbUpdated;
     console.log(`  ${mgp.uploaded} uploads, ${mgp.dbUpdated} DB rows`);
 
-    console.log('\n=== moto2 bikes ===');
-    totalUp += await uploadTeamBikes(prisma, 'moto2', MOTO2_TEAM_ASSETS);
+    console.log('\n=== moto2 media (DB) ===');
+    const m2b = await uploadMotoSeriesBikes(prisma, 'moto2');
+    const m2p = await uploadMotoSeriesPortraits(prisma, 'moto2');
+    totalUp += m2b.uploaded + m2p.uploaded;
+    totalDb += m2b.dbUpdated + m2p.dbUpdated;
 
-    console.log('\n=== moto3 bikes ===');
-    totalUp += await uploadTeamBikes(prisma, 'moto3', MOTO3_TEAM_ASSETS);
-
-    console.log('\n=== moto2 driver portraits ===');
-    const m2p = await uploadDriverPortraits(prisma, 'moto2', MOTO2_DRIVER_PORTRAIT_URL);
-    totalUp += m2p.uploaded;
-    totalDb += m2p.dbUpdated;
-    console.log(`  ${m2p.uploaded} portraits, ${m2p.dbUpdated} season entries`);
-
-    console.log('\n=== moto3 driver portraits ===');
-    const m3p = await uploadDriverPortraits(prisma, 'moto3', MOTO3_DRIVER_PORTRAIT_URL);
-    totalUp += m3p.uploaded;
-    totalDb += m3p.dbUpdated;
-    console.log(`  ${m3p.uploaded} portraits, ${m3p.dbUpdated} season entries`);
+    console.log('\n=== moto3 media (DB) ===');
+    const m3b = await uploadMotoSeriesBikes(prisma, 'moto3');
+    const m3p = await uploadMotoSeriesPortraits(prisma, 'moto3');
+    totalUp += m3b.uploaded + m3p.uploaded;
+    totalDb += m3b.dbUpdated + m3p.dbUpdated;
     } else {
       console.log('\n  (--skip-moto: omitiendo logos/bikes/retratos Moto)');
     }
@@ -741,22 +622,18 @@ async function main() {
     totalDb += f1.dbUpdated;
     console.log(`  f1: ${f1.uploaded} uploads, ${f1.dbUpdated} DB rows`);
 
-    console.log('\n=== f2 media ===');
-    const f2c = await uploadConstructorMedia(prisma, 'f2', F2_TEAM_LOGO_URL, F2_TEAM_CAR_URL);
-    totalUp += f2c.uploaded;
-    totalDb += f2c.dbUpdated;
-    const f2p = await uploadDriverPortraits(prisma, 'f2', F2_DRIVER_HEADSHOT_URL);
-    totalUp += f2p.uploaded;
-    totalDb += f2p.dbUpdated;
+    console.log('\n=== f2 media (DB) ===');
+    const f2c = await uploadConstructorMediaFromDb(prisma, 'f2');
+    const f2p = await uploadMotoSeriesPortraits(prisma, 'f2');
+    totalUp += f2c.uploaded + f2p.uploaded;
+    totalDb += f2c.dbUpdated + f2p.dbUpdated;
     console.log(`  f2: ${f2c.uploaded + f2p.uploaded} uploads, ${f2c.dbUpdated + f2p.dbUpdated} DB rows`);
 
-    console.log('\n=== f3 media ===');
-    const f3c = await uploadConstructorMedia(prisma, 'f3', F3_TEAM_LOGO_URL, F3_TEAM_CAR_URL);
-    totalUp += f3c.uploaded;
-    totalDb += f3c.dbUpdated;
-    const f3p = await uploadDriverPortraits(prisma, 'f3', F3_DRIVER_HEADSHOT_URL);
-    totalUp += f3p.uploaded;
-    totalDb += f3p.dbUpdated;
+    console.log('\n=== f3 media (DB) ===');
+    const f3c = await uploadConstructorMediaFromDb(prisma, 'f3');
+    const f3p = await uploadMotoSeriesPortraits(prisma, 'f3');
+    totalUp += f3c.uploaded + f3p.uploaded;
+    totalDb += f3c.dbUpdated + f3p.dbUpdated;
     console.log(`  f3: ${f3c.uploaded + f3p.uploaded} uploads, ${f3c.dbUpdated + f3p.dbUpdated} DB rows`);
 
     console.log(`\n=== circuit images (${skipMoto ? 'F1/F2/F3' : 'all series'}) ===`);

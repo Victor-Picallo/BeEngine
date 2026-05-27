@@ -3,7 +3,7 @@ import { CAREER_HISTORY_PAGE_SIZE, paginateCareerHistoryByRecentPage } from '../
 import {
   getDriverHistoricalStats,
   mergeDriverHistoricalWithLive,
-} from '../../data/f1/f1DriverHistoricalStats.js';
+} from '../shared/profileMeta.service.js';
 
 /** Driver profile hits Jolpica many times; allow a bit more than the global default. */
 const PROFILE_JOLPICA = { timeoutMs: 8_000 };
@@ -385,7 +385,7 @@ const DRIVER_AGGREGATES_HTTP_WAIT_MS = Math.max(
 );
 
 async function buildQuickLiveDriverAggregate(driverId) {
-  const historical = getDriverHistoricalStats(driverId);
+  const historical = await getDriverHistoricalStats(driverId);
   if (!historical) return null;
 
   const [{ season }, standing] = await Promise.all([
@@ -647,7 +647,7 @@ export const getDriverProfile = async (rawDriverId, opts = {}) => {
     };
   }
 
-  const historical = getDriverHistoricalStats(driverId);
+  const historical = await getDriverHistoricalStats(driverId);
   const agg = driverAggregateCache.get(driverId);
   const aggFresh = agg && Date.now() - agg.ts < DRIVER_AGGREGATE_CACHE_MS && !agg.partial;
   const currentYearRow = careerHistory.find((r) => r.year === f1SeasonYear) ?? null;

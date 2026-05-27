@@ -4,10 +4,11 @@ import {
 } from '../../external/motogp/pulselive.client.js';
 import {
   getManufacturerHistorical,
+  getMotogpTeamProfileDef,
+  getTeamHistorical,
   isManufacturerChampionYear,
-} from '../../data/motogp/motogpManufacturerHistorical.js';
-import { getTeamHistorical } from '../../data/motogp/motogpTeamHistorical.js';
-import { getMotogpTeamProfileDef, teamSlugMatchesProfile } from '../../data/motogp/motogpTeamProfiles.js';
+  teamSlugMatchesProfile,
+} from '../shared/profileMeta.service.js';
 import { CAREER_HISTORY_PAGE_SIZE } from '../../utils/careerPagination.js';
 
 const asList = (raw) => (Array.isArray(raw) ? raw : raw?.value ?? []);
@@ -131,7 +132,8 @@ const fetchSeasonRowManufacturer = async (season, manufacturerSlug, currentSeaso
   if (!row) return null;
 
   const complete = season.year < currentSeasonYear;
-  const titleWon = complete && isManufacturerChampionYear(manufacturerSlug, season.year);
+  const titleWon =
+    complete && (await isManufacturerChampionYear(manufacturerSlug, season.year));
 
   return {
     year: season.year,
@@ -179,7 +181,7 @@ export const buildTeamCareerHistory = async (
   currentSeasonYear,
   careerPage = 1,
 ) => {
-  const profile = getMotogpTeamProfileDef(constructorId);
+  const profile = await getMotogpTeamProfileDef(constructorId);
   if (!profile) return { items: [], careerHistoryPagination: null };
 
   const seasons = await getSeasons();
@@ -204,7 +206,7 @@ export const buildTeamCareerHistory = async (
         /* sin datos */
       }
     }
-    const hist = getManufacturerHistorical(profile.manufacturerSlug);
+    const hist = await getManufacturerHistorical(profile.manufacturerSlug);
     const maxPts = Math.max(
       hist?.maxCareerPts ?? 1,
       ...rows.map((r) => r.pts),
@@ -257,9 +259,9 @@ export const buildTeamCareerHistory = async (
 
 const sortYearsDesc = (years) => [...years].sort((a, b) => b - a);
 
-export const statsFromCareerHistory = (careerHistory, profile, lifetime = null) => {
+export const statsFromCareerHistory = async (careerHistory, profile, lifetime = null) => {
   const mfr = profile?.manufacturerSlug
-    ? getManufacturerHistorical(profile.manufacturerSlug)
+    ? await getManufacturerHistorical(profile.manufacturerSlug)
     : null;
 
   if (mfr) {
@@ -274,7 +276,7 @@ export const statsFromCareerHistory = (careerHistory, profile, lifetime = null) 
     };
   }
 
-  const curated = getTeamHistorical(profile?.constructorId);
+  const curated = await getTeamHistorical(profile?.constructorId);
   const fromCareer = {
     championships: 0,
     totalWins: careerHistory.reduce((s, h) => s + (h.wins ?? 0), 0),

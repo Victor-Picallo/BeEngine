@@ -40,13 +40,13 @@ async function main() {
     await runNode(script, ...args);
   }
 
-  console.log('\n=== PROFILE META ===');
+  console.log('\n=== PROFILE META (check) ===');
   await runNode(join(syncDir, 'sync-profile-meta.mjs'));
 
   console.log('\n=== NEWS RSS ===');
   await runNode(join(syncDir, 'sync-news.mjs'));
 
-  console.log('\nAll series synced (+ profiles + news).');
+  console.log('\nAll series synced (+ profile_meta check + news).');
 }
 
 main().catch((e) => {

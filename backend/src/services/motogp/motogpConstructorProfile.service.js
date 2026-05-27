@@ -4,15 +4,13 @@ import {
   getRaceResultsByRound,
   getCurrentSeasonYear,
 } from './pulseLive.service.js';
-import { resolveMotogpTeamLogoUrl } from '../../data/motogp/motogpTeamLogos.js';
-import { resolveMoto2TeamLogoUrl } from '../../data/moto2/moto2TeamLogos.js';
-import { resolveMoto3TeamLogoUrl } from '../../data/moto3/moto3TeamLogos.js';
+import { toPublicMediaUrl } from '../../lib/supabaseStorage.js';
 import {
   createDynamicTeamProfileDef,
+  getManufacturerHistorical,
   getMotogpTeamProfileDef,
   teamSlugMatchesProfile,
-} from '../../data/motogp/motogpTeamProfiles.js';
-import { getManufacturerHistorical } from '../../data/motogp/motogpManufacturerHistorical.js';
+} from '../shared/profileMeta.service.js';
 import {
   buildTeamCareerHistory,
   buildTeamLifetimeStats,
@@ -47,7 +45,7 @@ export const getConstructorProfile = async (constructorId, opts = {}) => {
   const careerPage = Math.max(1, parseInt(String(opts.careerPage ?? '1'), 10) || 1);
   const categoryId = opts.categoryId === 'moto2' || opts.categoryId === 'moto3' ? opts.categoryId : 'motogp';
   const seasonYear = await getCurrentSeasonYear();
-  const profileDef = categoryId === 'motogp' ? getMotogpTeamProfileDef(constructorId) : null;
+  const profileDef = categoryId === 'motogp' ? await getMotogpTeamProfileDef(constructorId) : null;
   const teamRow = await findTeam(constructorId, seasonYear, categoryId);
   const standingRow =
     (await getConstructorStandings(categoryId)).items.find(
@@ -65,7 +63,7 @@ export const getConstructorProfile = async (constructorId, opts = {}) => {
   const team = teamRow ?? (await findTeam(standingRow?.team, seasonYear, categoryId));
   const cid = team?.constructorId ?? standingRow?.constructorId ?? constructorId;
   const def =
-    (categoryId === 'motogp' ? getMotogpTeamProfileDef(cid) : null) ??
+    (categoryId === 'motogp' ? await getMotogpTeamProfileDef(cid) : null) ??
     profileDef ??
     (team ? createDynamicTeamProfileDef(cid, team.name) : null);
 
@@ -162,7 +160,7 @@ export const getConstructorProfile = async (constructorId, opts = {}) => {
   }
 
   const baseStats = def
-    ? statsFromCareerHistory(careerHistory, def)
+    ? await statsFromCareerHistory(careerHistory, def)
     : {
         championships: 0,
         championshipYears: [],
@@ -186,7 +184,7 @@ export const getConstructorProfile = async (constructorId, opts = {}) => {
     suzuki: 'Suzuki',
   };
   const linkedMfr = def?.linkedManufacturerSlug
-    ? getManufacturerHistorical(def.linkedManufacturerSlug)
+    ? await getManufacturerHistorical(def.linkedManufacturerSlug)
     : null;
   const linkedManufacturer = linkedMfr
     ? {
@@ -211,15 +209,10 @@ export const getConstructorProfile = async (constructorId, opts = {}) => {
     nationality: def?.nationality ?? standingRow?.nationality ?? '',
     wikiUrl: def?.wikiUrl ?? null,
     logoUrl:
-      team?.logoUrl ??
-      standingRow?.logoUrl ??
-      (categoryId === 'moto2'
-        ? resolveMoto2TeamLogoUrl(team?.teamId ?? standingRow?.teamId, cid, displayName)
-        : categoryId === 'moto3'
-          ? resolveMoto3TeamLogoUrl(team?.teamId ?? standingRow?.teamId, cid, displayName)
-          : resolveMotogpTeamLogoUrl(team?.teamId ?? standingRow?.teamId, cid, displayName)) ??
+      toPublicMediaUrl(team?.logoUrl) ??
+      toPublicMediaUrl(standingRow?.logoUrl) ??
       null,
-    bikeImageUrl: team?.bikeImageUrl ?? null,
+    bikeImageUrl: toPublicMediaUrl(team?.bikeImageUrl) ?? null,
     teamColor: team?.color ?? standingRow?.teamColor ?? null,
     currentSeasonYear: seasonYear,
     standing: standingRow
@@ -248,10 +241,10 @@ export const getConstructorProfileAggregates = async (constructorId, opts = {}) 
   const categoryId = opts.categoryId === 'moto2' || opts.categoryId === 'moto3' ? opts.categoryId : 'motogp';
   const seasonYear = await getCurrentSeasonYear();
   const profile = await getConstructorProfile(constructorId, { careerPage: 1, categoryId });
-  const def = categoryId === 'motogp' ? getMotogpTeamProfileDef(profile.constructorId) : null;
+  const def = categoryId === 'motogp' ? await getMotogpTeamProfileDef(profile.constructorId) : null;
 
   if (def?.manufacturerSlug) {
-    const hist = getManufacturerHistorical(def.manufacturerSlug);
+    const hist = await getManufacturerHistorical(def.manufacturerSlug);
     return {
       stats: profile.stats,
       bioText: profile.bioText,
@@ -274,7 +267,7 @@ export const getConstructorProfileAggregates = async (constructorId, opts = {}) 
   }
 
   const lifetime = await buildTeamLifetimeStats(def, seasonYear);
-  const stats = statsFromCareerHistory(profile.careerHistory, def, lifetime);
+  const stats = await statsFromCareerHistory(profile.careerHistory, def, lifetime);
   const maxCareerPts = Math.max(
     lifetime?.maxCareerPts ?? 1,
     profile.careerHistoryPagination?.maxPts ?? 1,

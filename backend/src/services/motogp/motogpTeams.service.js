@@ -2,9 +2,7 @@ import {
   pulseliveClient,
   MOTOGP_CATEGORY_UUID,
 } from '../../external/motogp/pulselive.client.js';
-import { resolveMotogpTeamLogoUrl } from '../../data/motogp/motogpTeamLogos.js';
-import { resolveMoto2TeamLogoUrl } from '../../data/moto2/moto2TeamLogos.js';
-import { resolveMoto3TeamLogoUrl } from '../../data/moto3/moto3TeamLogos.js';
+import { toPublicMediaUrl } from '../../lib/supabaseStorage.js';
 
 /** Categoría broadcast MotoGP™ (equipos / riders con fotos). */
 export const MOTOGP_BROADCAST_CATEGORY_UUID = '737ab122-76e1-4081-bedb-334caaa18c70';
@@ -17,19 +15,14 @@ const BROADCAST_UUIDS = {
   moto3:  MOTO3_BROADCAST_CATEGORY_UUID,
 };
 
-/**
- * PulseLive devuelve #262626 (placeholder genérico) para varios equipos.
- * Este mapa sobrescribe esos colores con los colores de marca reales.
- * Clave: slug del nombre de equipo (minúsculas, sin acentos, guiones).
- */
 const TEAM_COLOR_OVERRIDES = {
-  'pertamina-enduro-vr46-racing-team': '#C6D637', // VR46 amarillo-lima fluorescente (marca Rossi/VR46)
+  'pertamina-enduro-vr46-racing-team': '#C6D637',
   'vr46-racing-team':                  '#C6D637',
-  'prima-pramac-yamaha-motogp':        '#5B2D8E', // Pramac morado oscuro (identidad de marca Pramac)
+  'prima-pramac-yamaha-motogp':        '#5B2D8E',
   'prima-pramac-yamaha':               '#5B2D8E',
-  'red-bull-ktm-tech3':                '#FF6600', // KTM naranja oficial (Pantone 021C)
-  'trackhouse-motogp-team':            '#0057B8', // Trackhouse azul eléctrico
-  'castrol-honda-lcr':                 '#009343', // LCR Honda verde Castrol oficial
+  'red-bull-ktm-tech3':                '#FF6600',
+  'trackhouse-motogp-team':            '#0057B8',
+  'castrol-honda-lcr':                 '#009343',
   'lcr-honda':                         '#009343',
   'blu-cru-pramac-yamaha-moto2':       '#5B2D8E',
   'cfmoto-aspar-team':                 '#E30613',
@@ -44,7 +37,7 @@ const TEAM_COLOR_OVERRIDES = {
 
 const TEAMS_CACHE_MS = 6 * 60 * 60_000;
 
-const teamsCacheMap = new Map(); // key: `${year}-${categoryId}`
+const teamsCacheMap = new Map();
 
 const slugify = (s) =>
   String(s || '')
@@ -96,7 +89,6 @@ const normalizeTeam = (t, categoryId = 'motogp') => {
   const constructorName = t.constructor?.name ?? '';
   const name = t.name ?? constructorName;
   const slug = slugify(name);
-  const constructorSlug = slugify(constructorName || name);
   const picture = t.picture ?? null;
   const bg = t.background_picture ?? null;
   const bikeImageUrl = isBikePicture(picture)
@@ -106,14 +98,7 @@ const normalizeTeam = (t, categoryId = 'motogp') => {
       : picture ?? bg ?? null;
   const rawColor = t.color ?? null;
   const color = TEAM_COLOR_OVERRIDES[slug] ?? (rawColor && rawColor !== '#262626' ? rawColor : null);
-  const logoUrl =
-    categoryId === 'motogp'
-      ? resolveMotogpTeamLogoUrl(t.id, slug, name)
-      : categoryId === 'moto2'
-        ? resolveMoto2TeamLogoUrl(t.id, slug, name) ?? pickPulseTeamLogo(t)
-        : categoryId === 'moto3'
-          ? resolveMoto3TeamLogoUrl(t.id, slug, name) ?? pickPulseTeamLogo(t)
-          : pickPulseTeamLogo(t);
+  const pulseLogo = pickPulseTeamLogo(t);
 
   return {
     teamId: t.id,
@@ -123,7 +108,7 @@ const normalizeTeam = (t, categoryId = 'motogp') => {
     constructorName,
     color,
     textColor: t.text_color ?? null,
-    logoUrl,
+    logoUrl: categoryId === 'motogp' ? pulseLogo : pulseLogo,
     bikeImageUrl,
     nationality: '',
     riders: (t.riders ?? [])
@@ -132,7 +117,6 @@ const normalizeTeam = (t, categoryId = 'motogp') => {
   };
 };
 
-/** Equipos oficiales de la temporada (logos, colores, roster). */
 export const getTeamsIndex = async (seasonYear, categoryId = 'motogp') => {
   const year =
     Number.parseInt(String(seasonYear ?? new Date().getFullYear()), 10) ||
@@ -144,7 +128,7 @@ export const getTeamsIndex = async (seasonYear, categoryId = 'motogp') => {
     return cached.index;
   }
 
-  const broadcastUuid = BROADCAST_UUIDS[categoryId] ?? MOTOGP_BROADCAST_CATEGORY_UUID;
+  const broadcastUuid = BROADCAST_UUIDS[categoryId] ?? MOTOGP_CATEGORY_UUID;
   const raw = await pulseliveClient.get(
     `/teams?categoryUuid=${broadcastUuid}&seasonYear=${year}`,
     { freshTtlMs: TEAMS_CACHE_MS },
@@ -181,16 +165,8 @@ export const findTeam = async (key, seasonYear, categoryId = 'motogp') => {
   );
 };
 
-export const enrichStandingRow = (row, idx, categoryId = 'motogp') => {
+export const enrichStandingRow = (row, idx, _categoryId = 'motogp') => {
   const rowSlug = slugify(row.team) || row.constructorId || '';
-  const resolvedLogo =
-    categoryId === 'motogp'
-      ? resolveMotogpTeamLogoUrl(row.teamId, rowSlug, row.team)
-      : categoryId === 'moto2'
-        ? resolveMoto2TeamLogoUrl(row.teamId, rowSlug, row.team)
-        : categoryId === 'moto3'
-          ? resolveMoto3TeamLogoUrl(row.teamId, rowSlug, row.team)
-          : null;
 
   const team =
     idx.bySlug.get(rowSlug) ??
@@ -201,23 +177,16 @@ export const enrichStandingRow = (row, idx, categoryId = 'motogp') => {
     return {
       ...row,
       constructorId: rowSlug,
-      logoUrl: row.logoUrl ?? resolvedLogo ?? null,
+      logoUrl: toPublicMediaUrl(row.logoUrl) ?? null,
     };
   }
-
-  const logoUrl =
-    categoryId === 'motogp'
-      ? row.logoUrl ?? resolvedLogo ?? team.logoUrl
-      : categoryId === 'moto2' || categoryId === 'moto3'
-        ? row.logoUrl ?? resolvedLogo ?? team.logoUrl
-        : row.logoUrl ?? team.logoUrl ?? null;
 
   return {
     ...row,
     constructorId: rowSlug,
     teamId: team.teamId ?? row.teamId,
     teamColor: team.color ?? row.teamColor,
-    logoUrl,
-    bikeImageUrl: team.bikeImageUrl ?? row.bikeImageUrl,
+    logoUrl: toPublicMediaUrl(row.logoUrl) ?? toPublicMediaUrl(team.logoUrl) ?? null,
+    bikeImageUrl: toPublicMediaUrl(row.bikeImageUrl) ?? team.bikeImageUrl ?? null,
   };
 };

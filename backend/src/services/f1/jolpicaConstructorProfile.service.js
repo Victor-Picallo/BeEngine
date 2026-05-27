@@ -8,7 +8,7 @@ import {
 import {
   getConstructorHistoricalStats,
   mergeHistoricalWithLive,
-} from '../../data/f1/f1ConstructorHistoricalStats.js';
+} from '../shared/profileMeta.service.js';
 
 const PROFILE_JOLPICA = { timeoutMs: 10_000 };
 
@@ -547,7 +547,7 @@ function aggregateResponseFromCache(hit) {
 }
 
 async function buildQuickLiveAggregatePayload(constructorId) {
-  const historical = getConstructorHistoricalStats(constructorId);
+  const historical = await getConstructorHistoricalStats(constructorId);
   if (!historical) return null;
 
   const [{ seasonYear }, standing] = await Promise.all([
@@ -630,7 +630,7 @@ export async function getConstructorProfile(rawConstructorId, opts = {}) {
   const careerHistoryError =
     slice.years.length > 0 && careerHistory.length === 0;
 
-  const historical = getConstructorHistoricalStats(constructorId);
+  const historical = await getConstructorHistoricalStats(constructorId);
   const agg = aggregateCache.get(constructorId);
   const aggFresh = agg && Date.now() - agg.ts < AGGREGATE_CACHE_MS && !agg.partial;
   const currentYearRow = careerHistory.find((h) => h.year === seasonYear) ?? null;

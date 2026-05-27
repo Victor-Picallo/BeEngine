@@ -10,12 +10,7 @@ import {
 import { getRidersIndex } from './motogpRiders.service.js';
 import { getCircuits, findCircuitByName } from './motogpCircuits.service.js';
 import { getTeamsIndex, enrichStandingRow } from './motogpTeams.service.js';
-import {
-  resolveMotogpTeamLogoUrl,
-  resolveOfficialConstructorSlug,
-} from '../../data/motogp/motogpTeamLogos.js';
-import { resolveMoto2TeamLogoUrl } from '../../data/moto2/moto2TeamLogos.js';
-import { resolveMoto3TeamLogoUrl } from '../../data/moto3/moto3TeamLogos.js';
+import { resolveOfficialConstructorSlug } from '../shared/profileMeta.service.js';
 import {
   enrichMoto2DriverStandings,
   enrichMoto2TeamStandings,
@@ -112,14 +107,12 @@ const motoFeederApi = (categoryId) => {
     return {
       enrichDrivers: enrichMoto2DriverStandings,
       enrichTeams: enrichMoto2TeamStandings,
-      resolveTeamLogo: resolveMoto2TeamLogoUrl,
     };
   }
   if (categoryId === 'moto3') {
     return {
       enrichDrivers: enrichMoto3DriverStandings,
       enrichTeams: enrichMoto3TeamStandings,
-      resolveTeamLogo: resolveMoto3TeamLogoUrl,
     };
   }
   return null;
@@ -141,20 +134,19 @@ const normalizeDriverStandings = (raw) => {
   }));
 };
 
-const aggregateStandingsByOfficialTeam = (classificationRows, categoryId = 'motogp') => {
+const aggregateStandingsByOfficialTeam = async (classificationRows, categoryId = 'motogp') => {
   const bySlug = new Map();
   for (const r of classificationRows) {
     const teamName = r.team?.name ?? r.constructor?.name;
     if (!teamName) continue;
     const officialSlug =
       categoryId === 'motogp'
-        ? resolveOfficialConstructorSlug(
+        ? await resolveOfficialConstructorSlug(
             r.team?.id ?? r.team?.uuid ?? null,
             slugify(teamName),
             teamName,
           )
         : slugify(teamName);
-    if (categoryId === 'motogp' && !officialSlug) continue;
     if (!officialSlug) continue;
     const pts = Number(r.points) || 0;
     const wins = Number(r.race_wins) || 0;
@@ -228,7 +220,7 @@ export const fetchOfficialTeamsGrid = async (categoryId = 'motogp') => {
     ),
     getTeamsIndex(season.year, categoryId),
   ]);
-  const agg = aggregateStandingsByOfficialTeam(raw?.classification ?? [], categoryId);
+  const agg = await aggregateStandingsByOfficialTeam(raw?.classification ?? [], categoryId);
   const items = teamsIdx.list
     .map((t) => {
       const stats = agg.get(t.constructorId) ?? { points: 0, wins: 0 };
@@ -241,12 +233,7 @@ export const fetchOfficialTeamsGrid = async (categoryId = 'motogp') => {
         wins: stats.wins,
         nationality: '',
         teamColor: t.color,
-        logoUrl:
-          t.logoUrl ??
-          (categoryId === 'motogp'
-            ? resolveMotogpTeamLogoUrl(t.teamId, t.constructorId, t.name)
-            : motoFeederApi(categoryId)?.resolveTeamLogo(t.teamId, t.constructorId, t.name) ??
-              t.logoUrl),
+        logoUrl: t.logoUrl ?? null,
         bikeImageUrl: t.bikeImageUrl,
       };
     })
