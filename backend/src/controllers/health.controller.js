@@ -1,5 +1,6 @@
 import { success } from '../utils/response.js';
-import { NODE_ENV, DB_ENABLED } from '../config/env.js';
+import { NODE_ENV, DB_ENABLED, AUTH_ENABLED } from '../config/env.js';
+import { authConfigured } from '../lib/supabaseAuth.js';
 import { storageConfigured } from '../lib/supabaseStorage.js';
 import { prisma } from '../lib/prisma.js';
 import {
@@ -40,6 +41,7 @@ export const getHealth = async (_req, res) => {
     timestamp: new Date().toISOString(),
     db,
     storage: { configured: storageConfigured() },
+    auth: { configured: authConfigured() && AUTH_ENABLED },
     lastSync,
     lastSyncRuns: lastSyncDetail,
   });

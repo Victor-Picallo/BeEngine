@@ -12,7 +12,7 @@
   </app-topbar>
 
   <div class="hm-layout">
-    <app-side [favorites]="currentFavorites()" (catChange)="setCat($event)"></app-side>
+    <app-side (catChange)="setCat($event)"></app-side>
 
     @if (showMainLoading()) {
       <main class="hm-main hm-main--loading">

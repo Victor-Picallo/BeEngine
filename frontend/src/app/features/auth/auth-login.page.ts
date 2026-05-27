@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   OnInit,
   signal,
@@ -11,6 +12,8 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { catchError, forkJoin, of } from 'rxjs';
 import type { SeriesId } from '../../core/series/series.types';
+import { AuthService } from '../../core/auth/auth.service';
+import type { UserFavoriteDto } from '../../core/auth/auth.types';
 import { F1LiveService } from '../f1-live/f1-live.service';
 import type { JolpikaDriverStanding, OpenF1Driver } from '../f1-live/f1-live.types';
 import {
@@ -21,7 +24,7 @@ import {
   isFeederPortraitSeries,
 } from '../drivers/drivers-shared';
 
-export type AuthMode = 'login' | 'register' | 'reset';
+export type AuthMode = 'login' | 'register' | 'reset' | 'new-password';
 
 interface FavCategoryOption {
   id: string;
@@ -43,12 +46,16 @@ export class AuthLoginPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly f1Live = inject(F1LiveService);
+  readonly auth = inject(AuthService);
 
   readonly mode = signal<AuthMode>('login');
   readonly showPassword = signal(false);
   readonly loading = signal(false);
   readonly done = signal(false);
+  readonly doneHint = signal<string | null>(null);
   readonly errorMessage = signal<string | null>(null);
+  readonly authReady = this.auth.ready;
+  readonly authConfigured = this.auth.configured;
   readonly favCategory = signal<string | null>(null);
   readonly driversLoading = signal(false);
   private readonly driverStandings = signal<JolpikaDriverStanding[]>([]);
@@ -67,6 +74,7 @@ export class AuthLoginPageComponent implements OnInit {
 
   email = '';
   password = '';
+  passwordConfirm = '';
   name = '';
   favDriverId = '';
 
@@ -80,6 +88,14 @@ export class AuthLoginPageComponent implements OnInit {
     { id: 'moto2', label: 'Moto2', color: '#FF6B35', fg: '#fff' },
     { id: 'moto3', label: 'Moto3', color: '#52C41A', fg: '#fff' },
   ];
+
+  constructor() {
+    effect(() => {
+      if (this.auth.isPasswordRecovery()) {
+        this.mode.set('new-password');
+      }
+    });
+  }
 
   readonly features: { text: string; icon: SafeHtml }[] = [
     {
@@ -109,7 +125,21 @@ export class AuthLoginPageComponent implements OnInit {
   ];
 
   ngOnInit(): void {
+    void this.bootstrapAuthMode();
+  }
+
+  private async bootstrapAuthMode(): Promise<void> {
+    await this.auth.init(!this.auth.configured());
     const tab = this.route.snapshot.queryParamMap.get('tab');
+    if (tab === 'new-password' || this.auth.isPasswordRecovery()) {
+      this.mode.set('new-password');
+      if (!this.auth.session()) {
+        this.errorMessage.set(
+          'El enlace ha expirado o no es válido. Solicita uno nuevo desde «¿Olvidaste tu contraseña?».',
+        );
+      }
+      return;
+    }
     if (tab === 'register' || tab === 'registro') {
       this.mode.set('register');
     }
@@ -118,6 +148,7 @@ export class AuthLoginPageComponent implements OnInit {
   setMode(next: AuthMode): void {
     this.mode.set(next);
     this.done.set(false);
+    this.doneHint.set(null);
     this.errorMessage.set(null);
     if (next !== 'register') {
       this.favCategory.set(null);
@@ -203,14 +234,74 @@ export class AuthLoginPageComponent implements OnInit {
   }
 
   onGoogle(): void {
-    this.errorMessage.set('Inicio con Google estará disponible pronto.');
+    void this.runAuthAction(async () => {
+      await this.auth.signInWithGoogle();
+    });
+  }
+
+  onSubmitNewPassword(event: Event): void {
+    event.preventDefault();
+    this.errorMessage.set(null);
+    this.doneHint.set(null);
+
+    if (this.password.length < 8) {
+      this.errorMessage.set('La contraseña debe tener al menos 8 caracteres.');
+      return;
+    }
+    if (this.password !== this.passwordConfirm) {
+      this.errorMessage.set('Las contraseñas no coinciden.');
+      return;
+    }
+
+    void this.runAuthAction(async () => {
+      await this.auth.updatePassword(this.password);
+      this.password = '';
+      this.passwordConfirm = '';
+      this.doneHint.set('Ya puedes usar tu nueva contraseña.');
+      this.done.set(true);
+      window.setTimeout(() => void this.router.navigateByUrl('/'), 1500);
+    });
   }
 
   onSubmit(event: Event): void {
     event.preventDefault();
     this.errorMessage.set(null);
+    this.doneHint.set(null);
+
+    if (this.mode() === 'new-password') {
+      this.onSubmitNewPassword(event);
+      return;
+    }
+
+    const email = this.email.trim();
+    if (!email) {
+      this.errorMessage.set('Introduce tu email.');
+      return;
+    }
+
+    if (this.mode() === 'reset') {
+      void this.runAuthAction(async () => {
+        await this.auth.resetPassword(email);
+        this.doneHint.set('Si existe una cuenta con ese email, recibirás un enlace para restablecer la contraseña.');
+        this.done.set(true);
+      });
+      return;
+    }
+
+    if (!this.password) {
+      this.errorMessage.set('Introduce tu contraseña.');
+      return;
+    }
 
     if (this.mode() === 'register') {
+      if (!this.name.trim()) {
+        this.errorMessage.set('Introduce tu nombre.');
+        return;
+      }
+      if (this.password.length < 8) {
+        this.errorMessage.set('La contraseña debe tener al menos 8 caracteres.');
+        return;
+      }
       if (!this.favCategory()) {
         this.errorMessage.set('Elige una categoría favorita.');
         return;
@@ -221,16 +312,65 @@ export class AuthLoginPageComponent implements OnInit {
       }
     }
 
-    this.loading.set(true);
-
-    // UI mock: sustituir por Supabase Auth en la siguiente fase.
-    window.setTimeout(() => {
-      this.loading.set(false);
-      this.done.set(true);
+    void this.runAuthAction(async () => {
       if (this.mode() === 'login') {
+        await this.auth.signInWithPassword(email, this.password);
+        this.done.set(true);
         window.setTimeout(() => void this.router.navigateByUrl('/'), 1200);
+        return;
       }
-    }, 1400);
+
+      const driver = this.selectedDriverOption();
+      const seriesId = this.favCategory()!;
+      const favorites: UserFavoriteDto[] = [
+        {
+          kind: 'category',
+          seriesId,
+          label: this.selectedCategoryLabel(),
+        },
+        {
+          kind: 'driver',
+          seriesId,
+          driverId: this.favDriverId,
+          label: driver?.driver,
+          teamLabel: driver?.team,
+        },
+      ];
+
+      const outcome = await this.auth.signUpWithPassword(
+        email,
+        this.password,
+        this.name.trim(),
+        favorites,
+      );
+
+      if (outcome === 'confirm_email') {
+        this.doneHint.set(
+          'Te hemos enviado un email de confirmación. Ábrelo y luego inicia sesión.',
+        );
+      }
+      this.done.set(true);
+    });
+  }
+
+  private async runAuthAction(action: () => Promise<void>): Promise<void> {
+    await this.auth.init(!this.auth.configured());
+    if (!this.auth.configured()) {
+      this.errorMessage.set(
+        this.auth.initError() ??
+          'Autenticación no disponible. Configura Supabase en el servidor.',
+      );
+      return;
+    }
+
+    this.loading.set(true);
+    try {
+      await action();
+    } catch (err) {
+      this.errorMessage.set(this.auth.mapAuthError(err));
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   private icon(svg: string): SafeHtml {

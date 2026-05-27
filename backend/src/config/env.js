@@ -39,7 +39,14 @@ export const SUPABASE_URL = (
   (supabaseProjectRefFromDb() ? `https://${supabaseProjectRefFromDb()}.supabase.co` : '')
 ).replace(/\/$/, '');
 
+export const SUPABASE_ANON_KEY = (process.env.SUPABASE_ANON_KEY || '').trim();
 export const SUPABASE_SERVICE_ROLE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+
+/** Backend: verificar JWT (anon o service role). */
+export const AUTH_ENABLED = Boolean(SUPABASE_URL && (SUPABASE_ANON_KEY || SUPABASE_SERVICE_ROLE_KEY));
+
+/** Frontend: crear cliente Supabase en el navegador (solo anon key, nunca service role). */
+export const AUTH_CLIENT_ENABLED = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 export const SUPABASE_STORAGE_BUCKET = (
   process.env.SUPABASE_STORAGE_BUCKET || 'beengine-media'
 ).trim();
@@ -79,6 +86,7 @@ export function logRuntimeConfig() {
     `  API timeout: ${EXTERNAL_API_TIMEOUT_MS}ms`,
     `  Database: ${DB_ENABLED ? 'configured' : 'off (no DATABASE_URL)'}`,
     `  Storage: ${SUPABASE_STORAGE_PUBLIC_BASE || 'off'}  bucket=${SUPABASE_STORAGE_BUCKET}`,
+    `  Auth: ${AUTH_ENABLED ? 'on' : 'off (SUPABASE_URL + ANON_KEY)'}`,
   ];
   console.log('\n  Config (.env):\n' + lines.join('\n') + '\n');
 }

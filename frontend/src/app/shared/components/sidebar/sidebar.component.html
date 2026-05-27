@@ -1,61 +1,126 @@
-<aside style="width: 196px; flex-shrink: 0; background: #ffffff; border-right: 1px solid #e5e5e7; display: flex; flex-direction: column; position: sticky; top: 50px; height: calc(100vh - 50px); overflow-y: auto;">
-
+<aside class="app-sidebar">
   <!-- Categories -->
-  <div style="padding: 10px 0;">
-    <div style="padding: 0 12px 6px; font-size: 9px; color: #aaa; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;">Categorías</div>
+  <div class="sidebar-block">
+    <div class="sidebar-section-label">Categorías</div>
     @for (cat of categories(); track cat.id) {
       <button
         class="sidebar-cat-btn"
+        type="button"
         (click)="catChange.emit(cat.id)"
         [ngStyle]="{
-          'width': '100%',
-          'display': 'flex',
-          'align-items': 'center',
-          'gap': '10px',
-          'padding': '8px 12px',
-          'background': activeCat() === cat.id ? (cat.accent + '22') : 'transparent',
+          background: activeCat() === cat.id ? cat.accent + '22' : 'transparent',
           'border-left': '3px solid ' + (activeCat() === cat.id ? cat.accent : 'transparent'),
-          'color': activeCat() === cat.id ? '#1a1a1a' : '#666',
-          'font-size': '13px',
+          color: activeCat() === cat.id ? '#1a1a1a' : '#666',
           'font-weight': activeCat() === cat.id ? '600' : '400',
-          'transition': 'all 0.12s',
-          'text-align': 'left'
-        }">{{ cat.label }}</button>
+        }"
+      >
+        {{ cat.label }}
+      </button>
     }
   </div>
 
   <!-- Sections -->
-  <div style="border-top: 1px solid #e5e5e7; padding: 10px 0;">
-    <div style="padding: 0 12px 6px; font-size: 9px; color: #aaa; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;">Secciones</div>
+  <div class="sidebar-block sidebar-block--border">
+    <div class="sidebar-section-label">Secciones</div>
     @for (item of sections(); track item) {
       @if (sectionPath(item); as path) {
-        <a
-          [routerLink]="path"
-          class="section-item"
-          style="display: block; width: 100%; text-align: left; padding: 7px 12px; font-size: 13px; color: #888; background: transparent; transition: color 0.1s; text-decoration: none;"
-        >{{ item }}</a>
+        <a [routerLink]="path" class="section-item">{{ item }}</a>
       } @else {
-        <button class="section-item" style="width: 100%; text-align: left; padding: 7px 12px; font-size: 13px; color: #888; background: transparent; transition: color 0.1s;">{{ item }}</button>
+        <button type="button" class="section-item">{{ item }}</button>
       }
     }
   </div>
 
-  <!-- Favorites -->
-  @if (favorites().length) {
-    <div style="border-top: 1px solid #e5e5e7; padding: 10px 0;">
-      <div style="padding: 0 12px 6px; font-size: 9px; color: #aaa; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;">Mis favoritos</div>
-      @for (fav of favorites(); track fav.name) {
-        <a class="fav-item" [routerLink]="pilotosLink(fav)" appReturnNav style="padding: 6px 12px; display: flex; gap: 8px; align-items: center; cursor: pointer; text-decoration: none; color: inherit;">
-          <div
-            [ngStyle]="{'border': '1px solid ' + accent() + '66', 'color': accent()}"
-            style="width: 28px; height: 28px; border-radius: 50%; background: #f0f0f2; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">{{ fav.name[0] }}</div>
-          <div>
-            <div style="font-size: 12px; color: #1a1a1a; font-weight: 600;">{{ fav.name }}</div>
-            <div style="font-size: 10px; color: #888;">{{ fav.sub }}</div>
-          </div>
-        </a>
+  <!-- Tus favoritos (estilo Trending) -->
+  <div class="sidebar-block sidebar-block--border sidebar-fav-wrap">
+    <div class="sb-card">
+      <div class="sb-card-head">
+        <div class="sb-card-head-row">
+          <div class="sb-card-accent-bar" [style.background]="accent()"></div>
+          <span class="sb-card-title">Tus favoritos</span>
+        </div>
+      </div>
+
+      @if (auth.isLoggedIn()) {
+        @if (favoriteRows().length) {
+          @for (row of favoriteRows(); track row.key; let i = $index) {
+            <a
+              class="sb-trend-row"
+              [routerLink]="favoriteLink(row)"
+              appReturnNav
+              [style.border-bottom]="
+                i < favoriteRows().length - 1 ? '1px solid #f5f5f2' : 'none'
+              "
+            >
+              <div
+                class="sb-trend-thumb"
+                [class.sb-trend-thumb--driver]="row.kind === 'driver'"
+                [style.background]="row.kind === 'driver' ? row.accent + '14' : 'transparent'"
+              >
+                @if (row.kind === 'category') {
+                  <div class="sb-series-mark" [style.--mark-accent]="row.accent">
+                    <span class="sb-series-mark-shape" aria-hidden="true"></span>
+                    <span class="sb-series-mark-text">{{ row.badge }}</span>
+                  </div>
+                } @else if (thumbVisible(row)) {
+                  <img
+                    class="sb-trend-img sb-trend-img--driver auth-driver-thumb"
+                    [src]="row.thumbUrl"
+                    [alt]="row.title"
+                    loading="lazy"
+                    (error)="thumbError(row, $event)"
+                  />
+                } @else {
+                  <span class="sb-trend-initials" [style.color]="row.accent">{{
+                    driverInitials(row.title)
+                  }}</span>
+                }
+              </div>
+              <div class="sb-trend-body">
+                <div class="sb-trend-meta">
+                  <span class="sb-trend-rank">{{ i + 1 }}</span>
+                  <span
+                    class="sb-trend-tag"
+                    [style]="{
+                      color: row.accent,
+                      background: row.accent + '14',
+                    }"
+                  >
+                    {{ row.kind === 'category' ? 'Cat.' : 'Piloto' }}
+                  </span>
+                </div>
+                <div class="sb-trend-title">{{ row.title }}</div>
+                <div class="sb-trend-sub">{{ row.subtitle }}</div>
+              </div>
+            </a>
+          }
+        } @else {
+          <p class="sb-empty">Aún no tienes favoritos guardados.</p>
+        }
+      } @else {
+        <p class="sb-empty">Inicia sesión para ver tu categoría y piloto favoritos.</p>
+        <div class="sb-card-foot">
+          <a routerLink="/login">Iniciar sesión →</a>
+        </div>
       }
     </div>
-  }
+  </div>
 
+  <div class="sidebar-spacer"></div>
+
+  <!-- Sesión -->
+  @if (auth.isLoggedIn()) {
+    <div class="sidebar-user">
+      <div class="sidebar-user-card" [style.--user-accent]="accent()">
+        <div class="sidebar-user-head">
+          <span class="sidebar-user-dot" aria-hidden="true"></span>
+          <span class="sidebar-user-kicker">Conectado como</span>
+        </div>
+        <div class="sidebar-user-name">{{ auth.displayName() }}</div>
+        <button type="button" class="sidebar-logout-btn" (click)="logout()">
+          Cerrar sesión
+        </button>
+      </div>
+    </div>
+  }
 </aside>

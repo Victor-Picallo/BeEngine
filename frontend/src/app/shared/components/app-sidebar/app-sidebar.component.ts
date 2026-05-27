@@ -14,7 +14,7 @@ import {
   MOTO_SIDEBAR_CATEGORIES,
 } from '../../../core/series/series-moto';
 import { MOTO_SECTION_LABELS, SERIES_SECTION_LABELS } from '../../../core/series/series-sidebar';
-import type { Category, Favorite } from '../../../data/sports.data';
+import type { Category } from '../../../data/sports.data';
 import type { SeriesId } from '../../../core/series/series.types';
 
 const FORMULA_SIDEBAR_CATEGORIES: Category[] = FORMULA_SERIES_IDS.map((id) => {
@@ -39,7 +39,6 @@ function queryCatFromRouter(router: Router): string | null {
       [categories]="categories()"
       [activeCat]="activeCat()"
       [accent]="accent()"
-      [favorites]="favorites()"
       [sections]="sections()"
       [sectionSeriesId]="sectionSeriesId()"
       (catChange)="onCategoryChange($event)">
@@ -52,7 +51,6 @@ export class AppSidebarComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly seriesCtx = inject(SeriesContextService);
 
-  favorites = input<Favorite[]>([]);
   motoNews = input<boolean | undefined>(undefined);
   newsCat = input<string | undefined>(undefined);
   catChange = output<string>();

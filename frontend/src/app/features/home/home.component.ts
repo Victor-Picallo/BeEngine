@@ -20,7 +20,6 @@ import {
   CountdownTime,
   Driver,
   Constructor,
-  Favorite,
   FLAG_MAP,
   LastRace,
   NewsItem,
@@ -241,8 +240,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   lastRaceWinner = computed(
     () => this.data().lastRace.podium[0]?.driver ?? '—',
   );
-
-  readonly currentFavorites: Favorite[] = [];
 
   maxConstructorPoints = computed(() => {
     const c = this.data().constructors;

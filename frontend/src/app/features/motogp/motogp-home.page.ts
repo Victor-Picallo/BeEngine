@@ -18,7 +18,6 @@ import {
   Constructor,
   CountdownTime,
   Driver,
-  Favorite,
   HEADER_CATEGORIES,
   LastRace,
   NewsItem,
@@ -79,7 +78,6 @@ export class MotogpHomePageComponent implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
   readonly seriesCtx = inject(SeriesContextService);
-
   readonly categories = HEADER_CATEGORIES;
   readonly homeLink = computed(() => this.seriesCtx.homePath());
 
@@ -133,14 +131,6 @@ export class MotogpHomePageComponent implements OnInit, OnDestroy {
   );
 
   lastRaceWinner = computed(() => this.data().lastRace.podium[0]?.driver ?? '—');
-
-  currentFavorites = computed((): Favorite[] =>
-    this.data().standings.slice(0, 2).map((d) => ({
-      name: d.driver,
-      sub: d.team,
-      driverId: d.driverId,
-    })),
-  );
 
   maxConstructorPoints = computed(() => {
     const c = this.data().constructors;

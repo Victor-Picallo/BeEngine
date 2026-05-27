@@ -62,6 +62,7 @@ El calendario API fusiona `circuitSvgUrl` / `circuitImageUrl` desde la tabla `ev
 | Noticias | F1 + MotoGP en DB |
 | Perfiles | `profile_meta` en Postgres (`db:sync:profiles` = verificación) |
 | Medios UI | Solo URLs del API; sin `public/*/teams` ni mapas CDN en Angular |
+| Auth | Supabase Auth + `user_profiles` / `user_favorites` (`GET /api/auth/config`, `GET/POST /api/me`) |
 | Cron | Manual post-GP; sin scheduler en repo |
 
 ## Comandos sueltos
@@ -71,3 +72,11 @@ El calendario API fusiona `circuitSvgUrl` / `circuitImageUrl` desde la tabla `ev
 | `npm run db:sync:f1` | Solo sync F1 |
 | `npm run storage:upload` | Solo Storage (sin sync previo) |
 | `npm run db:enrich:formula-circuits` | Solo circuitos fórmula |
+| `npm run db:migrate` | Tras cambios Prisma (p. ej. tablas auth) |
+
+### Auth (login / registro)
+
+1. En Supabase: activar Email (+ Google opcional). Site URL = `http://localhost:4200`.
+2. En `backend/.env`: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `DATABASE_URL`.
+3. `cd backend && npm run db:migrate`
+4. Arrancar API + `ng serve`; probar `/login` y `/login?tab=register`.

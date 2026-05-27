@@ -192,3 +192,32 @@ model NewsArticle {
   @@index([category, pubDate(sort: Desc)])
   @@map("news_articles")
 }
+
+/// Perfil de usuario (id = Supabase auth.users UUID).
+model UserProfile {
+  id          String         @id @db.Uuid
+  email       String         @unique
+  displayName String?        @db.VarChar(120)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  favorites   UserFavorite[]
+
+  @@map("user_profiles")
+}
+
+/// Favoritos del usuario (categoría y/o piloto por serie).
+model UserFavorite {
+  id         String      @id @default(cuid())
+  userId     String      @db.Uuid
+  user       UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind       String      @db.VarChar(16)
+  seriesId   String      @db.VarChar(16)
+  driverId   String?     @db.VarChar(64)
+  label      String?     @db.VarChar(120)
+  teamLabel  String?     @db.VarChar(120)
+  sortOrder  Int         @default(0)
+  createdAt  DateTime    @default(now())
+
+  @@index([userId, sortOrder])
+  @@map("user_favorites")
+}
