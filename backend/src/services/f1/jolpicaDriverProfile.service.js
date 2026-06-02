@@ -1,5 +1,12 @@
 import { jolpicaClient } from '../../external/jolpica/jolpica.client.js';
 import { CAREER_HISTORY_PAGE_SIZE, paginateCareerHistoryByRecentPage } from '../../utils/careerPagination.js';
+import { PREFER_DB_FIRST, DB_ENABLED, CURRENT_SEASON_YEAR } from '../../config/env.js';
+import { findDriverSeasonEntry } from '../../repositories/db/feeder.repository.js';
+import {
+  getDriverStandingsFromDb,
+  getLastRaceFromDb,
+  getRaceResultsFromDb,
+} from '../../repositories/db/f1.repository.js';
 import {
   getDriverHistoricalStats,
   mergeDriverHistoricalWithLive,
@@ -591,10 +598,126 @@ async function buildFullDriverProfileFromJolpica(rawDriverId, opts = {}) {
   };
 }
 
+function mapDbRaceResultRow(race, driverId, fallbackTeam) {
+  const results = race?.results ?? [];
+  const res = results.find((x) => x.driverId === driverId);
+  if (!res) return null;
+  const pos = parseInt(res.position, 10);
+  const grid = parseInt(res.grid, 10);
+  const pts = parseFloat(res.points) || 0;
+  const laps = parseInt(res.laps, 10) || 0;
+  return {
+    round: parseInt(race.round, 10) || 0,
+    gp: gpLabelEs(race.raceName ?? ''),
+    grid: Number.isFinite(grid) ? grid : 0,
+    pos: Number.isFinite(pos) ? pos : 0,
+    pts,
+    gap: res.time ?? res.status ?? '—',
+    laps,
+    fl: false,
+    teamName: res.team ?? fallbackTeam ?? '',
+  };
+}
+
+async function getDriverProfileFromDb(rawDriverId) {
+  if (!DB_ENABLED) return null;
+  const driverId = sanitizeDriverId(rawDriverId);
+  const entry = await findDriverSeasonEntry('f1', driverId);
+  if (!entry?.driver) return null;
+
+  const d = entry.driver;
+  const standings = await getDriverStandingsFromDb();
+  const row = standings?.find((s) => s.driverId === driverId) ?? null;
+  const standing = row
+    ? { pos: row.pos, points: row.points, wins: row.wins ?? 0, team: row.team }
+    : null;
+
+  const lastRace = await getLastRaceFromDb();
+  const maxRound = lastRace?.round ?? 0;
+  const currentSeason = [];
+  for (let r = 1; r <= maxRound; r += 1) {
+    const race = await getRaceResultsFromDb(r);
+    if (!race) continue;
+    const parsed = mapDbRaceResultRow(race, driverId, entry.teamName);
+    if (parsed) currentSeason.push(parsed);
+  }
+
+  const seasonYear = CURRENT_SEASON_YEAR;
+  const podiums = currentSeason.filter((x) => x.pos <= 3).length;
+  const historical = await getDriverHistoricalStats(driverId);
+  const currentYearRow = {
+    year: seasonYear,
+    team: entry.teamName,
+    races: currentSeason.length,
+    wins: row?.wins ?? 0,
+    podiums,
+    poles: 0,
+    pts: row?.points ?? 0,
+    pos: row?.pos ?? null,
+    seasonComplete: false,
+    titleWon: false,
+  };
+
+  let championships = 0;
+  let stats;
+  let debut = '—';
+  let statsSource = 'local';
+  let aggregatesPending = false;
+
+  if (historical) {
+    const merged = mergeDriverHistoricalWithLive(historical, {
+      standing,
+      seasonYear,
+      currentYearRow,
+    });
+    championships = merged.championships;
+    stats = merged.stats;
+    debut = historical.debut;
+    statsSource = standing ? 'live' : 'local';
+  } else {
+    stats = {
+      wins: row?.wins ?? 0,
+      podiums,
+      poles: 0,
+      fastestLaps: 0,
+      races: currentSeason.length,
+      points: row?.points ?? 0,
+      winsCurrentSeason: row?.wins ?? 0,
+    };
+    aggregatesPending = true;
+    scheduleDriverAggregatePrefetch(driverId);
+  }
+
+  return {
+    source: 'db',
+    driverId,
+    givenName: d.givenName ?? '',
+    familyName: d.familyName ?? '',
+    code: (entry.displayName?.slice(0, 3) ?? '').toUpperCase(),
+    number: null,
+    dateOfBirth: null,
+    nationality: d.nationality ?? row?.nationality ?? '',
+    championships,
+    debut,
+    currentSeasonYear: seasonYear,
+    stats,
+    currentSeason,
+    careerHistory: [currentYearRow],
+    careerHistoryPagination: null,
+    aggregatesPending,
+    statsSource,
+  };
+}
+
 /**
  * Ficha rápida: stats históricos locales + temporada actual; agregados completos en background.
  */
 export const getDriverProfile = async (rawDriverId, opts = {}) => {
+  if (PREFER_DB_FIRST && opts.preferDb !== false) {
+    const fromDb = await getDriverProfileFromDb(rawDriverId);
+    if (fromDb) return fromDb;
+  }
+
   const careerPage = Math.max(1, parseInt(String(opts.careerPage ?? '1'), 10) || 1);
   const driverId = sanitizeDriverId(rawDriverId);
   const calendarYear = new Date().getUTCFullYear();

@@ -14,12 +14,13 @@ import {
   getConstructorProfileAggregates,
 } from '../../services/f2/f2ConstructorProfile.service.js';
 import { success, error } from '../../utils/response.js';
+import { resolveRequestOpts } from '../../utils/dataSourceOpts.js';
 
 const CACHE = 'public, max-age=60, stale-while-revalidate=300';
 
 export const driverStandings = async (req, res) => {
   try {
-    const data = await getDriverStandings();
+    const data = await getDriverStandings(resolveRequestOpts(req));
     success(res, data, 200, { 'Cache-Control': CACHE });
   } catch (err) {
     error(res, err.message);
@@ -28,7 +29,7 @@ export const driverStandings = async (req, res) => {
 
 export const constructorStandings = async (req, res) => {
   try {
-    const data = await getConstructorStandings();
+    const data = await getConstructorStandings(resolveRequestOpts(req));
     success(res, data, 200, { 'Cache-Control': CACHE });
   } catch (err) {
     error(res, err.message);
@@ -37,7 +38,7 @@ export const constructorStandings = async (req, res) => {
 
 export const calendar = async (req, res) => {
   try {
-    const data = await getCalendar();
+    const data = await getCalendar(resolveRequestOpts(req));
     success(res, data);
   } catch (err) {
     error(res, err.message);
@@ -46,7 +47,7 @@ export const calendar = async (req, res) => {
 
 export const lastRace = async (req, res) => {
   try {
-    const data = await getLastRace();
+    const data = await getLastRace(resolveRequestOpts(req));
     success(res, data);
   } catch (err) {
     error(res, err.message);
@@ -55,7 +56,7 @@ export const lastRace = async (req, res) => {
 
 export const raceResults = async (req, res) => {
   try {
-    const data = await getRaceResultsByRound(req.params.round);
+    const data = await getRaceResultsByRound(req.params.round, resolveRequestOpts(req));
     success(res, data);
   } catch (err) {
     const status = /no f2 race results/i.test(err.message) ? 404 : 500;

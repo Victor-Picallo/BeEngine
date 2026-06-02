@@ -1,5 +1,14 @@
 import { jolpicaClient } from '../../external/jolpica/jolpica.client.js';
 import { CAREER_HISTORY_PAGE_SIZE } from '../../utils/careerPagination.js';
+import { PREFER_DB_FIRST, DB_ENABLED, CURRENT_SEASON_YEAR } from '../../config/env.js';
+import { requirePrisma } from '../../lib/prisma.js';
+import { seasonIdFor } from '../../repositories/db/season.repository.js';
+import { getDriverEntriesForConstructor } from '../../repositories/db/feeder.repository.js';
+import {
+  getConstructorStandingsFromDb,
+  getLastRaceFromDb,
+  getRaceResultsFromDb,
+} from '../../repositories/db/f1.repository.js';
 import {
   getManualConstructorProfile,
   getManualConstructorProfileAggregates,
@@ -600,6 +609,123 @@ export async function getConstructorProfileAggregates(rawConstructorId) {
   return job;
 }
 
+async function getConstructorProfileFromDb(rawConstructorId) {
+  if (!DB_ENABLED) return null;
+  const constructorId = sanitizeConstructorId(rawConstructorId);
+  const prisma = requirePrisma();
+  const seasonId = seasonIdFor('f1');
+  const cs = await prisma.constructorSeason.findUnique({
+    where: { seasonId_constructorId: { seasonId, constructorId } },
+    include: { constructor: true },
+  });
+  if (!cs) return null;
+
+  const standings = await getConstructorStandingsFromDb();
+  const standingRow = standings?.find((c) => c.constructorId === constructorId) ?? null;
+  const standing = standingRow
+    ? { pos: standingRow.pos, points: standingRow.points, wins: standingRow.wins ?? 0 }
+    : null;
+
+  const driverEntries = await getDriverEntriesForConstructor('f1', constructorId);
+  const drivers = driverEntries.map((e) => ({
+    driverId: e.driverId,
+    givenName: e.driver?.givenName ?? '',
+    familyName: e.driver?.familyName ?? '',
+    displayName: e.displayName,
+  }));
+
+  const driverIds = new Set(driverEntries.map((e) => e.driverId));
+  const lastRace = await getLastRaceFromDb();
+  const maxRound = lastRace?.round ?? 0;
+  const currentSeason = [];
+  let cum = 0;
+  for (let r = 1; r <= maxRound; r += 1) {
+    const race = await getRaceResultsFromDb(r);
+    if (!race?.results?.length) continue;
+    const teamRes = race.results.filter((x) => driverIds.has(x.driverId));
+    if (!teamRes.length) continue;
+    const sorted = [...teamRes].sort(
+      (a, b) => parseInt(a.position, 10) - parseInt(b.position, 10),
+    );
+    const points = sorted.reduce((s, x) => s + (parseFloat(x.points) || 0), 0);
+    cum += points;
+    currentSeason.push({
+      round: r,
+      gp: gpLabelEs(race.raceName ?? ''),
+      d1Pos: parseInt(sorted[0]?.position, 10) || 0,
+      d2Pos: parseInt(sorted[1]?.position, 10) || 0,
+      points,
+      cumPts: cum,
+    });
+  }
+
+  const seasonYear = CURRENT_SEASON_YEAR;
+  const c = {
+    constructorId,
+    name: cs.name,
+    nationality: standingRow?.nationality ?? '',
+    wikiUrl: '',
+  };
+  const historical = await getConstructorHistoricalStats(constructorId);
+  const currentYearRow = {
+    year: seasonYear,
+    team: cs.name,
+    races: currentSeason.length,
+    wins: standingRow?.wins ?? 0,
+    podiums: 0,
+    poles: 0,
+    pts: standingRow?.points ?? 0,
+    pos: standingRow?.pos ?? null,
+    seasonComplete: false,
+    titleWon: false,
+  };
+
+  let stats;
+  let bioText;
+  let statsSource = 'local';
+  let aggregatesPending = false;
+
+  if (historical) {
+    const merged = mergeHistoricalWithLive(historical, {
+      standing,
+      seasonYear,
+      currentYearRow,
+    });
+    stats = merged.stats;
+    bioText = buildBio(c, standing, seasonYear, drivers, [currentYearRow], merged.stats);
+    statsSource = standing ? 'live' : 'local';
+  } else {
+    stats = {
+      championships: 0,
+      totalWins: standingRow?.wins ?? 0,
+      totalPodiums: 0,
+      totalPoles: 0,
+    };
+    bioText = buildBio(c, standing, seasonYear, drivers, [currentYearRow], stats);
+    aggregatesPending = true;
+    scheduleAggregatePrefetch(constructorId);
+  }
+
+  return {
+    source: 'db',
+    constructorId,
+    name: cs.name,
+    nationality: c.nationality,
+    wikiUrl: '',
+    currentSeasonYear: seasonYear,
+    standing,
+    stats,
+    bioText,
+    drivers,
+    currentSeason,
+    careerHistory: [currentYearRow],
+    careerHistoryPagination: null,
+    careerHistoryError: false,
+    aggregatesPending,
+    statsSource,
+  };
+}
+
 /**
  * Ficha rápida: temporada actual + solo ~10 años de historial (página actual).
  */
@@ -608,6 +734,11 @@ export async function getConstructorProfile(rawConstructorId, opts = {}) {
   const constructorId = sanitizeConstructorId(rawConstructorId);
   if (isManualConstructorId(constructorId)) {
     return getManualConstructorProfile(constructorId);
+  }
+
+  if (PREFER_DB_FIRST && opts.preferDb !== false) {
+    const fromDb = await getConstructorProfileFromDb(rawConstructorId);
+    if (fromDb) return fromDb;
   }
 
   const { seasonYear, scheduledRounds } = await fetchCurrentSeasonSchedule();

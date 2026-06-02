@@ -20,7 +20,8 @@ import type {
   ConstructorStandingDisplay, DriverStandingDisplay, JolpikaCalendarRace,
   JolpikaConstructorStanding, JolpikaDriverStanding, JolpikaLastRace,
   OpenF1Driver, OpenF1Interval, OpenF1Lap, OpenF1Location, OpenF1Position,
-  OpenF1RaceControl, OpenF1Session, OpenF1Stint, OpenF1TeamRadio, OpenF1Weather,
+  OpenF1RaceControl, OpenF1Session, OpenF1Stint, OpenF1TeamRadio,   OpenF1Weather,
+  JolpikaRaceResult,
   RadioMessage, SectorColor, TimingDriver, TireType,
 } from '../f1-live/f1-live.types';
 
@@ -150,6 +151,8 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
   constructorStands = signal<JolpikaConstructorStanding[]>([]);
   calendar          = signal<JolpikaCalendarRace[]>([]);
   lastRace          = signal<JolpikaLastRace | null>(null);
+  /** Resultados de carrera/sprint en DB cuando OpenF1 no está disponible. */
+  sessionRaceResults = signal<JolpikaRaceResult | null>(null);
 
   standingsTab = signal<'drivers' | 'constructors'>('drivers');
   radioFilter  = signal<'all' | 'radio' | 'control'>('all');
@@ -235,8 +238,15 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
   /** Footer text when timing table has no rows. */
   timingEmptySubtitle = computed(() => {
     const rs = this.raceStatus();
+    if (this.timingRows().length > 0) return '';
     if (rs === 'upcoming') return 'Esta sesión aún no ha comenzado';
-    if (rs === 'done') return 'Resultados pendientes de sincronizar';
+    const sk = this.sessionKey();
+    if (rs === 'done' && (sk === 'race' || sk === 'sprint')) {
+      return this.sessionRaceResults() === null
+        ? 'Cargando resultados…'
+        : 'Resultados pendientes de sincronizar';
+    }
+    if (rs === 'done') return 'Solo resultados de carrera en base de datos';
     return 'Esperando datos del proveedor';
   });
 
@@ -309,6 +319,11 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
   });
 
   totalLapsDisplay = computed(() => {
+    const session = this.sessionRaceResults();
+    if (session?.results?.length) {
+      const winner = session.results.find((r) => r.position === 1);
+      if (winner?.laps) return String(winner.laps);
+    }
     const lastR = this.lastRace();
     if (!lastR?.results?.length) return '—';
     const winner = lastR.results.find(r => r.position === 1);
@@ -323,6 +338,9 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
   });
 
   timingRows = computed<TimingDriver[]>(() => {
+    const fromDb = this.buildDbTimingRows();
+    if (fromDb.length) return fromDb;
+
     const drivers = this.openF1Drivers();
     if (!drivers.length) return [];
     const latestPos = new Map<number, number>();
@@ -468,6 +486,34 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
     this.loadSessionData(key);
   });
 
+  /** Carrera/sprint finalizada: tabla desde `/jolpica/results/:round` (DB). */
+  private readonly dbRaceResultsEffect = effect(() => {
+    const race = this.currentRace();
+    const sk = this.sessionKey();
+    const openKey = this.openF1SessionKey();
+    if (!race || openKey !== null) {
+      untracked(() => this.sessionRaceResults.set(null));
+      return;
+    }
+    if (sk !== 'race' && sk !== 'sprint') {
+      untracked(() => this.sessionRaceResults.set(null));
+      return;
+    }
+    const round = race.round;
+    untracked(() => {
+      this.service.getRaceResults(round).subscribe({
+        next: (data) => {
+          if (this.currentRace()?.round !== round) return;
+          this.sessionRaceResults.set(data);
+        },
+        error: () => {
+          if (this.currentRace()?.round !== round) return;
+          this.sessionRaceResults.set(null);
+        },
+      });
+    });
+  });
+
   /** Deep links to FP2/FP3 on a sprint weekend are invalid once OpenF1 data is known. */
   private readonly alignSessionRouteEffect = effect(() => {
     const slug = this.raceSlug();
@@ -557,6 +603,55 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
   // before writing the signal. Without this, fast tab switches leave many
   // requests in flight and the last-resolved response wins — making all
   // tabs appear to share the same data.
+  private buildDbTimingRows(): TimingDriver[] {
+    const sk = this.sessionKey();
+    if (sk !== 'race' && sk !== 'sprint') return [];
+    const race = this.sessionRaceResults();
+    const rows = race?.results ?? [];
+    if (!rows.length) return [];
+
+    return rows
+      .slice()
+      .sort((a, b) => a.position - b.position)
+      .map((r, i) => {
+        const pos = r.position;
+        const color = r.teamColor
+          ? r.teamColor.startsWith('#')
+            ? r.teamColor
+            : `#${r.teamColor}`
+          : this.getTeamColor(r.team);
+        const num = r.number ?? i + 1;
+        const gap =
+          pos === 1
+            ? 'LÍDER'
+            : (r.gap?.trim() || r.time?.trim() || (r.interval?.trim() ? r.interval : '—'));
+        return {
+          pos,
+          num,
+          name: this.fmtBroadcastName(r.driver),
+          short: this.lastNameAbbrev(r.driver),
+          team: r.team,
+          teamColor: color,
+          gap,
+          interval: pos === 1 ? '—' : (r.interval?.trim() || '—'),
+          lastLap: '—',
+          bestLap: r.bestLap?.trim() || '—',
+          tire: 'm' as TireType,
+          tyreAge: 0,
+          laps: r.laps ?? 0,
+          drs: false,
+          s1: '—',
+          s2: '—',
+          s3: '—',
+          s1c: 'sec-white',
+          s2c: 'sec-white',
+          s3c: 'sec-white',
+          speed: 0,
+          driverId: r.driverId ?? null,
+        } satisfies TimingDriver;
+      });
+  }
+
   private loadSessionData(key: number | null): void {
     if (key === null) {
       this.openF1Drivers.set([]);

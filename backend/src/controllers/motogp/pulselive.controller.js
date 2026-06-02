@@ -25,6 +25,7 @@ import { getRidersIndex } from '../../services/motogp/motogpRiders.service.js';
 import { getCircuits, getCircuitById } from '../../services/motogp/motogpCircuits.service.js';
 import { getTeamsIndex } from '../../services/motogp/motogpTeams.service.js';
 import { success, error } from '../../utils/response.js';
+import { resolveRequestOpts } from '../../utils/dataSourceOpts.js';
 
 const CACHE_STANDINGS = 'public, max-age=30, stale-while-revalidate=120';
 const CACHE_LIVE = 'public, max-age=3, stale-while-revalidate=8';
@@ -39,7 +40,7 @@ const getCategoryId = (req) => {
 
 export const driverStandings = async (req, res) => {
   try {
-    const data = await getDriverStandings(getCategoryId(req));
+    const data = await getDriverStandings(getCategoryId(req), resolveRequestOpts(req));
     success(res, data, 200, { 'Cache-Control': CACHE_STANDINGS });
   } catch (err) {
     error(res, err.message);
@@ -48,7 +49,7 @@ export const driverStandings = async (req, res) => {
 
 export const constructorStandings = async (req, res) => {
   try {
-    const data = await getConstructorStandings(getCategoryId(req));
+    const data = await getConstructorStandings(getCategoryId(req), resolveRequestOpts(req));
     success(res, data, 200, { 'Cache-Control': CACHE_STANDINGS });
   } catch (err) {
     error(res, err.message);
@@ -58,7 +59,7 @@ export const constructorStandings = async (req, res) => {
 /** Los 11 equipos del grid (Pulse /teams) con puntos agregados al equipo oficial. */
 export const officialTeamsGrid = async (req, res) => {
   try {
-    const data = await getOfficialTeamsGrid(getCategoryId(req));
+    const data = await getOfficialTeamsGrid(getCategoryId(req), resolveRequestOpts(req));
     success(res, data, 200, { 'Cache-Control': CACHE_STANDINGS });
   } catch (err) {
     error(res, err.message);
@@ -67,7 +68,7 @@ export const officialTeamsGrid = async (req, res) => {
 
 export const calendar = async (req, res) => {
   try {
-    const data = await getCalendar(getCategoryId(req));
+    const data = await getCalendar(getCategoryId(req), resolveRequestOpts(req));
     success(res, data, 200, { 'Cache-Control': CACHE_CALENDAR });
   } catch (err) {
     error(res, err.message);
@@ -76,7 +77,7 @@ export const calendar = async (req, res) => {
 
 export const lastRace = async (req, res) => {
   try {
-    const data = await getLastRace(getCategoryId(req));
+    const data = await getLastRace(getCategoryId(req), resolveRequestOpts(req));
     success(res, data);
   } catch (err) {
     error(res, err.message);
@@ -103,7 +104,11 @@ export const weekendSessions = async (req, res) => {
 
 export const roundSessions = async (req, res) => {
   try {
-    const data = await getRoundSessions(req.params.round, getCategoryId(req));
+    const data = await getRoundSessions(
+      req.params.round,
+      getCategoryId(req),
+      resolveRequestOpts(req),
+    );
     success(res, data);
   } catch (err) {
     error(res, err.message);
@@ -113,7 +118,12 @@ export const roundSessions = async (req, res) => {
 export const raceResults = async (req, res) => {
   try {
     const sessionKey = req.query.session ?? 'race';
-    const data = await getRaceResultsByRound(req.params.round, sessionKey, getCategoryId(req));
+    const data = await getRaceResultsByRound(
+      req.params.round,
+      sessionKey,
+      getCategoryId(req),
+      resolveRequestOpts(req),
+    );
     success(res, data);
   } catch (err) {
     error(res, err.message);
@@ -124,6 +134,7 @@ export const driverProfile = async (req, res) => {
   try {
     const data = await getDriverProfile(req.params.driverId, {
       categoryId: getCategoryId(req),
+      ...resolveRequestOpts(req),
     });
     success(res, data, 200, { 'Cache-Control': CACHE_PROFILE });
   } catch (err) {

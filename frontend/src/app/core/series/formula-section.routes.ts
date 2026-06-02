@@ -62,7 +62,7 @@ export const FEEDER_RACE_ROUTE: Routes[number] = {
     import('../../features/race/feeder-race.page').then((m) => m.FeederRacePageComponent),
 };
 
-/** Home + secciones para una serie (f2, f3). F1 usa `/` como inicio. */
+/** Home + secciones para una serie (f2, f3). F1 usa `/inicio` como portada global. */
 export function formulaSeriesChildRoutes(): Routes {
   return [
     { path: '', pathMatch: 'full', component: HomeComponent },

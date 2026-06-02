@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
-import { catchError, forkJoin, map, of, switchMap, tap } from 'rxjs';
+import { catchError, forkJoin, map, of, tap } from 'rxjs';
 import { bindSeriesLoad, isSeriesStillActive } from '../../core/series/bind-series-load';
 import { isFeederSeries } from '../../core/series/series.config';
 import type { SeriesId } from '../../core/series/series.types';
@@ -105,53 +105,33 @@ export class F1ClasificacionPageComponent {
   private fetchStandings(seriesId: SeriesId) {
     this.loading.set(true);
     this.error.set(null);
+    this.races.set([]);
+    this.openf1.set([]);
 
     return forkJoin({
-      drivers: this.f1.getDriverStandingsResponse(true, seriesId).pipe(
+      drivers: this.f1.getDriverStandingsResponse(false, seriesId).pipe(
         catchError(() => of({ items: [] as JolpikaDriverStanding[], source: undefined })),
       ),
-      teams: this.f1.getConstructorStandingsResponse(true, seriesId).pipe(
+      teams: this.f1.getConstructorStandingsResponse(false, seriesId).pipe(
         catchError(() => of({ items: [] as JolpikaConstructorStanding[], source: undefined })),
       ),
       calendar: this.f1.getCalendar(seriesId).pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
-      openf1: this.f1.getDrivers('latest', seriesId).pipe(catchError(() => of([] as OpenF1Driver[]))),
       lastRace: this.f1.getLastRace(seriesId).pipe(catchError(() => of(null as JolpikaLastRace | null))),
     }).pipe(
-      switchMap((base) => {
-        const rounds = base.lastRace?.round
-          ? Array.from({ length: base.lastRace.round }, (_, i) => i + 1)
-          : [];
-        if (!rounds.length) {
-          return of({ ...base, races: [] as JolpikaRaceResult[] });
-        }
-        return forkJoin(
-          rounds.map((r) =>
-            this.f1
-              .getRaceResults(r, seriesId)
-              .pipe(catchError(() => of(null as JolpikaRaceResult | null))),
-          ),
-        ).pipe(
-          map((mapResults) => ({
-            ...base,
-            races: mapResults.filter((r): r is JolpikaRaceResult => r != null),
-          })),
-        );
-      }),
-      tap((res) => {
+      tap((base) => {
         if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return;
-        this.driverStands.set(res.drivers.items ?? []);
-        this.teamStands.set(res.teams.items ?? []);
+        this.driverStands.set(base.drivers.items ?? []);
+        this.teamStands.set(base.teams.items ?? []);
         this.dataSource.set(
-          res.drivers.source === 'db' || res.teams.source === 'db'
+          base.drivers.source === 'db' || base.teams.source === 'db'
             ? 'db'
-            : (res.drivers.source ?? res.teams.source ?? null),
+            : (base.drivers.source ?? base.teams.source ?? null),
         );
-        this.calendar.set(res.calendar);
-        this.openf1.set(res.openf1);
-        this.lastRace.set(res.lastRace);
-        this.races.set(res.races);
+        this.calendar.set(base.calendar);
+        this.lastRace.set(base.lastRace);
         this.loading.set(false);
         this.error.set(null);
+        this.loadStandingsEnrichment(seriesId, base.lastRace);
       }),
       catchError(() => {
         if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return of(null);
@@ -161,6 +141,33 @@ export class F1ClasificacionPageComponent {
       }),
       map(() => undefined),
     );
+  }
+
+  /** Fotos OpenF1 y evolución por GP — no bloquean la tabla principal. */
+  private loadStandingsEnrichment(seriesId: SeriesId, lastRace: JolpikaLastRace | null): void {
+    this.f1
+      .getDrivers('latest', seriesId)
+      .pipe(catchError(() => of([] as OpenF1Driver[])))
+      .subscribe((openf1) => {
+        if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return;
+        this.openf1.set(openf1);
+      });
+
+    const rounds = lastRace?.round
+      ? Array.from({ length: lastRace.round }, (_, i) => i + 1)
+      : [];
+    if (!rounds.length) return;
+
+    forkJoin(
+      rounds.map((r) =>
+        this.f1
+          .getRaceResults(r, seriesId)
+          .pipe(catchError(() => of(null as JolpikaRaceResult | null))),
+      ),
+    ).subscribe((mapResults) => {
+      if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return;
+      this.races.set(mapResults.filter((r): r is JolpikaRaceResult => r != null));
+    });
   }
 
   setView(v: 'drivers' | 'constructors'): void {

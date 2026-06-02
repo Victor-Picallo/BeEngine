@@ -90,6 +90,9 @@ export const FIA_F3_ENABLED = envFlag('FIA_F3_ENABLED');
 /** MotoGP / Moto2 / Moto3: Pulse Live; si falla → DB (sync diario). */
 export const PULSE_LIVE_ENABLED = envFlag('PULSE_LIVE_ENABLED');
 
+/** Con DATABASE_URL: servir datos de Prisma antes que APIs externas (respuesta rápida). */
+export const PREFER_DB_FIRST = envFlag('PREFER_DB_FIRST', DB_ENABLED);
+
 /** Resumen para arranque (sin secretos). */
 export function logRuntimeConfig() {
   const lines = [
@@ -101,6 +104,7 @@ export function logRuntimeConfig() {
     `  FIA F3: ${FIA_F3_ENABLED ? 'on' : 'off'}  season=${FIA_F3_SEASON_ID}  → ${FIA_F3_BASE_URL}`,
     `  Pulse Moto: ${PULSE_LIVE_ENABLED ? 'on' : 'off (solo DB)'}  → ${MOTOGP_PULSELIVE_BASE_URL}`,
     `  API timeout: ${EXTERNAL_API_TIMEOUT_MS}ms`,
+    `  DB first: ${PREFER_DB_FIRST ? 'on' : 'off'}  (PREFER_DB_FIRST)`,
     `  Database: ${DB_ENABLED ? 'configured' : 'off (no DATABASE_URL)'}`,
     `  Storage: ${SUPABASE_STORAGE_PUBLIC_BASE || 'off'}  bucket=${SUPABASE_STORAGE_BUCKET}`,
     `  Auth: ${AUTH_ENABLED ? 'on' : 'off (SUPABASE_URL + ANON_KEY)'}`,

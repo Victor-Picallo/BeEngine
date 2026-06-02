@@ -14,13 +14,14 @@ import {
   getConstructorProfileAggregates,
 } from '../../services/f1/jolpicaConstructorProfile.service.js';
 import { success, error } from '../../utils/response.js';
+import { resolveRequestOpts } from '../../utils/dataSourceOpts.js';
 
 const DRIVER_STANDINGS_CACHE_CONTROL =
   'public, max-age=30, stale-while-revalidate=120';
 
 export const driverStandings = async (req, res) => {
   try {
-    const data = await getDriverStandings();
+    const data = await getDriverStandings(resolveRequestOpts(req));
     success(res, data, 200, { 'Cache-Control': DRIVER_STANDINGS_CACHE_CONTROL });
   } catch (err) {
     error(res, err.message);
@@ -32,7 +33,7 @@ const CONSTRUCTOR_STANDINGS_CACHE_CONTROL =
 
 export const constructorStandings = async (req, res) => {
   try {
-    const data = await getConstructorStandings();
+    const data = await getConstructorStandings(resolveRequestOpts(req));
     success(res, data, 200, { 'Cache-Control': CONSTRUCTOR_STANDINGS_CACHE_CONTROL });
   } catch (err) {
     error(res, err.message);
@@ -41,7 +42,7 @@ export const constructorStandings = async (req, res) => {
 
 export const calendar = async (req, res) => {
   try {
-    const data = await getCalendar();
+    const data = await getCalendar(resolveRequestOpts(req));
     success(res, data);
   } catch (err) {
     error(res, err.message);
@@ -50,7 +51,7 @@ export const calendar = async (req, res) => {
 
 export const lastRace = async (req, res) => {
   try {
-    const data = await getLastRace();
+    const data = await getLastRace(resolveRequestOpts(req));
     success(res, data);
   } catch (err) {
     error(res, err.message);
@@ -59,7 +60,7 @@ export const lastRace = async (req, res) => {
 
 export const raceResults = async (req, res) => {
   try {
-    const data = await getRaceResultsByRound(req.params.round);
+    const data = await getRaceResultsByRound(req.params.round, resolveRequestOpts(req));
     success(res, data);
   } catch (err) {
     error(res, err.message);
@@ -72,7 +73,10 @@ const DRIVER_PROFILE_CACHE_CONTROL =
 export const driverProfile = async (req, res) => {
   try {
     const careerPage = Math.max(1, parseInt(String(req.query.careerPage ?? '1'), 10) || 1);
-    const data = await getDriverProfile(req.params.driverId, { careerPage });
+    const data = await getDriverProfile(req.params.driverId, {
+      careerPage,
+      ...resolveRequestOpts(req),
+    });
     success(res, data, 200, { 'Cache-Control': DRIVER_PROFILE_CACHE_CONTROL });
   } catch (err) {
     if (err.code === 'NOT_FOUND') return error(res, err.message, 404);
@@ -101,7 +105,10 @@ const CONSTRUCTOR_PROFILE_CACHE_CONTROL =
 export const constructorProfile = async (req, res) => {
   try {
     const careerPage = Math.max(1, parseInt(String(req.query.careerPage ?? '1'), 10) || 1);
-    const data = await getConstructorProfile(req.params.constructorId, { careerPage });
+    const data = await getConstructorProfile(req.params.constructorId, {
+      careerPage,
+      ...resolveRequestOpts(req),
+    });
     success(res, data, 200, { 'Cache-Control': CONSTRUCTOR_PROFILE_CACHE_CONTROL });
   } catch (err) {
     if (err.code === 'NOT_FOUND') return error(res, err.message, 404);

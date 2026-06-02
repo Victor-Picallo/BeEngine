@@ -104,6 +104,11 @@ const mergeDbCalendarFlags = async (items, categoryId) => {
 
 const pulseOpts = { liveEnabled: PULSE_LIVE_ENABLED };
 
+const withPulseOpts = (opts = {}) => ({
+  ...pulseOpts,
+  preferDb: opts.preferDb !== false,
+});
+
 export const getCurrentSeasonYear = async () => {
   const season = await getCurrentSeason();
   return season.year ?? new Date().getFullYear();
@@ -342,12 +347,12 @@ const fetchEventSessions = async (event, categoryId = 'motogp') => {
 
 // ── Public API ───────────────────────────────────────────────
 
-export const getDriverStandings = async (categoryId = 'motogp') => {
+export const getDriverStandings = async (categoryId = 'motogp', opts = {}) => {
   const resolved = await resolveWithFallbackOrEmpty(
     () => fetchDriverStandings(categoryId),
     () => getDriverStandingsFromDb(categoryId),
     [],
-    pulseOpts,
+    withPulseOpts(opts),
   );
   return { items: resolved.data, source: resolved.source };
 };
@@ -376,7 +381,7 @@ const enrichDriversWithTeamsAndPortraits = async (items, seasonYear, categoryId 
   }
 };
 
-export const getConstructorStandings = async (categoryId = 'motogp') => {
+export const getConstructorStandings = async (categoryId = 'motogp', opts = {}) => {
   const resolved = await resolveWithFallbackOrEmpty(
     async () => {
       const season = await getCurrentSeason();
@@ -395,7 +400,7 @@ export const getConstructorStandings = async (categoryId = 'motogp') => {
     },
     () => getConstructorStandingsFromDb(categoryId),
     [],
-    pulseOpts,
+    withPulseOpts(opts),
   );
   let items = resolved.data;
   if (DB_ENABLED && items.length) {
@@ -409,12 +414,12 @@ export const getConstructorStandings = async (categoryId = 'motogp') => {
   return { items, source: resolved.source };
 };
 
-export const getOfficialTeamsGrid = async (categoryId = 'motogp') => {
+export const getOfficialTeamsGrid = async (categoryId = 'motogp', opts = {}) => {
   const resolved = await resolveWithFallbackOrEmpty(
     () => fetchOfficialTeamsGrid(categoryId),
     () => getOfficialTeamsGridFromDb(categoryId),
     [],
-    pulseOpts,
+    withPulseOpts(opts),
   );
   let items = resolved.data;
   if (DB_ENABLED && items.length) {
@@ -428,17 +433,17 @@ export const getOfficialTeamsGrid = async (categoryId = 'motogp') => {
   return { items, source: resolved.source };
 };
 
-export const getCalendar = async (categoryId = 'motogp') => {
+export const getCalendar = async (categoryId = 'motogp', opts = {}) => {
   const resolved = await resolveWithFallbackOrEmpty(
     async () => mergeDbCalendarFlags(await fetchCalendar(categoryId), categoryId),
     () => getCalendarFromDb(categoryId),
     [],
-    pulseOpts,
+    withPulseOpts(opts),
   );
   return { items: resolved.data, source: resolved.source };
 };
 
-export const getLastRace = async (categoryId = 'motogp') => {
+export const getLastRace = async (categoryId = 'motogp', opts = {}) => {
   const resolved = await resolveWithFallbackOrEmpty(
     async () => {
       const race = await fetchLastRace(categoryId);
@@ -454,7 +459,7 @@ export const getLastRace = async (categoryId = 'motogp') => {
     },
     () => getLastRaceFromDb(categoryId),
     null,
-    pulseOpts,
+    withPulseOpts(opts),
   );
   if (!resolved.data) throw new Error('No last race data');
   return { ...resolved.data, source: resolved.source };
@@ -502,7 +507,7 @@ export const getNextRaceSessions = async (categoryId = 'motogp') => {
   }
 };
 
-export const getRoundSessions = async (round, categoryId = 'motogp') => {
+export const getRoundSessions = async (round, categoryId = 'motogp', opts = {}) => {
   const cleanRound = Number.parseInt(round, 10);
   if (!Number.isInteger(cleanRound) || cleanRound < 1) {
     throw new Error('Invalid race round');
@@ -511,12 +516,17 @@ export const getRoundSessions = async (round, categoryId = 'motogp') => {
   const resolved = await resolveWithFallback(
     () => fetchRoundSessionsMeta(cleanRound, categoryId),
     () => getRoundSessionsFromDb(categoryId, cleanRound),
-    pulseOpts,
+    withPulseOpts(opts),
   );
   return { ...resolved.data, source: resolved.source };
 };
 
-export const getRaceResultsByRound = async (round, sessionKey = 'race', categoryId = 'motogp') => {
+export const getRaceResultsByRound = async (
+  round,
+  sessionKey = 'race',
+  categoryId = 'motogp',
+  opts = {},
+) => {
   const cleanRound = Number.parseInt(round, 10);
   if (!Number.isInteger(cleanRound) || cleanRound < 1) {
     throw new Error('Invalid race round');
@@ -526,7 +536,7 @@ export const getRaceResultsByRound = async (round, sessionKey = 'race', category
   const resolved = await resolveWithFallback(
     () => fetchRaceResultsByRound(cleanRound, key, categoryId),
     () => getRaceResultsFromDb(categoryId, cleanRound, key),
-    pulseOpts,
+    withPulseOpts(opts),
   );
   return { ...resolved.data, source: resolved.source };
 };

@@ -393,26 +393,25 @@ export class HomeComponent implements OnInit, OnDestroy {
     );
 
     if (seriesId === 'motogp') {
-      return forkJoin({
-        calendar: this.motogpPulse.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
-        drivers: this.motogpPulse
-          .getDriverStandingsResponse()
-          .pipe(catchError(() => of({ items: [] as JolpikaDriverStanding[], source: undefined }))),
-        teamStands: this.motogpPulse.getTeamStandings().pipe(
-          catchError(() => of([] as JolpikaConstructorStanding[])),
-        ),
-        lastRace: this.motogpPulse
-          .getLastRace()
-          .pipe(catchError(() => of(null as JolpikaLastRace | null))),
-        sessions: this.motogpPulse.getSessions().pipe(catchError(() => of([] as OpenF1Session[]))),
-        news: news$,
-      }).pipe(
+    return forkJoin({
+      calendar: this.motogpPulse.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
+      drivers: this.motogpPulse
+        .getDriverStandingsResponse()
+        .pipe(catchError(() => of({ items: [] as JolpikaDriverStanding[], source: undefined }))),
+      teamStands: this.motogpPulse.getTeamStandings().pipe(
+        catchError(() => of([] as JolpikaConstructorStanding[])),
+      ),
+      lastRace: this.motogpPulse
+        .getLastRace()
+        .pipe(catchError(() => of(null as JolpikaLastRace | null))),
+      news: news$,
+    }).pipe(
         map((r) => ({
           calendar: r.calendar,
           driverStands: r.drivers.items ?? [],
           teamStands: r.teamStands,
           lastRace: r.lastRace,
-          sessions: r.sessions,
+          sessions: [],
           news: r.news,
           dataSource: mergeDataSources(r.drivers.source),
         })),
@@ -432,7 +431,6 @@ export class HomeComponent implements OnInit, OnDestroy {
       lastRace: this.f1
         .getLastRace(seriesId)
         .pipe(catchError(() => of(null as JolpikaLastRace | null))),
-      sessions: this.f1.getSessions(seriesId).pipe(catchError(() => of([] as OpenF1Session[]))),
       news: news$,
     }).pipe(
       map((r) => ({
@@ -440,11 +438,25 @@ export class HomeComponent implements OnInit, OnDestroy {
         driverStands: r.drivers.items ?? [],
         teamStands: r.teams.items ?? [],
         lastRace: r.lastRace,
-        sessions: r.sessions,
+        sessions: [],
         news: r.news,
         dataSource: mergeDataSources(r.drivers.source, r.teams.source),
       })),
     );
+  }
+
+  /** OpenF1 / Pulse sessions en segundo plano (no bloquean el home). */
+  private loadSessionsInBackground(seriesId: SeriesId): void {
+    const sessions$ =
+      seriesId === 'motogp'
+        ? this.motogpPulse.getSessions().pipe(catchError(() => of([] as OpenF1Session[])))
+        : this.f1.getSessions(seriesId).pipe(catchError(() => of([] as OpenF1Session[])));
+    sessions$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((sessions) => {
+        if (this.seriesCtx.id() !== seriesId) return;
+        this.sessionsRaw.set(sessions);
+      });
   }
 
   private loadAll(): void {
@@ -474,6 +486,7 @@ export class HomeComponent implements OnInit, OnDestroy {
           this.dataSource.set(r.dataSource);
           this.loading.set(false);
           this.refreshing.set(false);
+          this.loadSessionsInBackground(seriesId);
           if (seriesId === 'motogp') this.refreshLiveData();
         },
         error: () => {

@@ -1,17 +1,17 @@
-import {
-  getCalendar as getF1Calendar,
-  getConstructorStandings as getF1Constructors,
-  getDriverStandings as getF1Standings,
-  getLastRace as getF1LastRace,
-} from '../f1/jolpica.service.js';
-import {
-  getCalendar as getMotoCalendar,
-  getConstructorStandings as getMotoConstructors,
-  getDriverStandings as getMotoStandings,
-  getLastRace as getMotoLastRace,
-  getNextRaceSessions,
-} from '../motogp/pulseLive.service.js';
 import { getNewsSummaryForHome } from './newsFeed.service.js';
+import {
+  getCalendarFromDb,
+  getDriverStandingsFromDb,
+  getConstructorStandingsFromDb,
+  getLastRaceFromDb,
+} from '../../repositories/db/feeder.repository.js';
+import { getConstructorStandingsFromDb as getF1ConstructorsFromDb } from '../../repositories/db/f1.repository.js';
+import { seasonIdFor } from '../../repositories/db/season.repository.js';
+import { getEventCircuitMediaMap, mergeCalendarWithCircuitMedia } from '../../repositories/db/eventCircuitMedia.js';
+import {
+  enrichConstructorStandingsWithMedia,
+  getConstructorSeasonMediaMap,
+} from '../../repositories/db/constructorMedia.js';
 
 /** @param {Array<'live'|'db'|'empty'|undefined|null>} parts */
 const pickSource = (...parts) => {
@@ -29,17 +29,18 @@ const shortDriver = (name) => {
 };
 
 const mapStandings = (items, limit = 8) =>
-  items.slice(0, limit).map((d) => ({
+  (items ?? []).slice(0, limit).map((d) => ({
     pos: d.pos,
     driver: shortDriver(d.driver),
     team: d.team,
     points: d.points,
     nationality: (d.nationality ?? '').slice(0, 2).toUpperCase(),
     teamColor: d.teamColor ?? null,
+    driverId: d.driverId,
   }));
 
 const mapConstructors = (items, limit = 5) =>
-  items.slice(0, limit).map((c) => ({
+  (items ?? []).slice(0, limit).map((c) => ({
     pos: c.pos,
     team: c.team,
     points: c.points,
@@ -63,16 +64,72 @@ const mapLastRace = (race) => {
   };
 };
 
+async function enrichF1Calendar(items) {
+  try {
+    const media = await getEventCircuitMediaMap(seasonIdFor('f1'));
+    return mergeCalendarWithCircuitMedia(items, media);
+  } catch {
+    return items;
+  }
+}
+
+async function enrichF1Constructors(items) {
+  try {
+    const media = await getConstructorSeasonMediaMap(seasonIdFor('f1'));
+    return enrichConstructorStandingsWithMedia(items, media);
+  } catch {
+    return items;
+  }
+}
+
 async function buildF1Home() {
-  const [standings, constructors, calendar, news] = await Promise.all([
-    getF1Standings(),
-    getF1Constructors(),
-    getF1Calendar(),
+  const [standings, constructors, calendar, lastRace, news] = await Promise.all([
+    getDriverStandingsFromDb('f1'),
+    getF1ConstructorsFromDb(),
+    getCalendarFromDb('f1'),
+    getLastRaceFromDb('f1'),
     getNewsSummaryForHome('f1', 4).catch(() => []),
   ]);
 
-  const lastRace = await getF1LastRace().catch(() => null);
-  const items = calendar.items ?? [];
+  const items = await enrichF1Calendar(calendar ?? []);
+  const next =
+    items.find((r) => !r.resultsAvailable) ?? items[items.length - 1] ?? null;
+  const ctorItems = await enrichF1Constructors(constructors ?? []);
+
+  return {
+    nextRace: {
+      name: next?.raceName ?? '—',
+      circuit: next?.circuitName ?? '—',
+      location: [next?.locality, next?.country].filter(Boolean).join(', ') || '—',
+      date: next?.date && next?.time ? `${next.date}T${next.time}` : next?.date ?? '',
+      round: next?.round ?? 0,
+      totalRounds: items.length,
+      circuitSvgUrl: next?.circuitSvgUrl ?? null,
+      circuitImageUrl: next?.circuitImageUrl ?? null,
+      sessions: [],
+    },
+    standings: mapStandings(standings),
+    constructors: mapConstructors(ctorItems),
+    lastRace: mapLastRace(lastRace),
+    news,
+    source: pickSource(
+      standings?.length ? 'db' : 'empty',
+      items.length ? 'db' : 'empty',
+    ),
+  };
+}
+
+async function buildMotogpHome() {
+  const categoryId = 'motogp';
+  const [standings, constructors, calendar, lastRace, news] = await Promise.all([
+    getDriverStandingsFromDb(categoryId),
+    getConstructorStandingsFromDb(categoryId),
+    getCalendarFromDb(categoryId),
+    getLastRaceFromDb(categoryId),
+    getNewsSummaryForHome(categoryId, 4).catch(() => []),
+  ]);
+
+  const items = calendar ?? [];
   const next =
     items.find((r) => !r.resultsAvailable) ?? items[items.length - 1] ?? null;
 
@@ -84,53 +141,15 @@ async function buildF1Home() {
       date: next?.date && next?.time ? `${next.date}T${next.time}` : next?.date ?? '',
       round: next?.round ?? 0,
       totalRounds: items.length,
+      circuitSvgUrl: next?.circuitSvgUrl ?? null,
+      circuitImageUrl: next?.circuitImageUrl ?? null,
       sessions: [],
     },
-    standings: mapStandings(standings.items ?? []),
-    constructors: mapConstructors(constructors.items ?? []),
+    standings: mapStandings(standings),
+    constructors: mapConstructors(constructors),
     lastRace: mapLastRace(lastRace),
     news,
-    source: pickSource(standings.source, constructors.source, calendar.source, lastRace?.source),
-  };
-}
-
-async function buildMotogpHome() {
-  const [standings, constructors, calendar, sessions, news] = await Promise.all([
-    getMotoStandings('motogp'),
-    getMotoConstructors('motogp'),
-    getMotoCalendar('motogp'),
-    getNextRaceSessions('motogp').catch(() => ({ event: null, sessions: [] })),
-    getNewsSummaryForHome('motogp', 4).catch(() => []),
-  ]);
-
-  const lastRace = await getMotoLastRace('motogp').catch(() => null);
-  const ev = sessions.event;
-  const items = calendar.items ?? [];
-  const next =
-    items.find((r) => !r.resultsAvailable) ?? items[items.length - 1] ?? null;
-
-  return {
-    nextRace: {
-      name: ev?.raceName ?? next?.raceName ?? '—',
-      circuit: ev?.circuitName ?? next?.circuitName ?? '—',
-      location: [ev?.locality ?? next?.locality, ev?.country ?? next?.country]
-        .filter(Boolean)
-        .join(', ') || '—',
-      date: ev?.date ?? (next?.date && next?.time ? `${next.date}T${next.time}` : next?.date ?? ''),
-      round: ev?.round ?? next?.round ?? 0,
-      totalRounds: ev?.totalRounds ?? items.length,
-      sessions: (sessions.sessions ?? []).map((s) => ({
-        name: s.name,
-        date: s.date,
-        time: s.time,
-        highlight: s.highlight,
-      })),
-    },
-    standings: mapStandings(standings.items ?? []),
-    constructors: mapConstructors(constructors.items ?? []),
-    lastRace: mapLastRace(lastRace),
-    news,
-    source: pickSource(standings.source, constructors.source, calendar.source, lastRace?.source),
+    source: pickSource(standings?.length ? 'db' : 'empty'),
   };
 }
 

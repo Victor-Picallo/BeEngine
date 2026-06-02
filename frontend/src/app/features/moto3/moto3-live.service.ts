@@ -50,14 +50,20 @@ export class Moto3LiveService {
   private teamStandings$?: Observable<Moto3TeamStanding[]>;
   private officialTeams$?: Observable<Moto3TeamStanding[]>;
 
+  invalidateCache(): void {
+    this.driverStandings$ = undefined;
+    this.teamStandings$ = undefined;
+    this.officialTeams$ = undefined;
+  }
+
   getDriverStandingsResponse(
     forceRefresh = false,
   ): Observable<SourceWrapped<JolpikaDriverStanding>> {
     if (forceRefresh) this.driverStandings$ = undefined;
     if (!this.driverStandings$) {
       this.driverStandings$ = this.api
-        .get<SourceWrapped<JolpikaDriverStanding>>(`${this.prefix}/driver-standings`)
-        .pipe(shareReplay({ bufferSize: 1, refCount: false }));
+        .getDbThenLive<SourceWrapped<JolpikaDriverStanding>>(`${this.prefix}/driver-standings`)
+        .pipe(shareReplay({ bufferSize: 1, refCount: true }));
     }
     return this.driverStandings$;
   }
@@ -73,7 +79,7 @@ export class Moto3LiveService {
     }
     if (!this.teamStandings$) {
       this.teamStandings$ = this.api
-        .get<SourceWrapped<Moto3TeamStanding>>(`${this.prefix}/constructor-standings`)
+        .getDbThenLive<SourceWrapped<Moto3TeamStanding>>(`${this.prefix}/constructor-standings`)
         .pipe(
           map((res) => res.items ?? []),
           shareReplay({ bufferSize: 1, refCount: false }),
@@ -98,12 +104,12 @@ export class Moto3LiveService {
 
   getCalendar(): Observable<JolpikaCalendarRace[]> {
     return this.api
-      .get<SourceWrapped<JolpikaCalendarRace>>(`${this.prefix}/calendar`)
+      .getDbThenLive<SourceWrapped<JolpikaCalendarRace>>(`${this.prefix}/calendar`)
       .pipe(map((res) => res.items ?? []));
   }
 
   getLastRace(): Observable<JolpikaLastRace> {
-    return this.api.get<JolpikaLastRace>(`${this.prefix}/last-race`);
+    return this.api.getDbThenLive<JolpikaLastRace>(`${this.prefix}/last-race`);
   }
 
   getNextRace(): Observable<Moto3NextRacePayload> {
@@ -112,18 +118,20 @@ export class Moto3LiveService {
 
   getRaceResults(round: number, sessionKey = 'race'): Observable<JolpikaRaceResult> {
     const q = sessionKey ? `?session=${encodeURIComponent(sessionKey)}` : '';
-    return this.api.get<JolpikaRaceResult>(`${this.prefix}/results/${round}${q}`);
+    return this.api.getDbThenLive<JolpikaRaceResult>(`${this.prefix}/results/${round}${q}`);
   }
 
   getRoundSessions(round: number): Observable<MotogpRoundSessionsPayload> {
-    return this.api.get<MotogpRoundSessionsPayload>(`${this.prefix}/results/${round}/sessions`);
+    return this.api.getDbThenLive<MotogpRoundSessionsPayload>(
+      `${this.prefix}/results/${round}/sessions`,
+    );
   }
 
   getTeamProfile(constructorId: string, careerPage = 1): Observable<Moto3TeamProfile> {
     const id = encodeURIComponent(constructorId.trim());
     const p = Math.max(1, careerPage);
     const q = p > 1 ? `?careerPage=${p}` : '';
-    return this.api.get<Moto3TeamProfile>(`${this.prefix}/constructors/${id}/profile${q}`);
+    return this.api.getDbThenLive<Moto3TeamProfile>(`${this.prefix}/constructors/${id}/profile${q}`);
   }
 
   getTeamProfileAggregates(constructorId: string): Observable<{

@@ -34,22 +34,22 @@ const withSource = (resolved, body) => ({
   source: resolved.source,
 });
 
-export const getDriverStandings = async () => {
+export const getDriverStandings = async (opts = {}) => {
   const resolved = await resolveWithFallbackOrEmpty(
     () => fetchLiveDriverStandings(),
     () => getDriverStandingsFromDb(),
     [],
-    { liveEnabled: JOLPICA_F1_ENABLED },
+    { liveEnabled: JOLPICA_F1_ENABLED, preferDb: opts.preferDb !== false },
   );
   return withSource(resolved, { items: resolved.data });
 };
 
-export const getConstructorStandings = async () => {
+export const getConstructorStandings = async (opts = {}) => {
   const resolved = await resolveWithFallbackOrEmpty(
     () => fetchLiveConstructorStandings(),
     () => getConstructorStandingsFromDb(),
     [],
-    { liveEnabled: JOLPICA_F1_ENABLED },
+    { liveEnabled: JOLPICA_F1_ENABLED, preferDb: opts.preferDb !== false },
   );
   let items = resolved.data;
   if (DB_ENABLED && items.length) {
@@ -63,12 +63,12 @@ export const getConstructorStandings = async () => {
   return withSource(resolved, { items });
 };
 
-export const getCalendar = async () => {
+export const getCalendar = async (opts = {}) => {
   const resolved = await resolveWithFallbackOrEmpty(
     () => fetchLiveCalendar(),
     () => getCalendarFromDb(),
     [],
-    { liveEnabled: JOLPICA_F1_ENABLED },
+    { liveEnabled: JOLPICA_F1_ENABLED, preferDb: opts.preferDb !== false },
   );
   let items = resolved.data;
   if (DB_ENABLED && items.length) {
@@ -82,39 +82,40 @@ export const getCalendar = async () => {
   return withSource(resolved, { items });
 };
 
-export const getLastRace = async () => {
-  if (!JOLPICA_F1_ENABLED) {
-    const db = await getLastRaceFromDb();
-    if (db) return { ...db, source: 'db' };
-    throw new Error('No last F1 race data');
-  }
-
-  try {
-    const data = await fetchLiveLastRace();
-    let imageUrl = null;
-    try {
-      imageUrl = await resolveLastRaceImageUrl(data);
-    } catch {
-      /* opcional */
-    }
-    return { ...data, imageUrl, source: 'live' };
-  } catch {
-    const db = await getLastRaceFromDb();
-    if (!db) throw new Error('No last F1 race data');
-    return { ...db, source: 'db' };
-  }
+export const getLastRace = async (opts = {}) => {
+  const resolved = await resolveWithFallbackOrEmpty(
+    async () => {
+      const data = await fetchLiveLastRace();
+      let imageUrl = null;
+      try {
+        imageUrl = await resolveLastRaceImageUrl(data);
+      } catch {
+        /* opcional */
+      }
+      return { ...data, imageUrl };
+    },
+    () => getLastRaceFromDb(),
+    null,
+    { liveEnabled: JOLPICA_F1_ENABLED, preferDb: opts.preferDb !== false },
+  );
+  if (!resolved.data) throw new Error('No last F1 race data');
+  return { ...resolved.data, source: resolved.source };
 };
 
-export const getRaceResultsByRound = async (round) => {
+export const getRaceResultsByRound = async (round, opts = {}) => {
   const cleanRound = Number.parseInt(round, 10);
   if (!Number.isInteger(cleanRound) || cleanRound < 1) {
     throw new Error('Invalid race round');
   }
 
-  const resolved = await resolveWithFallback(
+  const resolved = await resolveWithFallbackOrEmpty(
     () => fetchLiveRaceResultsByRound(cleanRound),
     () => getRaceResultsFromDb(cleanRound),
-    { liveEnabled: JOLPICA_F1_ENABLED },
+    null,
+    { liveEnabled: JOLPICA_F1_ENABLED, preferDb: opts.preferDb !== false },
   );
+  if (!resolved.data) {
+    throw new Error(`No race results available for round ${cleanRound}`);
+  }
   return { ...resolved.data, source: resolved.source };
 };

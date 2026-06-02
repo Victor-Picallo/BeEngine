@@ -96,7 +96,7 @@ export function seriesFromUrl(url: string): SeriesId {
 }
 
 export function homePathForSeries(id: SeriesId): string {
-  if (id === 'f1') return '/';
+  if (id === 'f1') return '/inicio';
   return `/${id}`;
 }
 

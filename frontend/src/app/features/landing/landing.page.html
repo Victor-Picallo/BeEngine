@@ -1,0 +1,557 @@
+<div class="landing-page">
+  <header class="landing-nav" [class.landing-nav--scrolled]="scrolled()">
+    <a routerLink="/" class="landing-nav__brand">
+      <span class="landing-nav__mark" aria-hidden="true"></span>
+      <span class="landing-nav__logo">BeEngine</span>
+    </a>
+    <nav class="landing-nav__links" aria-label="Secciones">
+      <a href="#categorias">Categorías</a>
+      <a href="#funciones">Funciones</a>
+      <a href="#asistente">Asistente IA</a>
+      <a href="#cuenta">Tu cuenta</a>
+    </nav>
+    <div class="landing-nav__actions">
+      <a [routerLink]="guestRoute" class="landing-nav__guest">Continúa sin cuenta</a>
+      <span class="landing-nav__divider" aria-hidden="true"></span>
+      <div class="landing-nav__auth">
+        <a routerLink="/login" class="landing-nav__login">Iniciar sesión</a>
+        <a routerLink="/login" class="landing-nav__signup">Crear cuenta</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="landing-hero">
+    <div class="landing-hero__accent-line" aria-hidden="true"></div>
+    <div class="landing-hero__glow-a" aria-hidden="true"></div>
+    <div class="landing-hero__glow-b" aria-hidden="true"></div>
+    @if (heroCircuitUrl()) {
+      <img
+        class="landing-hero__circuit-img"
+        [src]="heroCircuitUrl()!"
+        alt=""
+        aria-hidden="true"
+      />
+    } @else {
+      <svg
+        class="landing-hero__circuit"
+        viewBox="0 0 460 250"
+        preserveAspectRatio="xMidYMid meet"
+        aria-hidden="true"
+      >
+        <path
+          d="M 341,202 L 361,201 L 380,193 L 407,180 L 423,172 L 433,154 L 420,148 L 409,148 L 404,162 L 393,159 L 404,143 L 414,129 L 394,124 L 375,124 L 351,119 L 327,129 L 317,158 L 284,159 L 263,134 L 228,119 L 197,91 L 163,57 L 127,56 L 96,110 L 63,134 L 40,172 L 29,162 L 45,129 L 80,88 L 114,62"
+          fill="none"
+          stroke="#FFD100"
+          stroke-width="3"
+          stroke-linejoin="round"
+          stroke-linecap="round"
+        />
+      </svg>
+    }
+
+    <div class="landing-hero__inner">
+      <div class="landing-hero__content">
+        <div class="landing-hero__badge">
+          <span class="landing-hero__badge-dot" aria-hidden="true"></span>
+          <span class="landing-hero__badge-text">
+            @if (heroNextRaceLabel()) {
+              Próxima carrera · {{ heroNextRaceLabel() }}
+            } @else {
+              6 categorías · 1 plataforma
+            }
+          </span>
+        </div>
+        <h1 class="landing-hero__title">
+          Todo el motor.<br />
+          <span class="landing-hero__title-underline">F1, MotoGP</span> y mucho más.
+        </h1>
+        <p class="landing-hero__lead">
+          Timing en directo, clasificaciones, calendarios, fichas de pilotos y escuderías, noticias al momento
+          y un <strong>asistente con IA</strong> que responde con datos reales. F1, F2, F3, MotoGP, Moto2 y
+          Moto3 — todo en BeEngine.
+        </p>
+        <div class="landing-hero__ctas">
+          <a routerLink="/login" class="landing-btn-primary">
+            Crear cuenta gratis
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <path
+                d="M3 9H15M10 4L15 9L10 14"
+                stroke="#000"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </a>
+          <a [routerLink]="guestRoute" class="landing-btn-secondary">Continúa sin cuenta</a>
+          <a routerLink="/login" class="landing-btn-secondary landing-btn-secondary--google">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M15.5 8.18c0-.57-.05-1.12-.14-1.64H8v3.1h4.22a3.6 3.6 0 0 1-1.57 2.36v1.96h2.54C14.8 12.73 15.5 10.63 15.5 8.18z"
+                fill="#4285F4"
+              />
+              <path
+                d="M8 16c2.13 0 3.92-.7 5.22-1.9l-2.54-1.97c-.71.47-1.61.75-2.68.75-2.06 0-3.8-1.39-4.43-3.26H.96v2.03A7.99 7.99 0 0 0 8 16z"
+                fill="#34A853"
+              />
+              <path
+                d="M3.57 9.62A4.79 4.79 0 0 1 3.32 8c0-.56.1-1.1.25-1.62V4.35H.96A7.98 7.98 0 0 0 0 8c0 1.29.31 2.51.96 3.65l2.61-2.03z"
+                fill="#FBBC05"
+              />
+              <path
+                d="M8 3.18c1.16 0 2.2.4 3.02 1.18l2.26-2.26A7.97 7.97 0 0 0 8 0 7.99 7.99 0 0 0 .96 4.35L3.57 6.38C4.2 4.57 5.94 3.18 8 3.18z"
+                fill="#EA4335"
+              />
+            </svg>
+            Continuar con Google
+          </a>
+        </div>
+        <div class="landing-hero__stats">
+          <div>
+            <div class="landing-hero__stat-n">6</div>
+            <div class="landing-hero__stat-l">Categorías</div>
+          </div>
+          <div>
+            <div class="landing-hero__stat-n">100%</div>
+            <div class="landing-hero__stat-l">Datos reales</div>
+          </div>
+          <div>
+            <div class="landing-hero__stat-n">24/7</div>
+            <div class="landing-hero__stat-l">En directo</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="landing-hero__ticker-wrap" aria-hidden="true">
+      <div class="landing-hero__ticker">
+        @for (pass of [0, 1]; track pass) {
+          @for (item of tickerItems; track $index) {
+            <span class="landing-hero__ticker-item">
+              {{ item }}<span class="landing-hero__ticker-dot">·</span>
+            </span>
+          }
+        }
+      </div>
+    </div>
+  </section>
+
+  <section id="categorias" class="landing-categories">
+    <div class="landing-section-head landing-reveal">
+      <div class="landing-section-kicker">LAS CATEGORÍAS</div>
+      <h2 class="landing-section-title">Seis campeonatos. Cobertura total.</h2>
+      <p class="landing-section-lead">
+        De la categoría reina al semillero de jóvenes promesas. Sigue cada serie con la misma profundidad de
+        datos.
+      </p>
+    </div>
+
+    @if (pendingData()) {
+      <div class="landing-cat-grid landing-cat-grid--skeleton" aria-busy="true">
+        @for (i of [0, 1, 2, 3, 4, 5]; track i) {
+          <div class="landing-cat-card landing-cat-card--skeleton"></div>
+        }
+      </div>
+    } @else {
+    <div class="landing-cat-grid">
+      @for (cat of categories(); track cat.id; let i = $index) {
+        <a
+          [routerLink]="cat.route"
+          class="landing-cat-card"
+          [style.animation-delay.ms]="i * 60"
+          [style.border-color]="isCatHovered(cat.id) ? cat.accent : '#e8e7e2'"
+          [style.box-shadow]="
+            isCatHovered(cat.id) ? '0 12px 32px ' + cat.accent + '22' : '0 1px 4px rgba(0,0,0,.04)'
+          "
+          (mouseenter)="setHoveredCat(cat.id)"
+          (mouseleave)="setHoveredCat(null)"
+        >
+          <div
+            class="landing-cat-card__head"
+            [style.background]="'linear-gradient(135deg, ' + cat.accent + '14, #fff)'"
+            [style.border-bottom-color]="cat.accent + '18'"
+          >
+            <div class="landing-cat-card__bar" [style.background]="cat.accent"></div>
+            <div style="flex: 1">
+              <div class="landing-cat-card__tag" [style.color]="cat.accent">{{ cat.tag }}</div>
+              <div class="landing-cat-card__name">{{ cat.name }}</div>
+            </div>
+            @if (cat.headshotUrl) {
+              <img
+                class="landing-cat-card__leader"
+                [src]="cat.headshotUrl"
+                [alt]="cat.leaderName"
+                loading="lazy"
+              />
+            } @else {
+              <div class="landing-cat-card__shape">
+                <svg width="62" height="62" viewBox="0 0 80 80" opacity="0.9" aria-hidden="true">
+                  @if (cat.shape === 'car') {
+                    <path
+                      d="M8,52 L12,36 L20,32 L26,26 L54,26 L60,32 L68,36 L72,52 L64,54 L60,46 L20,46 L16,54Z M18,54 A7,7 0 1,0 18.01,54 M62,54 A7,7 0 1,0 62.01,54"
+                      [attr.fill]="cat.accent"
+                    />
+                  } @else {
+                    <path
+                      d="M16,52 A10,10 0 1,0 16.01,52 M64,52 A10,10 0 1,0 64.01,52 M16,42 L24,26 L36,26 L42,35 L54,28 L64,28 L64,42"
+                      [attr.stroke]="cat.accent"
+                      stroke-width="5"
+                      fill="none"
+                      stroke-linecap="round"
+                    />
+                  }
+                </svg>
+              </div>
+            }
+          </div>
+          <div class="landing-cat-card__body">
+            <p class="landing-cat-card__desc">{{ cat.desc }}</p>
+            <div class="landing-cat-card__facts">
+              @for (fact of cat.facts; track fact[0]) {
+                <div class="landing-cat-card__fact">
+                  <span class="landing-cat-card__fact-k">{{ fact[0] }}</span>
+                  <span
+                    class="landing-cat-card__fact-v"
+                    [title]="
+                      fact[0] === 'Líder'
+                        ? cat.leaderName
+                        : fact[0] === 'Equipo'
+                          ? cat.leaderTeam
+                          : fact[1]
+                    "
+                    >{{ fact[1] }}</span
+                  >
+                </div>
+              }
+            </div>
+            <div class="landing-cat-card__link" [style.color]="cat.accent">
+              Explorar {{ cat.name }}
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path
+                  d="M3 7H11M8 4L11 7L8 10"
+                  [attr.stroke]="cat.accent"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </div>
+          </div>
+        </a>
+      }
+    </div>
+    }
+  </section>
+
+  <section id="funciones" class="landing-hub">
+    <div class="landing-hub__inner">
+      <div class="landing-hub__intro landing-reveal">
+        <div class="landing-section-kicker">EN CADA CATEGORÍA</div>
+        <h2 class="landing-hub__title">Una app completa.<br />Seis veces.</h2>
+        <p class="landing-hub__lead">
+          F1, F2, F3, MotoGP, Moto2 y Moto3 comparten las mismas seis áreas: portada, noticias,
+          calendario, pilotos, escuderías y clasificación. Cambias de campeonato; la experiencia no.
+        </p>
+        <div class="landing-hub__chips" aria-label="Secciones disponibles">
+          @for (chip of ['Home', 'Noticias', 'Calendario', 'Pilotos', 'Escuderías', 'Clasificación']; track chip) {
+            <span class="landing-hub__chip">{{ chip }}</span>
+          }
+        </div>
+        <a [routerLink]="guestRoute" class="landing-btn-primary landing-hub__cta">
+          Ver la app
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <path
+              d="M3 9H15M10 4L15 9L10 14"
+              stroke="#000"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </a>
+      </div>
+
+      <div class="landing-hub__panels">
+        @for (group of featureGroups; track group.title; let gi = $index) {
+          <div
+            class="landing-hub__panel landing-reveal"
+            [style.animation-delay.ms]="gi * 80"
+          >
+            <div class="landing-hub__panel-head">
+              <span class="landing-hub__panel-label">{{ group.label }}</span>
+              <h3 class="landing-hub__panel-title">{{ group.title }}</h3>
+            </div>
+            <ul class="landing-hub__list">
+              @for (feat of group.items; track feat.id; let fi = $index) {
+                <li>
+                  <a [routerLink]="feat.route" class="landing-hub__row">
+                    <span class="landing-hub__row-num" aria-hidden="true">{{ hubIndex(gi, fi) }}</span>
+                    <span class="landing-hub__row-body">
+                      <span class="landing-hub__row-name">{{ feat.name }}</span>
+                      <span class="landing-hub__row-desc">{{ feat.desc }}</span>
+                    </span>
+                    <svg
+                      class="landing-hub__row-arrow"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M4 8H12M9 5L12 8L9 11"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </a>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <section id="asistente" class="landing-assist">
+    <div class="landing-assist__inner">
+      <div class="landing-assist__copy landing-reveal">
+        <div class="landing-section-kicker">ASISTENTE IA</div>
+        <h2 class="landing-section-title" style="text-align: left; margin-bottom: 16px">
+          Tu chatbot de motor.<br />Datos reales, al instante.
+        </h2>
+        <p class="landing-section-lead" style="margin: 0 0 24px; text-align: left; max-width: 480px">
+          Pregunta lo que quieras sobre F1, MotoGP y el resto de categorías. El asistente BeEngine cruza
+          clasificaciones, calendario, noticias y contexto en vivo para responderte sin salir de la app.
+        </p>
+        <ul class="landing-assist__list">
+          @for (item of assistBullets; track item) {
+            <li class="landing-assist__list-item">
+              <span class="landing-assist__list-mark" aria-hidden="true"></span>
+              <span>{{ item }}</span>
+            </li>
+          }
+        </ul>
+        <div class="landing-assist__ctas">
+          <a [routerLink]="guestRoute" class="landing-btn-primary">
+            Probar el asistente
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <path
+                d="M3 9H15M10 4L15 9L10 14"
+                stroke="#000"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </a>
+          <a [routerLink]="guestRoute" class="landing-btn-secondary">Continúa sin cuenta</a>
+        </div>
+      </div>
+
+      <div class="landing-assist__demo landing-reveal" aria-hidden="true">
+        <div class="landing-assist__panel">
+          <header class="landing-assist__panel-head">
+            <div>
+              <span class="landing-assist__panel-kicker">Ayuda</span>
+              <div class="landing-assist__panel-title">Asistente BeEngine</div>
+            </div>
+            <span class="landing-assist__panel-live">En vivo</span>
+          </header>
+          <div class="landing-assist__messages">
+            @for (msg of assistDemo; track $index) {
+              <div
+                class="landing-assist__bubble"
+                [class.landing-assist__bubble--user]="msg.role === 'user'"
+              >
+                <p>{{ msg.text }}</p>
+              </div>
+            }
+          </div>
+          <div class="landing-assist__composer">
+            <span class="landing-assist__input">Pregunta sobre cualquier categoría…</span>
+            <span class="landing-assist__send" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path
+                  d="M2 8L14 2L10 14L8 9L2 8Z"
+                  fill="#111"
+                  stroke="#111"
+                  stroke-width="0.5"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </span>
+          </div>
+        </div>
+        <div class="landing-assist__fab" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 3C7 3 3 6.5 3 11c0 2.2 1 4.2 2.6 5.6L4 21l4.6-1.4c1.1.4 2.3.6 3.4.6 5 0 9-3.5 9-8s-4-9-9-9z"
+              stroke="#111"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  @if (news().length) {
+    <section class="landing-news landing-reveal">
+      <div class="landing-news__inner">
+        <div class="landing-section-head">
+          <div class="landing-section-kicker">NOTICIAS</div>
+          <h2 class="landing-section-title">Lo último del paddock</h2>
+        </div>
+        <div class="landing-news__grid">
+          @for (article of news(); track article.id) {
+            <a
+              class="landing-news__card"
+              [routerLink]="['/', article.cat, 'noticias', article.id]"
+            >
+              <app-news-image
+                [cat]="article.cat"
+                [src]="article.imageUrl"
+                [alt]="article.title"
+                [accent]="newsAccent(article.cat)"
+                [height]="140"
+              />
+              <div class="landing-news__body">
+                <span class="landing-news__tag" [style.color]="newsAccent(article.cat)">{{
+                  article.tag
+                }}</span>
+                <h3 class="landing-news__title">{{ article.title }}</h3>
+                <span class="landing-news__time">{{ article.time }}</span>
+              </div>
+            </a>
+          }
+        </div>
+      </div>
+    </section>
+  }
+
+  <section id="cuenta" class="landing-account">
+    <div class="landing-account__grid">
+      <div class="landing-reveal">
+        <div class="landing-section-kicker">TU CUENTA BEENGINE</div>
+        <h2 class="landing-section-title" style="text-align: left; margin-bottom: 18px">
+          Tus favoritos,<br />siempre contigo.
+        </h2>
+        <p class="landing-section-lead" style="margin: 0 0 28px; text-align: left; max-width: 440px">
+          Crea tu cuenta con email o Google y sigue a tus pilotos y escuderías favoritos de cualquier
+          categoría. Recibe sus resultados, noticias y próximas carreras en tu portada personalizada.
+        </p>
+        <div class="landing-account__bullets">
+          @for (item of accountBullets; track item) {
+            <div class="landing-account__bullet">
+              <span class="landing-account__bullet-icon" aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path
+                    d="M2 6L5 9L10 3"
+                    stroke="#FFD100"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </span>
+              <span class="landing-account__bullet-text">{{ item }}</span>
+            </div>
+          }
+        </div>
+        <div class="landing-account__ctas">
+          <a routerLink="/login" class="landing-btn-dark">Crear cuenta gratis</a>
+          <a [routerLink]="guestRoute" class="landing-btn-outline">Continúa sin cuenta</a>
+          <a routerLink="/login" class="landing-btn-outline landing-btn-outline--google">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M15.5 8.18c0-.57-.05-1.12-.14-1.64H8v3.1h4.22a3.6 3.6 0 0 1-1.57 2.36v1.96h2.54C14.8 12.73 15.5 10.63 15.5 8.18z"
+                fill="#4285F4"
+              />
+              <path
+                d="M8 16c2.13 0 3.92-.7 5.22-1.9l-2.54-1.97c-.71.47-1.61.75-2.68.75-2.06 0-3.8-1.39-4.43-3.26H.96v2.03A7.99 7.99 0 0 0 8 16z"
+                fill="#34A853"
+              />
+              <path
+                d="M3.57 9.62A4.79 4.79 0 0 1 3.32 8c0-.56.1-1.1.25-1.62V4.35H.96A7.98 7.98 0 0 0 0 8c0 1.29.31 2.51.96 3.65l2.61-2.03z"
+                fill="#FBBC05"
+              />
+              <path
+                d="M8 3.18c1.16 0 2.2.4 3.02 1.18l2.26-2.26A7.97 7.97 0 0 0 8 0 7.99 7.99 0 0 0 .96 4.35L3.57 6.38C4.2 4.57 5.94 3.18 8 3.18z"
+                fill="#EA4335"
+              />
+            </svg>
+            Google
+          </a>
+        </div>
+      </div>
+
+      <div class="landing-mockup landing-reveal" style="animation-delay: 120ms">
+        <div class="landing-mockup__top-line" aria-hidden="true"></div>
+        <div class="landing-mockup__profile">
+          <div class="landing-mockup__avatar landing-mockup__avatar--brand" aria-hidden="true"></div>
+          <div>
+            <div class="landing-mockup__name">Tu portada BeEngine</div>
+            <div class="landing-mockup__meta">Líderes actuales · datos en vivo</div>
+          </div>
+        </div>
+        <div class="landing-mockup__label">LÍDERES DE TEMPORADA</div>
+        <div class="landing-mockup__favs">
+          @for (fav of favorites(); track fav.name) {
+            <div class="landing-mockup__fav">
+              <div
+                class="landing-mockup__fav-avatar"
+                [style.background]="fav.tc + '22'"
+                [style.border]="'1.5px solid ' + fav.tc"
+                [style.color]="fav.tc"
+              >
+                @if (fav.headshotUrl) {
+                  <img [src]="fav.headshotUrl" [alt]="fav.name" class="landing-mockup__fav-photo" />
+                } @else {
+                  {{ fav.initials }}
+                }
+              </div>
+              <div style="flex: 1">
+                <div class="landing-mockup__fav-name">{{ fav.name }}</div>
+                <div class="landing-mockup__fav-sub">{{ fav.sub }}</div>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="#FFD100" aria-hidden="true">
+                <path
+                  d="M9 2L11.2 6.5L16 7.2L12.5 10.6L13.4 15.5L9 13.2L4.6 15.5L5.5 10.6L2 7.2L6.8 6.5Z"
+                  stroke="#e0b900"
+                  stroke-width="0.5"
+                />
+              </svg>
+            </div>
+          }
+        </div>
+        <div class="landing-mockup__add">+ Añadir más favoritos</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="landing-final landing-reveal">
+    <div class="landing-final__box">
+      <div class="landing-final__line" aria-hidden="true"></div>
+      <div class="landing-final__glow" aria-hidden="true"></div>
+      <div class="landing-final__inner">
+        <h2 class="landing-final__title">
+          Empieza a seguir el motor<br />como nunca antes.
+        </h2>
+        <p class="landing-final__lead">
+          Crea tu cuenta gratis en menos de un minuto. Sin tarjeta, sin compromisos.
+        </p>
+        <div class="landing-final__ctas">
+          <a routerLink="/login" class="landing-btn-primary">Crear cuenta gratis</a>
+          <a [routerLink]="guestRoute" class="landing-btn-secondary" style="padding: 15px 30px"
+            >Continúa sin cuenta</a
+          >
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { map, Observable, of, shareReplay } from 'rxjs';
+import { catchError, map, Observable, of, shareReplay } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { SERIES_CONFIG } from '../../core/series/series.config';
 import { SeriesContextService } from '../../core/series/series-context.service';
@@ -134,6 +134,17 @@ export class F1LiveService {
     return this.api.get<OpenF1Location[]>(`${base}&session_key=${encodeURIComponent(String(sessionKey))}`);
   }
 
+  /** Limpia caché HTTP (p. ej. tras respuestas vacías por timeout). */
+  invalidateStandingsCache(seriesId?: SeriesId): void {
+    if (seriesId) {
+      this.driverStandingsCache.delete(seriesId);
+      this.constructorStandingsCache.delete(seriesId);
+      return;
+    }
+    this.driverStandingsCache.clear();
+    this.constructorStandingsCache.clear();
+  }
+
   getDriverStandingsResponse(
     forceRefresh = false,
     seriesId?: SeriesId,
@@ -142,8 +153,8 @@ export class F1LiveService {
     if (forceRefresh) this.driverStandingsCache.delete(sid);
     if (!this.driverStandingsCache.has(sid)) {
       const obs = this.api
-        .get<ItemsWrapped<JolpikaDriverStanding>>(`${this.racingApi(sid)}/driver-standings`)
-        .pipe(shareReplay({ bufferSize: 1, refCount: false }));
+        .getDbThenLive<ItemsWrapped<JolpikaDriverStanding>>(`${this.racingApi(sid)}/driver-standings`)
+        .pipe(shareReplay({ bufferSize: 1, refCount: true }));
       this.driverStandingsCache.set(sid, obs);
     }
     return this.driverStandingsCache.get(sid)!;
@@ -159,7 +170,7 @@ export class F1LiveService {
     const id = encodeURIComponent(driverId.trim());
     const p = Math.max(1, careerPage);
     const q = p > 1 ? `?careerPage=${p}` : '';
-    return this.api.get<JolpikaDriverProfile>(`${this.racingApi()}/drivers/${id}/profile${q}`);
+    return this.api.getDbThenLive<JolpikaDriverProfile>(`${this.racingApi()}/drivers/${id}/profile${q}`);
   }
 
   getDriverProfileAggregates(driverId: string): Observable<JolpikaDriverProfileAggregates> {
@@ -177,8 +188,10 @@ export class F1LiveService {
     if (forceRefresh) this.constructorStandingsCache.delete(sid);
     if (!this.constructorStandingsCache.has(sid)) {
       const obs = this.api
-        .get<ItemsWrapped<JolpikaConstructorStanding>>(`${this.racingApi(sid)}/constructor-standings`)
-        .pipe(shareReplay({ bufferSize: 1, refCount: false }));
+        .getDbThenLive<ItemsWrapped<JolpikaConstructorStanding>>(
+          `${this.racingApi(sid)}/constructor-standings`,
+        )
+        .pipe(shareReplay({ bufferSize: 1, refCount: true }));
       this.constructorStandingsCache.set(sid, obs);
     }
     return this.constructorStandingsCache.get(sid)!;
@@ -197,7 +210,9 @@ export class F1LiveService {
     const id = encodeURIComponent(constructorId.trim());
     const p = Math.max(1, careerPage);
     const q = p > 1 ? `?careerPage=${p}` : '';
-    return this.api.get<JolpikaConstructorProfile>(`${this.racingApi()}/constructors/${id}/profile${q}`);
+    return this.api.getDbThenLive<JolpikaConstructorProfile>(
+      `${this.racingApi()}/constructors/${id}/profile${q}`,
+    );
   }
 
   getConstructorProfileAggregates(
@@ -211,12 +226,12 @@ export class F1LiveService {
 
   getCalendar(seriesId?: SeriesId): Observable<JolpikaCalendarRace[]> {
     return this.api
-      .get<ItemsWrapped<JolpikaCalendarRace>>(`${this.racingApi(seriesId)}/calendar`)
+      .getDbThenLive<ItemsWrapped<JolpikaCalendarRace>>(`${this.racingApi(seriesId)}/calendar`)
       .pipe(map((res) => res.items ?? []));
   }
 
   getLastRace(seriesId?: SeriesId): Observable<JolpikaLastRace> {
-    return this.api.get<JolpikaLastRace>(`${this.racingApi(seriesId)}/last-race`);
+    return this.api.getDbThenLive<JolpikaLastRace>(`${this.racingApi(seriesId)}/last-race`);
   }
 
   getRaceResults(
@@ -230,7 +245,7 @@ export class F1LiveService {
       this.isPulseSeries(sid) && sessionKey
         ? `?session=${encodeURIComponent(sessionKey)}`
         : '';
-    return this.api.get<JolpikaRaceResult>(`${base}${q}`);
+    return this.api.getDbThenLive<JolpikaRaceResult>(`${base}${q}`);
   }
 
   getRoundSessions(round: number, seriesId?: SeriesId): Observable<MotogpRoundSessionsPayload> {

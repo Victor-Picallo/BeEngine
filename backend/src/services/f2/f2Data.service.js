@@ -67,22 +67,22 @@ export const getMaxCompletedRound = async () => {
   return rounds.length ? Math.max(...rounds) : 0;
 };
 
-export const getDriverStandings = async () => {
+export const getDriverStandings = async (opts = {}) => {
   const resolved = await resolveWithFallbackOrEmpty(
     async () => (await getF2FiaApi()).getDriverStandings().then((r) => r.items),
     () => getDriverStandingsFromDb(SERIES),
     [],
-    { liveEnabled: FIA_F2_ENABLED },
+    { liveEnabled: FIA_F2_ENABLED, preferDb: opts.preferDb !== false },
   );
   return withSource(resolved, { items: resolved.data });
 };
 
-export const getConstructorStandings = async () => {
+export const getConstructorStandings = async (opts = {}) => {
   const resolved = await resolveWithFallbackOrEmpty(
     async () => (await getF2FiaApi()).getConstructorStandings().then((r) => r.items),
     () => getConstructorStandingsFromDb(SERIES),
     [],
-    { liveEnabled: FIA_F2_ENABLED },
+    { liveEnabled: FIA_F2_ENABLED, preferDb: opts.preferDb !== false },
   );
   let items = resolved.data;
   if (DB_ENABLED && items.length) {
@@ -96,13 +96,13 @@ export const getConstructorStandings = async () => {
   return withSource(resolved, { items });
 };
 
-export const getCalendar = async () => {
+export const getCalendar = async (opts = {}) => {
   const resolved = await resolveWithFallbackOrEmpty(
     async () =>
       (await getF2FiaApi()).getCalendar().then((r) => stripInternal(r.items)),
     () => getCalendarFromDb(SERIES),
     [],
-    { liveEnabled: FIA_F2_ENABLED },
+    { liveEnabled: FIA_F2_ENABLED, preferDb: opts.preferDb !== false },
   );
   let items = resolved.data;
   if (DB_ENABLED && items.length) {
@@ -116,18 +116,18 @@ export const getCalendar = async () => {
   return withSource(resolved, { items });
 };
 
-export const getLastRace = async () => {
+export const getLastRace = async (opts = {}) => {
   const resolved = await resolveWithFallbackOrEmpty(
     async () => (await getF2FiaApi()).getLastRace().then(mapRacePayload),
     () => getLastRaceFromDb(SERIES).then((r) => (r ? mapRacePayload(r) : null)),
     null,
-    { liveEnabled: FIA_F2_ENABLED },
+    { liveEnabled: FIA_F2_ENABLED, preferDb: opts.preferDb !== false },
   );
   if (!resolved.data) throw new Error('No last F2 race data');
   return withSource(resolved, resolved.data);
 };
 
-export const getRaceResultsByRound = async (round) => {
+export const getRaceResultsByRound = async (round, opts = {}) => {
   const cleanRound = Number.parseInt(round, 10);
   const resolved = await resolveWithFallbackOrEmpty(
     async () =>
@@ -136,7 +136,7 @@ export const getRaceResultsByRound = async (round) => {
         .then(mapRaceResultsResponse),
     () => getRaceResultsFromDb(SERIES, cleanRound).then(mapRaceResultsResponse),
     null,
-    { liveEnabled: FIA_F2_ENABLED },
+    { liveEnabled: FIA_F2_ENABLED, preferDb: opts.preferDb !== false },
   );
   if (!resolved.data) throw new Error(`No F2 race results for round ${cleanRound}`);
   return withSource(resolved, resolved.data);

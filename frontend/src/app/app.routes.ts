@@ -1,5 +1,4 @@
 import { Routes } from '@angular/router';
-import { HomeComponent } from './features/home/home.component';
 import {
   FORMULA_SECTION_ROUTES,
   FORMULA_SERIES_PARENT_ROUTE,
@@ -9,7 +8,16 @@ import { MOTO2_SERIES_PARENT_ROUTE } from './core/moto2/moto2-section.routes';
 import { MOTO3_SERIES_PARENT_ROUTE } from './core/moto3/moto3-section.routes';
 
 export const routes: Routes = [
-  { path: '', component: HomeComponent },
+  {
+    path: '',
+    loadComponent: () =>
+      import('./features/landing/landing.page').then((m) => m.LandingPageComponent),
+  },
+  {
+    path: 'inicio',
+    loadComponent: () =>
+      import('./features/home/home.component').then((m) => m.HomeComponent),
+  },
 
   {
     path: 'login',
@@ -75,5 +83,5 @@ export const routes: Routes = [
       import('./features/news/f1-news-detail.page').then(m => m.F1NewsDetailPageComponent),
   },
 
-  { path: '**', redirectTo: '' },
+  { path: '**', redirectTo: 'inicio' },
 ];

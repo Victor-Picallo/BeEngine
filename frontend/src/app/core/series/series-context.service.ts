@@ -13,7 +13,7 @@ export class SeriesContextService {
   readonly apiPrefix = computed(() => `/${this.id()}`);
   readonly routePrefix = computed(() => this.config().routePrefix);
   readonly homePath = computed(() => {
-    if (this.id() === 'f1') return '/';
+    if (this.id() === 'f1') return '/inicio';
     return this.routePrefix();
   });
 
@@ -39,7 +39,7 @@ export class SeriesContextService {
   /** Segmentos absolutos para `routerLink` / `navigate`, p. ej. `['/f2', 'pilotos', id]`. */
   path(...segments: string[]): (string | number)[] {
     if (this.id() === 'f1') {
-      return segments.length ? ['/f1', ...segments] : ['/'];
+      return segments.length ? ['/f1', ...segments] : ['/inicio'];
     }
     const root = `/${this.id()}`;
     return segments.length ? [root, ...segments] : [root];
@@ -47,7 +47,7 @@ export class SeriesContextService {
 
   /** Ruta URL absoluta, p. ej. `/f2/pilotos`. */
   urlPath(...segments: string[]): string {
-    if (this.id() === 'f1' && segments.length === 0) return '/';
+    if (this.id() === 'f1' && segments.length === 0) return '/inicio';
     const parts = [this.id(), ...segments].filter(Boolean);
     return `/${parts.join('/')}`;
   }

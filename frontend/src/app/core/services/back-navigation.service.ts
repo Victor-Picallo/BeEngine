@@ -58,7 +58,7 @@ export class BackNavigationService {
   /** Etiqueta corta para el botón «atrás» según la URL de origen. */
   labelFor(returnUrl: string | null, fallbackPath: string): string {
     const path = (returnUrl ?? fallbackPath).split('?')[0];
-    if (path === '/' || path === '') return 'Inicio';
+    if (path === '/' || path === '' || path === '/inicio') return 'Inicio';
     if (
       path.startsWith('/f1/clasificacion') ||
       path.startsWith('/f2/clasificacion') ||
@@ -83,7 +83,8 @@ export class BackNavigationService {
     ) {
       return 'Escuderías';
     }
-    if (path === '/f2' || path === '/f3' || path === '/motogp') return 'Inicio';
+    if (path === '/f2' || path === '/f3' || path === '/motogp' || path === '/moto2' || path === '/moto3')
+      return 'Inicio';
     if (
       /\/f[23]\/calendario\/[^/]+\/race/.test(path) ||
       /\/motogp\/calendario\/[^/]+\/[^/]+/.test(path) ||

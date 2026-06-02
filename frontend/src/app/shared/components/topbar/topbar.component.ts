@@ -13,8 +13,8 @@ export class TopbarComponent {
   categories = input.required<Category[]>();
   activeCat  = input.required<string>();
   accent     = input.required<string>();
-  /** Inicio de la categoría activa (`/`, `/f2`, `/f3`). */
-  homeLink   = input<string>('/');
+  /** Inicio de la categoría activa (`/inicio`, `/f2`, `/motogp`, …). */
+  homeLink   = input<string>('/inicio');
 
   catChange = output<string>();
 }

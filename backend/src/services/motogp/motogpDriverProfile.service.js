@@ -3,9 +3,11 @@ import {
   MOTO3_CATEGORY_UUID,
   MOTOGP_CATEGORY_UUID,
 } from '../../external/motogp/pulselive.client.js';
+import { PREFER_DB_FIRST } from '../../config/env.js';
 import {
   getCalendar,
   getDriverStandings,
+  getLastRace,
   getRaceResultsByRound,
 } from './pulseLive.service.js';
 import { findMoto2DriverGrid } from '../moto2/moto2Data.service.js';
@@ -72,8 +74,11 @@ export const getDriverProfile = async (driverId, opts = {}) => {
 
   const standings = await getDriverStandings(categoryId);
   const row = standings.items.find((d) => d.driverId === driverId);
-  const rider = (await findRider(driverId)) ?? (await getRiderDetail(driverId));
-  if (!row && !rider) {
+  const skipPulseRider = PREFER_DB_FIRST && opts.preferDb !== false;
+  const rider = skipPulseRider
+    ? null
+    : (await findRider(driverId)) ?? (await getRiderDetail(driverId));
+  if (!row && !rider && !localGrid) {
     const err = new Error('Driver not found');
     err.code = 'NOT_FOUND';
     throw err;
@@ -81,9 +86,11 @@ export const getDriverProfile = async (driverId, opts = {}) => {
 
   const legacyId = rider?.legacyId;
   const [stats, seasonStats, calendar] = await Promise.all([
-    legacyId ? getRiderStats(legacyId).catch(() => null) : Promise.resolve(null),
-    legacyId ? getRiderStatisticsBySeason(legacyId).catch(() => []) : Promise.resolve([]),
-    getCalendar(),
+    !skipPulseRider && legacyId ? getRiderStats(legacyId).catch(() => null) : Promise.resolve(null),
+    !skipPulseRider && legacyId
+      ? getRiderStatisticsBySeason(legacyId).catch(() => [])
+      : Promise.resolve([]),
+    getCalendar(categoryId),
   ]);
 
   const categorySeasons = seasonStats.filter((s) => seasonMatchesCategory(s, meta.label));
@@ -93,13 +100,17 @@ export const getDriverProfile = async (driverId, opts = {}) => {
       ? currentYear
       : parseInt(categorySeasons[0]?.season ?? String(currentYear), 10) || currentYear;
 
-  const totalRounds = calendar.items?.length ?? 22;
-  const id = row?.driverId ?? rider?.id ?? driverId;
-  const racePayloads = await Promise.all(
-    Array.from({ length: totalRounds }, (_, i) =>
-      getRaceResultsByRound(i + 1, 'race', categoryId).catch(() => null),
-    ),
-  );
+  const lastRaceRes = await getLastRace(categoryId).catch(() => null);
+  const totalRounds = lastRaceRes?.round ?? 0;
+  const id = row?.driverId ?? rider?.id ?? localGrid?.driverId ?? driverId;
+  const racePayloads =
+    totalRounds > 0
+      ? await Promise.all(
+          Array.from({ length: totalRounds }, (_, i) =>
+            getRaceResultsByRound(i + 1, 'race', categoryId).catch(() => null),
+          ),
+        )
+      : [];
   const currentSeason = racePayloads
     .filter(Boolean)
     .map((race) => {

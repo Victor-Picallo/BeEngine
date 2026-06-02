@@ -1,5 +1,5 @@
 import type { SeriesId } from './series.types';
-import { SERIES_CONFIG } from './series.config';
+import { homePathForSeries, SERIES_CONFIG } from './series.config';
 
 export const SERIES_SECTION_LABELS = [
   'Inicio',
@@ -44,7 +44,7 @@ export function seriesSectionPath(seriesId: SeriesId, label: string): string | n
   if (!key) return null;
   const fn = SECTION_PATHS[key];
   const cfg = SERIES_CONFIG[seriesId];
-  const home = seriesId === 'f1' ? '/' : cfg.routePrefix;
+  const home = homePathForSeries(seriesId);
   const prefix = seriesId === 'f1' ? '/f1' : cfg.routePrefix;
   return fn(prefix, home);
 }

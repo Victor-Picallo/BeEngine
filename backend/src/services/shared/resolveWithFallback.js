@@ -1,15 +1,47 @@
-import { DB_ENABLED, EXTERNAL_API_TIMEOUT_MS } from '../../config/env.js';
+import { DB_ENABLED, EXTERNAL_API_TIMEOUT_MS, PREFER_DB_FIRST } from '../../config/env.js';
+
+/**
+ * @param {unknown} data
+ */
+function hasDbData(data) {
+  if (data == null) return false;
+  if (Array.isArray(data)) return data.length > 0;
+  if (typeof data === 'object' && Array.isArray(data.items)) {
+    return data.items.length > 0;
+  }
+  if (typeof data === 'object' && Array.isArray(data.results)) {
+    return data.results.length > 0;
+  }
+  return true;
+}
 
 /**
  * @template T
  * @param {() => Promise<T>} liveFn
  * @param {() => Promise<T | null | undefined>} dbFn
- * @param {{ liveEnabled?: boolean, timeoutMs?: number }} [opts]
+ * @param {{ liveEnabled?: boolean, preferDb?: boolean, timeoutMs?: number }} [opts]
  * @returns {Promise<{ data: T, source: 'live' | 'db' | 'empty' }>}
  */
 export async function resolveWithFallback(liveFn, dbFn, opts = {}) {
-  const liveEnabled = opts.liveEnabled !== false;
+  const preferDb = opts.preferDb !== false && PREFER_DB_FIRST;
+  /** Con DB-first no bloqueamos la UI esperando APIs externas (salvo allowLiveFallback). */
+  const skipLive =
+    PREFER_DB_FIRST && preferDb && opts.allowLiveFallback !== true;
+  const liveEnabled = opts.liveEnabled !== false && !skipLive;
   const timeoutMs = opts.timeoutMs ?? EXTERNAL_API_TIMEOUT_MS;
+
+  let dbData = null;
+
+  if (DB_ENABLED) {
+    try {
+      dbData = await dbFn();
+      if (preferDb && hasDbData(dbData)) {
+        return { data: dbData, source: 'db' };
+      }
+    } catch {
+      dbData = null;
+    }
+  }
 
   if (liveEnabled) {
     try {
@@ -23,6 +55,9 @@ export async function resolveWithFallback(liveFn, dbFn, opts = {}) {
   }
 
   if (DB_ENABLED) {
+    if (dbData != null) {
+      return { data: dbData, source: 'db' };
+    }
     try {
       const data = await dbFn();
       if (data != null) {
@@ -41,7 +76,7 @@ export async function resolveWithFallback(liveFn, dbFn, opts = {}) {
  * @param {() => Promise<T>} liveFn
  * @param {() => Promise<T | null | undefined>} dbFn
  * @param {T} emptyValue
- * @param {{ liveEnabled?: boolean, timeoutMs?: number }} [opts]
+ * @param {{ liveEnabled?: boolean, preferDb?: boolean, timeoutMs?: number }} [opts]
  */
 export async function resolveWithFallbackOrEmpty(liveFn, dbFn, emptyValue, opts = {}) {
   try {

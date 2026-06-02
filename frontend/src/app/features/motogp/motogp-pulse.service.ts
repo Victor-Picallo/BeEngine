@@ -52,14 +52,20 @@ export class MotogpPulseService {
   private teamStandings$?: Observable<MotogpTeamStanding[]>;
   private officialTeams$?: Observable<MotogpTeamStanding[]>;
 
+  invalidateCache(): void {
+    this.driverStandings$ = undefined;
+    this.teamStandings$ = undefined;
+    this.officialTeams$ = undefined;
+  }
+
   getDriverStandingsResponse(
     forceRefresh = false,
   ): Observable<SourceWrapped<JolpikaDriverStanding>> {
     if (forceRefresh) this.driverStandings$ = undefined;
     if (!this.driverStandings$) {
       this.driverStandings$ = this.api
-        .get<SourceWrapped<JolpikaDriverStanding>>(`${this.prefix}/driver-standings`)
-        .pipe(shareReplay({ bufferSize: 1, refCount: false }));
+        .getDbThenLive<SourceWrapped<JolpikaDriverStanding>>(`${this.prefix}/driver-standings`)
+        .pipe(shareReplay({ bufferSize: 1, refCount: true }));
     }
     return this.driverStandings$;
   }
@@ -75,10 +81,10 @@ export class MotogpPulseService {
     }
     if (!this.teamStandings$) {
       this.teamStandings$ = this.api
-        .get<SourceWrapped<MotogpTeamStanding>>(`${this.prefix}/constructor-standings`)
+        .getDbThenLive<SourceWrapped<MotogpTeamStanding>>(`${this.prefix}/constructor-standings`)
         .pipe(
           map((res) => res.items ?? []),
-          shareReplay({ bufferSize: 1, refCount: false }),
+          shareReplay({ bufferSize: 1, refCount: true }),
         );
     }
     return this.teamStandings$;
@@ -88,11 +94,11 @@ export class MotogpPulseService {
     if (forceRefresh) this.officialTeams$ = undefined;
     if (!this.officialTeams$) {
       this.officialTeams$ = this.api
-        .get<SourceWrapped<MotogpTeamStanding>>(`${this.prefix}/official-teams`)
+        .getDbThenLive<SourceWrapped<MotogpTeamStanding>>(`${this.prefix}/official-teams`)
         .pipe(
           map((res) => res.items ?? []),
           catchError(() => this.getTeamStandings(forceRefresh)),
-          shareReplay({ bufferSize: 1, refCount: false }),
+          shareReplay({ bufferSize: 1, refCount: true }),
         );
     }
     return this.officialTeams$;
@@ -100,12 +106,12 @@ export class MotogpPulseService {
 
   getCalendar(): Observable<JolpikaCalendarRace[]> {
     return this.api
-      .get<SourceWrapped<JolpikaCalendarRace>>(`${this.prefix}/calendar`)
+      .getDbThenLive<SourceWrapped<JolpikaCalendarRace>>(`${this.prefix}/calendar`)
       .pipe(map((res) => res.items ?? []));
   }
 
   getLastRace(): Observable<JolpikaLastRace> {
-    return this.api.get<JolpikaLastRace>(`${this.prefix}/last-race`);
+    return this.api.getDbThenLive<JolpikaLastRace>(`${this.prefix}/last-race`);
   }
 
   getNextRace(): Observable<MotogpNextRacePayload> {
@@ -114,11 +120,13 @@ export class MotogpPulseService {
 
   getRaceResults(round: number, sessionKey = 'race'): Observable<JolpikaRaceResult> {
     const q = sessionKey ? `?session=${encodeURIComponent(sessionKey)}` : '';
-    return this.api.get<JolpikaRaceResult>(`${this.prefix}/results/${round}${q}`);
+    return this.api.getDbThenLive<JolpikaRaceResult>(`${this.prefix}/results/${round}${q}`);
   }
 
   getRoundSessions(round: number): Observable<MotogpRoundSessionsPayload> {
-    return this.api.get<MotogpRoundSessionsPayload>(`${this.prefix}/results/${round}/sessions`);
+    return this.api.getDbThenLive<MotogpRoundSessionsPayload>(
+      `${this.prefix}/results/${round}/sessions`,
+    );
   }
 
   getSessions(): Observable<OpenF1Session[]> {
@@ -143,7 +151,7 @@ export class MotogpPulseService {
     const id = encodeURIComponent(constructorId.trim());
     const p = Math.max(1, careerPage);
     const q = p > 1 ? `?careerPage=${p}` : '';
-    return this.api.get<MotogpTeamProfile>(`${this.prefix}/constructors/${id}/profile${q}`);
+    return this.api.getDbThenLive<MotogpTeamProfile>(`${this.prefix}/constructors/${id}/profile${q}`);
   }
 
   getTeamProfileAggregates(constructorId: string): Observable<{
