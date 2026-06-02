@@ -206,13 +206,19 @@ export class F1LiveService {
     );
   }
 
-  getConstructorProfile(constructorId: string, careerPage = 1): Observable<JolpikaConstructorProfile> {
+  getConstructorProfile(
+    constructorId: string,
+    careerPage = 1,
+    options?: { liveRefresh?: boolean },
+  ): Observable<JolpikaConstructorProfile> {
     const id = encodeURIComponent(constructorId.trim());
     const p = Math.max(1, careerPage);
     const q = p > 1 ? `?careerPage=${p}` : '';
-    return this.api.getDbThenLive<JolpikaConstructorProfile>(
-      `${this.racingApi()}/constructors/${id}/profile${q}`,
-    );
+    const path = `${this.racingApi()}/constructors/${id}/profile${q}`;
+    if (options?.liveRefresh || p > 1) {
+      return this.api.get<JolpikaConstructorProfile>(path, { liveRefresh: true });
+    }
+    return this.api.get<JolpikaConstructorProfile>(path);
   }
 
   getConstructorProfileAggregates(

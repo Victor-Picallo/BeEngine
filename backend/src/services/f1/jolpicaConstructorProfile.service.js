@@ -1,6 +1,7 @@
 import { jolpicaClient } from '../../external/jolpica/jolpica.client.js';
 import { CAREER_HISTORY_PAGE_SIZE } from '../../utils/careerPagination.js';
 import { PREFER_DB_FIRST, DB_ENABLED, CURRENT_SEASON_YEAR } from '../../config/env.js';
+import { toPublicMediaUrl } from '../../lib/supabaseStorage.js';
 import { requirePrisma } from '../../lib/prisma.js';
 import { seasonIdFor } from '../../repositories/db/season.repository.js';
 import { getDriverEntriesForConstructor } from '../../repositories/db/feeder.repository.js';
@@ -685,6 +686,8 @@ async function getConstructorProfileFromDb(rawConstructorId) {
   let statsSource = 'local';
   let aggregatesPending = false;
 
+  let careerHistoryPagination = null;
+
   if (historical) {
     const merged = mergeHistoricalWithLive(historical, {
       standing,
@@ -693,7 +696,22 @@ async function getConstructorProfileFromDb(rawConstructorId) {
     });
     stats = merged.stats;
     bioText = buildBio(c, standing, seasonYear, drivers, [currentYearRow], merged.stats);
-    statsSource = standing ? 'live' : 'local';
+    statsSource = 'api';
+    aggregatesPending = false;
+
+    const totalYears = Math.min(
+      HISTORY_YEAR_SPAN,
+      Math.max(1, seasonYear - 1950 + 1),
+    );
+    if (totalYears > CAREER_HISTORY_PAGE_SIZE) {
+      careerHistoryPagination = {
+        page: 1,
+        pageSize: CAREER_HISTORY_PAGE_SIZE,
+        totalYears,
+        totalPages: Math.ceil(totalYears / CAREER_HISTORY_PAGE_SIZE),
+        maxPts: historical.maxCareerPts ?? Math.max(1, currentYearRow.pts),
+      };
+    }
   } else {
     stats = {
       championships: 0,
@@ -702,8 +720,8 @@ async function getConstructorProfileFromDb(rawConstructorId) {
       totalPoles: 0,
     };
     bioText = buildBio(c, standing, seasonYear, drivers, [currentYearRow], stats);
+    statsSource = 'local';
     aggregatesPending = true;
-    scheduleAggregatePrefetch(constructorId);
   }
 
   return {
@@ -712,6 +730,9 @@ async function getConstructorProfileFromDb(rawConstructorId) {
     name: cs.name,
     nationality: c.nationality,
     wikiUrl: '',
+    logoUrl: toPublicMediaUrl(cs.logoUrl),
+    bikeImageUrl: toPublicMediaUrl(cs.bikeImageUrl),
+    teamColor: cs.teamColor ?? null,
     currentSeasonYear: seasonYear,
     standing,
     stats,
@@ -719,7 +740,7 @@ async function getConstructorProfileFromDb(rawConstructorId) {
     drivers,
     currentSeason,
     careerHistory: [currentYearRow],
-    careerHistoryPagination: null,
+    careerHistoryPagination,
     careerHistoryError: false,
     aggregatesPending,
     statsSource,
@@ -736,7 +757,7 @@ export async function getConstructorProfile(rawConstructorId, opts = {}) {
     return getManualConstructorProfile(constructorId);
   }
 
-  if (PREFER_DB_FIRST && opts.preferDb !== false) {
+  if (PREFER_DB_FIRST && opts.preferDb !== false && careerPage === 1) {
     const fromDb = await getConstructorProfileFromDb(rawConstructorId);
     if (fromDb) return fromDb;
   }

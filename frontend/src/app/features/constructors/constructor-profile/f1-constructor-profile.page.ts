@@ -17,14 +17,11 @@ import {
   fromEvent,
   ignoreElements,
   map,
-  expand,
   merge,
   Observable,
   of,
   switchMap,
-  takeWhile,
   tap,
-  timer,
 } from 'rxjs';
 import {
   BackNavigationService,
@@ -175,6 +172,17 @@ export class F1ConstructorProfilePageComponent {
     this.loadCareerPage(page, false);
   }
 
+  /** Carga el bloque de temporadas desde Jolpica (la ficha DB solo trae el año en curso). */
+  loadFullCareerHistory(): void {
+    this.loadCareerPage(this.profile()?.careerHistoryPagination?.page ?? 1, false);
+  }
+
+  showLoadFullCareer = computed(() => {
+    const p = this.profile();
+    if (!p || p.source !== 'db' || !p.careerHistoryPagination) return false;
+    return p.careerHistory.length < p.careerHistoryPagination.pageSize;
+  });
+
   stepCareerPage(delta: number): void {
     const pag = this.profile()?.careerHistoryPagination;
     if (!pag || this.careerHistoryLoading()) return;
@@ -260,7 +268,7 @@ export class F1ConstructorProfilePageComponent {
     const gen = ++this.careerLoadGen;
     this.careerHistoryLoading.set(true);
     this.f1
-      .getConstructorProfile(id, page)
+      .getConstructorProfile(id, page, { liveRefresh: true })
       .pipe(
         catchError(() => EMPTY),
         finalize(() => {
@@ -346,22 +354,12 @@ export class F1ConstructorProfilePageComponent {
           }),
         );
 
-        const shouldSyncAggregates =
-          profile.source !== 'manual' &&
-          (profile.aggregatesPending || profile.statsSource !== 'api');
-
-        if (!shouldSyncAggregates) {
+        if (!profile.aggregatesPending || profile.source === 'manual') {
           return drivers$.pipe(map(() => undefined));
         }
 
         const agg$ = this.f1.getConstructorProfileAggregates(id).pipe(
-          expand((agg, i) =>
-            agg.partial && i < 40
-              ? timer(5000).pipe(switchMap(() => this.f1.getConstructorProfileAggregates(id)))
-              : EMPTY,
-          ),
           tap((agg) => mergeAggregates(agg)),
-          takeWhile((agg) => agg.partial === true, true),
           catchError(() => {
             const cur = this.profile();
             if (cur && !cur.stats.championships && !cur.stats.totalWins) {

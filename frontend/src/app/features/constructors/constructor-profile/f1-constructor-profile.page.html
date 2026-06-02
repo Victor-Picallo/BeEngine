@@ -241,6 +241,16 @@
                     }
                   </span>
                 </div>
+                @if (showLoadFullCareer()) {
+                  <button
+                    type="button"
+                    class="dp-career-pager-btn"
+                    [disabled]="careerHistoryLoading()"
+                    (click)="loadFullCareerHistory()"
+                  >
+                    Cargar historial por temporadas
+                  </button>
+                }
                 @if (p.careerHistoryPagination; as pag) {
                   <div class="dp-career-pager" role="navigation" aria-label="Paginación del historial">
                     <button
