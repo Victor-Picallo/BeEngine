@@ -4,6 +4,7 @@ import { NEWS_FEEDS_BY_CATEGORY } from '../../data/shared/newsFeeds.config.js';
 import { DB_ENABLED } from '../../config/env.js';
 import {
   getNewsArticlesFromDb,
+  getNewsArticleByIdFromDb,
   getNewsSummaryFromDb,
 } from '../../repositories/db/newsArticle.repository.js';
 
@@ -247,6 +248,17 @@ export async function getNewsArticles(category, opts = {}) {
 }
 
 export async function getNewsArticleById(id) {
+  if (!id) return null;
+
+  if (DB_ENABLED) {
+    try {
+      const fromDb = await getNewsArticleByIdFromDb(id);
+      if (fromDb) return fromDb;
+    } catch {
+      /* RSS / feedCache */
+    }
+  }
+
   for (const category of Object.keys(NEWS_FEEDS_BY_CATEGORY)) {
     await getNewsArticles(category, { limit: 60 });
     const hit = feedCache.get(category)?.articles?.find((a) => a.id === id);

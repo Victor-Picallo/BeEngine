@@ -67,3 +67,11 @@ export async function getNewsSummaryFromDb(category, limit = 4) {
   const res = await getNewsArticlesFromDb(category, { limit, offset: 0, tag: 'Todos' });
   return res?.items ?? null;
 }
+
+/** @param {string} id */
+export async function getNewsArticleByIdFromDb(id) {
+  if (!DB_ENABLED || !id) return null;
+  const prisma = requirePrisma();
+  const row = await prisma.newsArticle.findUnique({ where: { id } });
+  return row ? mapRow(row) : null;
+}
