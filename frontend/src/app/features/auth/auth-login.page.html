@@ -75,6 +75,8 @@
             Enlace enviado
           } @else if (mode() === 'new-password') {
             Contraseña actualizada
+          } @else if (mode() === 'onboarding') {
+            ¡Perfil listo!
           } @else if (mode() === 'login') {
             ¡Bienvenido de vuelta!
           } @else {
@@ -95,7 +97,7 @@
       </div>
     } @else {
       <div class="auth-panel">
-        @if (mode() !== 'reset' && mode() !== 'new-password') {
+        @if (mode() !== 'reset' && mode() !== 'new-password' && mode() !== 'onboarding') {
           <div class="auth-mode-switch" role="tablist">
             <button
               type="button"
@@ -293,6 +295,191 @@
               </button>
             }
           </form>
+        } @else if (mode() === 'onboarding') {
+          <div style="margin-bottom: 28px">
+            <h2 class="auth-title">Completa tu perfil</h2>
+            <p class="auth-subtitle">
+              Elige tu categoría y piloto favoritos para personalizar BeEngine.
+            </p>
+          </div>
+          <form class="auth-form" (ngSubmit)="onSubmitOnboarding($event)">
+            <div>
+              <label class="auth-label" for="onboarding-name">Nombre</label>
+              <input
+                id="onboarding-name"
+                class="auth-input"
+                type="text"
+                [(ngModel)]="name"
+                name="onboardingName"
+                placeholder="Tu nombre"
+                autocomplete="name"
+              />
+            </div>
+
+            <div class="auth-fav-block">
+              <label class="auth-label">Categoría favorita</label>
+              <div class="auth-cats">
+                @for (cat of favCategories; track cat.id) {
+                  <button
+                    type="button"
+                    class="auth-cat-btn"
+                    [class.selected]="favCategory() === cat.id"
+                    [style.--cat-color]="cat.color"
+                    [style.--cat-fg]="cat.fg"
+                    (click)="selectFavCategory(cat.id)"
+                  >
+                    {{ cat.label }}
+                  </button>
+                }
+              </div>
+
+              @if (favCategory()) {
+                <div class="auth-driver-panel">
+                  <span class="auth-label" id="onboarding-fav-driver-label">
+                    Piloto favorito
+                    <span class="auth-driver-cat">({{ selectedCategoryLabel() }})</span>
+                  </span>
+
+                  @if (driversLoading()) {
+                    <div class="auth-driver-loading">Cargando pilotos…</div>
+                  } @else if (driverOptions().length) {
+                    <input type="hidden" name="favDriverId" [(ngModel)]="favDriverId" required />
+
+                    @if (selectedDriverOption(); as sel) {
+                      <div
+                        class="auth-driver-selected"
+                        [style.--team-color]="sel.teamColor"
+                        aria-live="polite"
+                      >
+                        <div class="auth-driver-selected-bg" aria-hidden="true"></div>
+                        <div
+                          class="auth-driver-photo auth-driver-photo--sm"
+                          [class.auth-driver-photo--feeder]="isFeederPortrait(favCategory())"
+                        >
+                          @if (sel.headshotUrl) {
+                            <img
+                              class="auth-driver-thumb"
+                              [src]="sel.headshotUrl"
+                              [alt]="sel.driver"
+                              loading="lazy"
+                              (error)="driverImgError($event, sel)"
+                            />
+                          }
+                          <span class="auth-driver-thumb-initials">{{
+                            driverInitials(sel.driver)
+                          }}</span>
+                        </div>
+                        <div class="auth-driver-selected-text">
+                          @if (sel.number != null) {
+                            <span class="auth-driver-num">{{ sel.number }}</span>
+                          }
+                          <span class="auth-driver-name">{{ sel.driver }}</span>
+                          <span class="auth-driver-team">{{ sel.team }}</span>
+                        </div>
+                      </div>
+                    }
+
+                    <div
+                      class="auth-driver-list"
+                      role="listbox"
+                      aria-labelledby="onboarding-fav-driver-label"
+                    >
+                      @for (d of driverOptions(); track d.driverId) {
+                        <button
+                          type="button"
+                          class="auth-driver-row"
+                          role="option"
+                          [class.selected]="favDriverId === d.driverId"
+                          [attr.aria-selected]="favDriverId === d.driverId"
+                          [style.--team-color]="d.teamColor"
+                          (click)="selectFavDriver(d.driverId)"
+                        >
+                          <div class="auth-driver-row-bg" aria-hidden="true"></div>
+                          <div
+                            class="auth-driver-photo"
+                            [class.auth-driver-photo--feeder]="isFeederPortrait(favCategory())"
+                          >
+                            @if (d.headshotUrl) {
+                              <img
+                                class="auth-driver-thumb"
+                                [src]="d.headshotUrl"
+                                alt=""
+                                loading="lazy"
+                                (error)="driverImgError($event, d)"
+                              />
+                            }
+                            <span class="auth-driver-thumb-initials">{{
+                              driverInitials(d.driver)
+                            }}</span>
+                          </div>
+                          <div class="auth-driver-row-text">
+                            @if (d.number != null) {
+                              <span class="auth-driver-num">{{ d.number }}</span>
+                            }
+                            <span class="auth-driver-name">{{ d.driver }}</span>
+                            <span class="auth-driver-team">{{ d.team }}</span>
+                          </div>
+                          @if (favDriverId === d.driverId) {
+                            <span class="auth-driver-check" aria-hidden="true">
+                              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                <path
+                                  d="M2 7L5.5 10.5L12 3.5"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                />
+                              </svg>
+                            </span>
+                          }
+                        </button>
+                      }
+                    </div>
+                  } @else {
+                    <p class="auth-driver-empty">
+                      No hay pilotos disponibles para esta categoría.
+                    </p>
+                  }
+                </div>
+              }
+            </div>
+
+            @if (errorMessage()) {
+              <p style="font-size: 13px; color: #c0392b" role="alert">{{ errorMessage() }}</p>
+            }
+
+            <button type="submit" class="auth-submit" [disabled]="loading()">
+              @if (loading()) {
+                <svg
+                  class="auth-spinner"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <circle cx="10" cy="10" r="8" stroke="rgba(255,255,255,.3)" stroke-width="2" />
+                  <path
+                    d="M10 2 A8 8 0 0 1 18 10"
+                    stroke="#fff"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              } @else {
+                Continuar
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path
+                    d="M3 8H13M9 4L13 8L9 12"
+                    stroke="#fff"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              }
+            </button>
+          </form>
         } @else {
           <div style="margin-bottom: 28px">
             <h2 class="auth-title">
@@ -441,7 +628,7 @@
               }
             </div>
 
-            @if (mode() === 'register') {
+            @if (showFavoritePicker()) {
               <div class="auth-fav-block">
                 <label class="auth-label">Categoría favorita</label>
                 <div class="auth-cats">

@@ -1,5 +1,6 @@
 import { success } from '../utils/response.js';
-import { NODE_ENV, DB_ENABLED, AUTH_ENABLED } from '../config/env.js';
+import { NODE_ENV, DB_ENABLED, AUTH_ENABLED, ASSIST_ENABLED } from '../config/env.js';
+import { assistConfigured } from '../services/assist/assistChat.service.js';
 import { authConfigured } from '../lib/supabaseAuth.js';
 import { storageConfigured } from '../lib/supabaseStorage.js';
 import { prisma } from '../lib/prisma.js';
@@ -42,6 +43,7 @@ export const getHealth = async (_req, res) => {
     db,
     storage: { configured: storageConfigured() },
     auth: { configured: authConfigured() && AUTH_ENABLED },
+    assist: { configured: assistConfigured() && ASSIST_ENABLED },
     lastSync,
     lastSyncRuns: lastSyncDetail,
   });

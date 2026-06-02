@@ -12,12 +12,14 @@ import moto2Routes      from './moto2.routes.js';
 import moto3Routes      from './moto3.routes.js';
 import authRoutes       from './auth.routes.js';
 import meRoutes         from './me.routes.js';
+import assistRoutes     from './assist.routes.js';
 
 const router = Router();
 
 router.use('/health',     healthRoutes);
 router.use('/auth',       authRoutes);
 router.use('/me',         meRoutes);
+router.use('/assist',     assistRoutes);
 router.use('/categories', categoriesRoutes);
 router.use('/home',       homeRoutes);
 router.use('/news',       newsRoutes);

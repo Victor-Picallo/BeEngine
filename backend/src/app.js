@@ -32,7 +32,7 @@ app.get('/', (_req, res) => {
     data: {
       name: 'BeEngine API',
       health: '/api/health',
-      routes: ['/api/categories', '/api/home', '/api/news', '/api/f1', '/api/f2', '/api/f3'],
+      routes: ['/api/categories', '/api/home', '/api/news', '/api/assist', '/api/f1', '/api/f2', '/api/f3'],
     },
   });
 });

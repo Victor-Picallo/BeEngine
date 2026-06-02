@@ -30,7 +30,7 @@ import {
   buildCircuitSvgFromFlatPoints,
 } from '../../shared/utils/circuit-svg.util';
 
-export type AuthMode = 'login' | 'register' | 'reset' | 'new-password';
+export type AuthMode = 'login' | 'register' | 'reset' | 'new-password' | 'onboarding';
 
 interface FavCategoryOption {
   id: string;
@@ -144,6 +144,8 @@ export class AuthLoginPageComponent implements OnInit {
 
   private async bootstrapAuthMode(): Promise<void> {
     await this.auth.init(!this.auth.configured());
+    this.auth.clearOAuthHashFromUrl();
+
     const tab = this.route.snapshot.queryParamMap.get('tab');
     if (tab === 'new-password' || this.auth.isPasswordRecovery()) {
       this.mode.set('new-password');
@@ -154,9 +156,28 @@ export class AuthLoginPageComponent implements OnInit {
       }
       return;
     }
+
+    if (this.auth.session()) {
+      await this.auth.refreshProfile();
+      if (this.auth.needsOnboarding() || tab === 'onboarding') {
+        this.mode.set('onboarding');
+        this.name = this.auth.defaultDisplayName();
+        return;
+      }
+      if (tab !== 'register' && tab !== 'registro') {
+        void this.router.navigateByUrl('/');
+        return;
+      }
+    }
+
     if (tab === 'register' || tab === 'registro') {
       this.mode.set('register');
     }
+  }
+
+  showFavoritePicker(): boolean {
+    const m = this.mode();
+    return m === 'register' || m === 'onboarding';
   }
 
   setMode(next: AuthMode): void {
@@ -164,7 +185,7 @@ export class AuthLoginPageComponent implements OnInit {
     this.done.set(false);
     this.doneHint.set(null);
     this.errorMessage.set(null);
-    if (next !== 'register') {
+    if (next !== 'register' && next !== 'onboarding') {
       this.favCategory.set(null);
       this.driverStandings.set([]);
       this.openF1Drivers.set([]);
@@ -277,10 +298,38 @@ export class AuthLoginPageComponent implements OnInit {
     });
   }
 
+  onSubmitOnboarding(event: Event): void {
+    event.preventDefault();
+    this.errorMessage.set(null);
+    this.doneHint.set(null);
+
+    if (!this.favCategory()) {
+      this.errorMessage.set('Elige una categoría favorita.');
+      return;
+    }
+    if (!this.favDriverId.trim()) {
+      this.errorMessage.set('Elige tu piloto favorito.');
+      return;
+    }
+
+    void this.runAuthAction(async () => {
+      const displayName = this.name.trim() || this.auth.defaultDisplayName();
+      await this.auth.bootstrapProfile(displayName, this.buildFavoriteDtos());
+      this.doneHint.set('Tus favoritos ya están guardados.');
+      this.done.set(true);
+      window.setTimeout(() => void this.router.navigateByUrl('/'), 1200);
+    });
+  }
+
   onSubmit(event: Event): void {
     event.preventDefault();
     this.errorMessage.set(null);
     this.doneHint.set(null);
+
+    if (this.mode() === 'onboarding') {
+      this.onSubmitOnboarding(event);
+      return;
+    }
 
     if (this.mode() === 'new-password') {
       this.onSubmitNewPassword(event);
@@ -334,28 +383,11 @@ export class AuthLoginPageComponent implements OnInit {
         return;
       }
 
-      const driver = this.selectedDriverOption();
-      const seriesId = this.favCategory()!;
-      const favorites: UserFavoriteDto[] = [
-        {
-          kind: 'category',
-          seriesId,
-          label: this.selectedCategoryLabel(),
-        },
-        {
-          kind: 'driver',
-          seriesId,
-          driverId: this.favDriverId,
-          label: driver?.driver,
-          teamLabel: driver?.team,
-        },
-      ];
-
       const outcome = await this.auth.signUpWithPassword(
         email,
         this.password,
         this.name.trim(),
-        favorites,
+        this.buildFavoriteDtos(),
       );
 
       if (outcome === 'confirm_email') {
@@ -385,6 +417,25 @@ export class AuthLoginPageComponent implements OnInit {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private buildFavoriteDtos(): UserFavoriteDto[] {
+    const driver = this.selectedDriverOption();
+    const seriesId = this.favCategory()!;
+    return [
+      {
+        kind: 'category',
+        seriesId,
+        label: this.selectedCategoryLabel(),
+      },
+      {
+        kind: 'driver',
+        seriesId,
+        driverId: this.favDriverId,
+        label: driver?.driver,
+        teamLabel: driver?.team,
+      },
+    ];
   }
 
   private icon(svg: string): SafeHtml {

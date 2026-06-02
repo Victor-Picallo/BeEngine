@@ -221,3 +221,20 @@ model UserFavorite {
   @@index([userId, sortOrder])
   @@map("user_favorites")
 }
+
+/// Contexto estático para el asistente IA (subido manualmente / scripts).
+model AssistKnowledgeSnapshot {
+  id        String   @id @default(cuid())
+  slug      String   @unique @db.VarChar(80)
+  title     String   @db.VarChar(200)
+  content   String   @db.Text
+  scope     String   @default("global") @db.VarChar(16)
+  tags      String?  @db.VarChar(500)
+  isActive  Boolean  @default(true)
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, scope])
+  @@map("assist_knowledge_snapshots")
+}

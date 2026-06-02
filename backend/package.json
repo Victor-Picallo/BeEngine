@@ -36,7 +36,10 @@
     "smoke:db": "node scripts/smoke-db-fallback.mjs",
     "verify:media": "node scripts/verify-media-db.mjs",
     "db:sync:news": "node scripts/sync/sync-news.mjs",
-    "db:sync:profiles": "node scripts/sync/sync-profile-meta.mjs"
+    "db:sync:profiles": "node scripts/sync/sync-profile-meta.mjs",
+    "assist:snapshot:upsert": "node scripts/assist-snapshot-upsert.mjs",
+    "assist:snapshot:seed": "node scripts/assist-snapshot-upsert.mjs --seed",
+    "assist:snapshot:merge": "node scripts/assist-snapshot-merge.mjs"
   },
   "keywords": [],
   "author": "",

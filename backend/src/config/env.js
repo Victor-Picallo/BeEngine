@@ -57,6 +57,23 @@ export const SUPABASE_STORAGE_PUBLIC_BASE = SUPABASE_URL
 
 export const CURRENT_SEASON_YEAR = parseInt(process.env.CURRENT_SEASON_YEAR || '2026', 10);
 
+/** Asistente IA (Groq + snapshots en Postgres). */
+export const GROQ_API_KEY = (process.env.GROQ_API_KEY || '').trim();
+export const GROQ_MODEL = (process.env.GROQ_MODEL || 'llama-3.3-70b-versatile').trim();
+export const ASSIST_MAX_SNAPSHOT_CHARS = parseInt(
+  process.env.ASSIST_MAX_SNAPSHOT_CHARS || '20000',
+  10,
+);
+export const ASSIST_LIVE_MAX_CHARS = parseInt(
+  process.env.ASSIST_LIVE_MAX_CHARS || '22000',
+  10,
+);
+export const ASSIST_RATE_LIMIT_PER_MIN = parseInt(
+  process.env.ASSIST_RATE_LIMIT_PER_MIN || '20',
+  10,
+);
+export const ASSIST_ENABLED = Boolean(GROQ_API_KEY && DB_ENABLED);
+
 const envFlag = (key, defaultOn = true) => {
   const v = process.env[key];
   if (v === undefined || v === '') return defaultOn;
@@ -87,6 +104,7 @@ export function logRuntimeConfig() {
     `  Database: ${DB_ENABLED ? 'configured' : 'off (no DATABASE_URL)'}`,
     `  Storage: ${SUPABASE_STORAGE_PUBLIC_BASE || 'off'}  bucket=${SUPABASE_STORAGE_BUCKET}`,
     `  Auth: ${AUTH_ENABLED ? 'on' : 'off (SUPABASE_URL + ANON_KEY)'}`,
+    `  Assist (Groq): ${ASSIST_ENABLED ? 'on' : 'off (GROQ_API_KEY + DATABASE_URL)'}  model=${GROQ_MODEL}`,
   ];
   console.log('\n  Config (.env):\n' + lines.join('\n') + '\n');
 }

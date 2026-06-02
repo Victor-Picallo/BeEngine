@@ -43,6 +43,8 @@ export class AuthService {
   readonly session = signal<Session | null>(null);
   readonly profile = signal<MeProfile | null>(null);
   readonly initError = signal<string | null>(null);
+  /** Tras el primer GET /api/me (o intento fallido). */
+  readonly profileSettled = signal(false);
   /** Sesión temporal tras el enlace de “restablecer contraseña”. */
   readonly passwordRecovery = signal(false);
 
@@ -126,6 +128,7 @@ export class AuthService {
         this.session.set(sess);
         if (!sess) {
           this.profile.set(null);
+          this.profileSettled.set(false);
           this.passwordRecovery.set(false);
           return;
         }
@@ -245,19 +248,44 @@ export class AuthService {
   }
 
   async signInWithGoogle(): Promise<void> {
+    const redirectTo = `${window.location.origin}/login?tab=onboarding`;
     const { error } = await this.supabase().auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin,
+        redirectTo,
+        queryParams: { prompt: 'select_account' },
       },
     });
     if (error) throw error;
+  }
+
+  /** Sin favoritos guardados (p. ej. primer login con Google). */
+  needsOnboarding(): boolean {
+    if (!this.session() || this.passwordRecovery()) return false;
+    if (!this.profileSettled()) return false;
+    return (this.profile()?.favorites?.length ?? 0) === 0;
+  }
+
+  defaultDisplayName(): string {
+    return this.displayName();
+  }
+
+  /** Quita tokens OAuth del hash tras procesar la sesión. */
+  clearOAuthHashFromUrl(): void {
+    if (typeof window === 'undefined') return;
+    const hash = window.location.hash.replace(/^#/, '');
+    if (!hash) return;
+    const params = new URLSearchParams(hash);
+    if (!params.get('access_token') && params.get('type') !== 'recovery') return;
+    const path = `${window.location.pathname}${window.location.search}`;
+    window.history.replaceState(window.history.state, '', path);
   }
 
   async signOut(): Promise<void> {
     await this.supabase().auth.signOut();
     this.session.set(null);
     this.profile.set(null);
+    this.profileSettled.set(false);
   }
 
   async bootstrapProfile(
@@ -291,6 +319,7 @@ export class AuthService {
         this.profile.set(null);
         return null;
       } finally {
+        this.profileSettled.set(true);
         this.profileRefreshInFlight = null;
       }
     })();
