@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import { ResponsiveShellService } from '../../../core/layout/responsive-shell.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { filter, map, merge, startWith } from 'rxjs';
@@ -35,14 +36,24 @@ function queryCatFromRouter(router: Router): string | null {
   standalone: true,
   imports: [SidebarComponent],
   template: `
-    <app-sidebar
-      [categories]="categories()"
-      [activeCat]="activeCat()"
-      [accent]="accent()"
-      [sections]="sections()"
-      [sectionSeriesId]="sectionSeriesId()"
-      (catChange)="onCategoryChange($event)">
-    </app-sidebar>
+    <div class="shell-sidebar-host">
+      <button
+        type="button"
+        class="shell-sidebar-backdrop"
+        [class.shell-sidebar-backdrop--visible]="shell.sidebarOpen()"
+        aria-label="Cerrar menú"
+        (click)="shell.closeSidebar()"
+      ></button>
+      <app-sidebar
+        [class.app-sidebar--drawer-open]="shell.sidebarOpen()"
+        [categories]="categories()"
+        [activeCat]="activeCat()"
+        [accent]="accent()"
+        [sections]="sections()"
+        [sectionSeriesId]="sectionSeriesId()"
+        (catChange)="onCategoryChange($event)">
+      </app-sidebar>
+    </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -50,6 +61,7 @@ export class AppSidebarComponent {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly seriesCtx = inject(SeriesContextService);
+  readonly shell = inject(ResponsiveShellService);
 
   motoNews = input<boolean | undefined>(undefined);
   newsCat = input<string | undefined>(undefined);
@@ -113,6 +125,7 @@ export class AppSidebarComponent {
 
   onCategoryChange(id: string): void {
     this.catChange.emit(id);
+    this.shell.closeSidebar();
     if (isMotoCategory(id)) {
       void this.router.navigateByUrl(`/${id}`);
       return;

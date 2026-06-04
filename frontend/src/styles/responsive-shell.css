@@ -1,0 +1,238 @@
+/*
+ * BeEngine — capa responsiva (solo max-width).
+ * Escritorio (≥1024px): sin reglas aquí; no modificar estilos base de componentes.
+ */
+
+:root {
+  --bp-desktop-min: 1024px;
+  --bp-tablet-max: 1023px;
+  --bp-phone-max: 767px;
+  --bp-phone-sm-max: 479px;
+  --shell-topbar-h: 50px;
+}
+
+/* ── Shell: sidebar fuera del flujo en tablet/móvil ─────────────────────── */
+
+@media (max-width: 1023px) {
+  app-side,
+  .shell-sidebar-host {
+    width: 0;
+    min-width: 0;
+    flex: 0 0 0;
+    overflow: visible;
+    position: relative;
+  }
+
+  .fc-body,
+  .cl-body {
+    flex-wrap: nowrap;
+  }
+
+  .cl-body,
+  .hm-layout {
+    flex-direction: column;
+  }
+
+  .cl-main {
+    padding-left: 16px;
+    padding-right: 16px;
+    max-width: none;
+  }
+
+  .fc-shell,
+  .hm-main {
+    width: 100%;
+    min-width: 0;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .fc-shell {
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+
+  body.shell-sidebar-open {
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 767px) {
+  .fc-shell,
+  .hm-main {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+
+/* ── Sidebar drawer ────────────────────────────────────────────────────── */
+
+.shell-sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .shell-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: var(--shell-topbar-h) 0 0 0;
+    z-index: 190;
+    border: none;
+    padding: 0;
+    margin: 0;
+    background: rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .shell-sidebar-backdrop--visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  app-sidebar aside.app-sidebar {
+    position: fixed;
+    top: var(--shell-topbar-h);
+    left: 0;
+    z-index: 200;
+    height: calc(100vh - var(--shell-topbar-h));
+    height: calc(100dvh - var(--shell-topbar-h));
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    box-shadow: none;
+  }
+
+  app-sidebar.app-sidebar--drawer-open aside.app-sidebar {
+    transform: translateX(0);
+    box-shadow: 4px 0 28px rgba(0, 0, 0, 0.14);
+  }
+}
+
+/* ── Tablas: scroll horizontal con indicador ─────────────────────────────── */
+
+@media (max-width: 767px) {
+  .cl-table-wrap {
+    position: relative;
+  }
+
+  .cl-table-wrap::after {
+    content: 'Desliza →';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #aaa;
+    padding: 4px 8px;
+    background: linear-gradient(90deg, transparent, #f2f1ee 40%);
+  }
+}
+
+/* ── Grids compartidos (calendario / pilotos / escuderías) ───────────────── */
+
+@media (max-width: 1023px) and (min-width: 981px) {
+  .fc-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ── Home ────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 1023px) {
+  .hm-layout {
+    flex-direction: column;
+  }
+
+  .hm-rail {
+    width: 100%;
+    flex-shrink: 1;
+    position: static;
+    height: auto;
+    max-height: none;
+    border-left: none;
+    border-top: 1px solid #e8e7e2;
+    padding: 16px;
+  }
+
+  .hm-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .hm-season-progress {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .hm-season-calendar-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .hm-live-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 767px) {
+  .hm-featured-title {
+    font-size: 22px;
+  }
+
+  .hm-cat-title {
+    font-size: 18px;
+  }
+
+  .hm-season-badge {
+    margin-left: 0;
+  }
+
+  .hm-cat-header {
+    flex-wrap: wrap;
+  }
+}
+
+/* ── Detalle noticias ────────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .nw-detail {
+    padding: 0 4px;
+  }
+
+  .nw-detail h1 {
+    font-size: 26px;
+  }
+}
+
+/* ── Auth login ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 1023px) {
+  .auth-right {
+    padding: 24px 20px 40px;
+  }
+}
+
+/* ── Live: barra de sesión desplazable ───────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .fl-session-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 12px;
+    gap: 4px;
+  }
+
+  .fl-session-label-text {
+    display: none;
+  }
+
+  .fl-header-row {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}

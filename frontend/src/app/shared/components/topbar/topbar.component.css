@@ -1,0 +1,56 @@
+/* Controles solo visibles en viewport < 1024px (escritorio intacto). */
+
+.tb-menu-btn,
+.tb-cat-select-wrap {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  body:has(app-side) .tb-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-right: 4px;
+    margin-left: -4px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    color: #1a1a1a;
+    transition: background 0.15s;
+  }
+
+  .tb-menu-btn:hover {
+    background: #f0f0f2;
+  }
+
+  .tb-cats {
+    display: none !important;
+  }
+
+  .tb-cat-select-wrap {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    margin-left: 4px;
+  }
+
+  .tb-cat-select {
+    width: 100%;
+    max-width: 220px;
+    margin-left: auto;
+    height: 36px;
+    padding: 0 12px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #1a1a1a;
+    background: #f5f5f7;
+    border: 1px solid #e5e5e7;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+}

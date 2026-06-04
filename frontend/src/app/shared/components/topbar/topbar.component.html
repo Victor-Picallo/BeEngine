@@ -1,4 +1,15 @@
 <div style="background: #ffffff; border-bottom: 1px solid #e5e5e7; display: flex; align-items: center; height: 50px; padding: 0 16px; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 2px rgba(0,0,0,.04);">
+  <button
+    type="button"
+    class="tb-menu-btn"
+    aria-label="Abrir menú de navegación"
+    (click)="shell.toggleSidebar()"
+  >
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+    </svg>
+  </button>
+
   <a [routerLink]="homeLink()" style="display: flex; align-items: center; gap: 6px; margin-right: 28px; text-decoration: none;">
     <div [ngStyle]="{'background': accent(), 'width': '26px', 'height': '26px', 'clip-path': 'polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%)'}"></div>
     <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 20px; letter-spacing: 1px; color: #1a1a1a;">
@@ -6,7 +17,7 @@
     </span>
   </a>
 
-  <div style="display: flex; gap: 0; flex: 1;">
+  <div class="tb-cats" style="display: flex; gap: 0; flex: 1;">
     @for (cat of categories(); track cat.id) {
       <button
         type="button"
@@ -26,4 +37,18 @@
         }">{{ cat.short }}</button>
     }
   </div>
+
+  <label class="tb-cat-select-wrap">
+    <span class="sr-only">Categoría</span>
+    <select
+      class="tb-cat-select"
+      [value]="activeCat()"
+      (change)="onCategorySelect($event)"
+      aria-label="Seleccionar categoría"
+    >
+      @for (cat of categories(); track cat.id) {
+        <option [value]="cat.id">{{ cat.label }}</option>
+      }
+    </select>
+  </label>
 </div>
