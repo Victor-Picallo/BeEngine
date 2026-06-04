@@ -338,3 +338,31 @@
 .sidebar-logout-btn:hover {
   color: #1a1a1a;
 }
+
+/* Drawer móvil/tablet: anula sticky + altura de escritorio (solo max-width). */
+@media (max-width: 1023px) {
+  :host {
+    display: block;
+    width: 0;
+    height: 0;
+    overflow: visible;
+    flex: 0 0 0;
+  }
+
+  .app-sidebar {
+    position: fixed;
+    top: var(--shell-topbar-h, 50px);
+    left: 0;
+    z-index: 200;
+    width: 196px;
+    height: calc(100dvh - var(--shell-topbar-h, 50px));
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    box-shadow: none;
+  }
+
+  :host(.app-sidebar--drawer-open) .app-sidebar {
+    transform: translateX(0);
+    box-shadow: 4px 0 28px rgba(0, 0, 0, 0.14);
+  }
+}

@@ -1,0 +1,19 @@
+/* El host no debe reservar altura en columna (home / fc-body). */
+@media (max-width: 1023px) {
+  :host {
+    display: block;
+    width: 0;
+    height: 0;
+    min-height: 0;
+    max-height: 0;
+    overflow: visible;
+    flex: 0 0 0;
+  }
+
+  .shell-sidebar-host {
+    width: 0;
+    height: 0;
+    min-height: 0;
+    overflow: visible;
+  }
+}

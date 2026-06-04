@@ -35,6 +35,7 @@ function queryCatFromRouter(router: Router): string | null {
   selector: 'app-side',
   standalone: true,
   imports: [SidebarComponent],
+  styleUrls: ['./app-sidebar.component.css'],
   template: `
     <div class="shell-sidebar-host">
       <button

@@ -18,6 +18,9 @@
   .shell-sidebar-host {
     width: 0;
     min-width: 0;
+    height: 0;
+    min-height: 0;
+    max-height: 0;
     flex: 0 0 0;
     overflow: visible;
     position: relative;
@@ -92,22 +95,7 @@
     pointer-events: auto;
   }
 
-  app-sidebar aside.app-sidebar {
-    position: fixed;
-    top: var(--shell-topbar-h);
-    left: 0;
-    z-index: 200;
-    height: calc(100vh - var(--shell-topbar-h));
-    height: calc(100dvh - var(--shell-topbar-h));
-    transform: translateX(-100%);
-    transition: transform 0.22s ease;
-    box-shadow: none;
-  }
-
-  app-sidebar.app-sidebar--drawer-open aside.app-sidebar {
-    transform: translateX(0);
-    box-shadow: 4px 0 28px rgba(0, 0, 0, 0.14);
-  }
+  /* Drawer: reglas canónicas en sidebar.component.css (encapsulación Angular). */
 }
 
 /* ── Tablas: scroll horizontal con indicador ─────────────────────────────── */
