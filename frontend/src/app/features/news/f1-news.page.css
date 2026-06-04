@@ -128,7 +128,6 @@ button.nw-back {
   display: flex;
   flex-direction: column;
   transition: border-color 0.2s, background 0.2s, transform 0.15s, box-shadow 0.2s;
-  animation: nw-fade-up 0.25s ease both;
   text-decoration: none;
   color: inherit;
 }
@@ -286,6 +285,16 @@ button.nw-back {
 }
 
 .nw-empty,
+.nw-feed--refreshing {
+  opacity: 0.88;
+  transition: opacity 0.15s ease;
+}
+
+.nw-detail--refreshing {
+  opacity: 0.88;
+  transition: opacity 0.15s ease;
+}
+
 .nw-loading {
   text-align: center;
   padding: 60px 20px;

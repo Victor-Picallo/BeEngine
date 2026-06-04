@@ -27,9 +27,9 @@
         </span>
       </header>
 
-      @if (loading()) {
+      @if (showInitialLoading()) {
         <div class="nw-loading">Cargando noticias…</div>
-      } @else if (error(); as err) {
+      } @else if (error() && !articles().length; as err) {
         <div class="nw-empty">
           <div class="nw-empty-title">{{ err }}</div>
         </div>
@@ -39,10 +39,15 @@
           <p>No hay noticias disponibles en este momento.</p>
         </div>
       } @else {
-        <div class="nw-feed" [style.--nw-accent]="accent()">
+        <div
+          class="nw-feed"
+          [class.nw-feed--refreshing]="refreshing() || liveSyncing()"
+          [style.--nw-accent]="accent()"
+        >
           @for (a of hero(); track a.id) {
             <a
-              class="nw-card nw-card--hero card-anim"
+              class="nw-card nw-card--hero"
+              [class.card-anim]="animateCard(a.id)"
               [routerLink]="articleLink(a.id)"
               appReturnNav
               [style.--nw-accent]="accent()"
@@ -81,10 +86,11 @@
           <section class="nw-grid">
           @for (a of regular(); track a.id; let i = $index) {
             <a
-              class="nw-card card-anim"
+              class="nw-card"
+              [class.card-anim]="animateCard(a.id)"
               [routerLink]="articleLink(a.id)"
               appReturnNav
-              [style.animation-delay.ms]="cardDelay(i)"
+              [style.animation-delay.ms]="animateCard(a.id) ? cardDelay(i) : null"
               [style.--nw-accent]="accent()"
             >
               <app-news-image
@@ -127,7 +133,7 @@
             <button
               type="button"
               class="nw-pager-btn"
-              [disabled]="page() <= 1 || loading()"
+              [disabled]="page() <= 1 || refreshing()"
               (click)="goToPage(page() - 1)"
             >
               ← Anterior
@@ -139,7 +145,7 @@
                   type="button"
                   class="nw-pager-num"
                   [class.nw-pager-num--on]="p === page()"
-                  [disabled]="loading()"
+                  [disabled]="refreshing()"
                   (click)="goToPage(p)"
                 >
                   {{ p }}
@@ -152,7 +158,7 @@
             <button
               type="button"
               class="nw-pager-btn"
-              [disabled]="page() >= totalPages() || loading()"
+              [disabled]="page() >= totalPages() || refreshing()"
               (click)="goToPage(page() + 1)"
             >
               Siguiente →

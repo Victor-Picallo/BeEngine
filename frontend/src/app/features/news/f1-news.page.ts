@@ -66,8 +66,12 @@ export class F1NewsPageComponent implements OnInit {
   readonly pageSize = NEWS_PAGE_SIZE;
 
   loading = signal(true);
+  /** Cambio de categoría/página: atenuar feed sin ocultarlo. */
+  refreshing = signal(false);
   /** DB pintada; esperando RSS en vivo. */
   liveSyncing = signal(false);
+  /** IDs que acaban de entrar (animación puntual, sin flash en todo el grid). */
+  private readonly newArticleIds = signal<ReadonlySet<string>>(new Set());
   error = signal<string | null>(null);
   activeCat = signal<SeriesId | string>('f1');
   page = signal(1);
@@ -130,6 +134,9 @@ export class F1NewsPageComponent implements OnInit {
     return `${start}–${end} de ${t}`;
   });
 
+  /** Pantalla de carga completa solo sin datos previos. */
+  showInitialLoading = computed(() => this.loading() && this.articles().length === 0);
+
   ngOnInit(): void {
     interval(NEWS_LIVE_POLL_MS)
       .pipe(
@@ -137,7 +144,7 @@ export class F1NewsPageComponent implements OnInit {
           () =>
             typeof document !== 'undefined' &&
             document.visibilityState === 'visible' &&
-            !this.loading(),
+            !this.showInitialLoading(),
         ),
         exhaustMap(() => {
           const offset = (this.page() - 1) * this.pageSize;
@@ -231,7 +238,12 @@ export class F1NewsPageComponent implements OnInit {
           return !(cat && FORMULA_NEWS_IDS.has(cat as SeriesId));
         }),
         switchMap(() => {
-          this.loading.set(true);
+          const hasFeed = this.articles().length > 0;
+          if (hasFeed) {
+            this.refreshing.set(true);
+          } else {
+            this.loading.set(true);
+          }
           this.error.set(null);
           const offset = (this.page() - 1) * this.pageSize;
           const path = this.router.url.split('?')[0];
@@ -250,6 +262,7 @@ export class F1NewsPageComponent implements OnInit {
             catchError(() => {
               this.error.set('No se pudieron cargar las noticias. Inténtalo de nuevo.');
               this.loading.set(false);
+              this.refreshing.set(false);
               this.liveSyncing.set(false);
               return of({
                 category: cat,
@@ -263,7 +276,7 @@ export class F1NewsPageComponent implements OnInit {
             }),
             finalize(() => {
               this.loading.set(false);
-              this.liveSyncing.set(false);
+              this.refreshing.set(false);
             }),
           );
         }),
@@ -281,12 +294,25 @@ export class F1NewsPageComponent implements OnInit {
       this.goToPage(maxPage);
       return;
     }
+    const prevIds = new Set(this.articles().map((a) => a.id));
+    const fromLive = res.source != null && res.source !== 'db' && res.source !== 'empty';
+    if (fromLive) {
+      const added = res.items.filter((a) => !prevIds.has(a.id)).map((a) => a.id);
+      this.newArticleIds.set(new Set(added));
+    } else if (!prevIds.size) {
+      this.newArticleIds.set(new Set());
+    }
     this.articles.set(res.items);
     this.total.set(res.total);
     this.totalPages.set(maxPage);
     this.error.set(null);
     this.loading.set(false);
+    this.refreshing.set(false);
     this.liveSyncing.set(res.source === 'db');
+  }
+
+  animateCard(id: string): boolean {
+    return this.newArticleIds().has(id);
   }
 
   articleLink(id: string): (string | number)[] {
@@ -326,6 +352,6 @@ export class F1NewsPageComponent implements OnInit {
   }
 
   cardDelay(i: number): number {
-    return i * 50;
+    return this.animateCard(this.regular()[i]?.id ?? '') ? i * 50 : 0;
   }
 }

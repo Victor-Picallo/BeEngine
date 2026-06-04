@@ -8,15 +8,19 @@
     </app-side>
 
     <main class="fc-shell">
-      @if (loading()) {
+      @if (showInitialLoading()) {
         <div class="nw-detail nw-loading">Cargando artículo…</div>
-      } @else if (error(); as err) {
+      } @else if (error() && !article(); as err) {
         <div class="nw-detail nw-empty">
           <div class="nw-empty-title">{{ err }}</div>
           <button type="button" class="nw-back" (click)="goBack()">← {{ backLabel() }}</button>
         </div>
       } @else if (article(); as a) {
-        <article class="nw-detail" [style.--nw-accent]="accent()">
+        <article
+          class="nw-detail"
+          [class.nw-detail--refreshing]="detailRefreshing()"
+          [style.--nw-accent]="accent()"
+        >
           <nav class="nw-crumb" aria-label="Miga de pan">
             <a [routerLink]="homePath()">Inicio</a>
             <span>/</span>

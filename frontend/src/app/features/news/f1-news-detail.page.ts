@@ -88,8 +88,11 @@ export class F1NewsDetailPageComponent implements OnInit {
   );
 
   loading = signal(true);
+  detailRefreshing = signal(false);
   error = signal<string | null>(null);
   article = signal<NewsArticle | null>(null);
+
+  showInitialLoading = computed(() => this.loading() && !this.article());
   related = signal<NewsArticle[]>([]);
 
   accent = computed(() => {
@@ -141,12 +144,17 @@ export class F1NewsDetailPageComponent implements OnInit {
             this.error.set('Artículo no encontrado');
             return of(null);
           }
-          this.loading.set(true);
+          if (!this.article()) {
+            this.loading.set(true);
+          } else {
+            this.detailRefreshing.set(true);
+          }
           this.error.set(null);
           return this.news.getArticle(id).pipe(
             tap((art) => {
               if (!art) return;
               this.loading.set(false);
+              this.detailRefreshing.set(false);
               this.error.set(null);
               this.article.set(art);
               this.loadRelated(art);
@@ -154,6 +162,7 @@ export class F1NewsDetailPageComponent implements OnInit {
             catchError(() => {
               this.error.set('No se pudo cargar el artículo.');
               this.loading.set(false);
+              this.detailRefreshing.set(false);
               return of(null);
             }),
           );
