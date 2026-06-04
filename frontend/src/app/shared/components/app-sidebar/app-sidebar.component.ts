@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  input,
+  OnInit,
+  output,
+} from '@angular/core';
 import { ResponsiveShellService } from '../../../core/layout/responsive-shell.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
@@ -58,11 +67,17 @@ function queryCatFromRouter(router: Router): string | null {
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppSidebarComponent {
+export class AppSidebarComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly seriesCtx = inject(SeriesContextService);
+  private readonly destroyRef = inject(DestroyRef);
   readonly shell = inject(ResponsiveShellService);
+
+  ngOnInit(): void {
+    this.shell.registerSidebar();
+    this.destroyRef.onDestroy(() => this.shell.unregisterSidebar());
+  }
 
   motoNews = input<boolean | undefined>(undefined);
   newsCat = input<string | undefined>(undefined);

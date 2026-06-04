@@ -292,10 +292,31 @@
   cursor: not-allowed;
 }
 
+@media (max-width: 1023px) {
+  :host {
+    position: fixed;
+    right: max(12px, env(safe-area-inset-right, 0px));
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    z-index: 10050;
+    width: 0;
+    height: 0;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  .ai-chat-root {
+    position: fixed;
+    right: max(12px, env(safe-area-inset-right, 0px));
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    z-index: 10050;
+    pointer-events: auto;
+  }
+}
+
 @media (max-width: 480px) {
   .ai-chat-root {
-    bottom: 12px;
-    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    right: max(12px, env(safe-area-inset-right, 0px));
   }
 
   .ai-chat-fab {

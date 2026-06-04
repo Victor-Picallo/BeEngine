@@ -11,6 +11,107 @@
   --shell-topbar-h: 50px;
 }
 
+/* ── Sin scroll horizontal en móvil/tablet ───────────────────────────────── */
+
+@media (max-width: 1023px) {
+  html,
+  body {
+    overflow-x: clip;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  app-root {
+    display: block;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .hm-layout,
+  .fc-body,
+  .cl-body,
+  .hm-main,
+  .fc-shell,
+  .cl-main {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .cl-table-wrap {
+    max-width: 100%;
+  }
+}
+
+/* ── Topbar: menú hamburguesa (estilos globales; evita encapsulación Angular) ─ */
+
+@media (max-width: 1023px) {
+  .tb-root {
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .tb-menu-btn.tb-menu-btn--show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-right: 4px;
+    margin-left: -4px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    color: #1a1a1a;
+    transition: background 0.15s;
+  }
+
+  .tb-menu-btn.tb-menu-btn--show:hover {
+    background: #f0f0f2;
+  }
+
+  .tb-logo-link {
+    margin-right: 8px !important;
+    flex-shrink: 0;
+    min-width: 0;
+  }
+
+  .tb-logo-link span {
+    font-size: 18px !important;
+  }
+}
+
+/* ── Asistente IA: fijo al viewport (no se mueve con scroll horizontal) ─── */
+
+@media (max-width: 1023px) {
+  app-ai-chat-widget {
+    position: fixed;
+    right: max(12px, env(safe-area-inset-right, 0px));
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    z-index: 10050;
+    width: 0;
+    height: 0;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  app-ai-chat-widget .ai-chat-root {
+    position: fixed;
+    right: max(12px, env(safe-area-inset-right, 0px));
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    z-index: 10050;
+    pointer-events: auto;
+  }
+
+  app-ai-chat-widget .ai-chat-panel {
+    width: min(380px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+  }
+}
+
 /* ── Shell: sidebar fuera del flujo en tablet/móvil ─────────────────────── */
 
 @media (max-width: 1023px) {
@@ -136,8 +237,16 @@
     flex-direction: column;
   }
 
+  app-right-rail {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
   .hm-rail {
     width: 100%;
+    max-width: 100%;
     flex-shrink: 1;
     position: static;
     height: auto;
@@ -145,6 +254,7 @@
     border-left: none;
     border-top: 1px solid #e8e7e2;
     padding: 16px;
+    box-sizing: border-box;
   }
 
   .hm-grid-2 {

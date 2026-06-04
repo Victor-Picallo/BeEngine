@@ -1,7 +1,8 @@
-<div style="background: #ffffff; border-bottom: 1px solid #e5e5e7; display: flex; align-items: center; height: 50px; padding: 0 16px; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 2px rgba(0,0,0,.04);">
+<div class="tb-root" style="background: #ffffff; border-bottom: 1px solid #e5e5e7; display: flex; align-items: center; height: 50px; padding: 0 16px; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 2px rgba(0,0,0,.04);">
   <button
     type="button"
     class="tb-menu-btn"
+    [class.tb-menu-btn--show]="shell.sidebarEnabled()"
     aria-label="Abrir menú de navegación"
     (click)="shell.toggleSidebar()"
   >
@@ -10,7 +11,7 @@
     </svg>
   </button>
 
-  <a [routerLink]="homeLink()" style="display: flex; align-items: center; gap: 6px; margin-right: 28px; text-decoration: none;">
+  <a class="tb-logo-link" [routerLink]="homeLink()" style="display: flex; align-items: center; gap: 6px; margin-right: 28px; text-decoration: none;">
     <div [ngStyle]="{'background': accent(), 'width': '26px', 'height': '26px', 'clip-path': 'polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%)'}"></div>
     <span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 20px; letter-spacing: 1px; color: #1a1a1a;">
       Be<span [style.color]="accent()">Engine</span>

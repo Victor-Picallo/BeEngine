@@ -10,6 +10,18 @@ export class ResponsiveShellService {
   private readonly router = inject(Router);
 
   readonly sidebarOpen = signal(false);
+  /** Hay `app-side` en la ruta actual (muestra botón menú en móvil). */
+  readonly sidebarEnabled = signal(false);
+
+  registerSidebar(): void {
+    this.sidebarEnabled.set(true);
+  }
+
+  unregisterSidebar(): void {
+    this.sidebarEnabled.set(false);
+    this.sidebarOpen.set(false);
+    this.syncBodyScrollLock();
+  }
 
   constructor() {
     this.router.events
