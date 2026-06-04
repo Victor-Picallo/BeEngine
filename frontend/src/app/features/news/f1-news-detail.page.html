@@ -16,11 +16,10 @@
           <button type="button" class="nw-back" (click)="goBack()">← {{ backLabel() }}</button>
         </div>
       } @else if (article(); as a) {
-        <article
-          class="nw-detail"
-          [class.nw-detail--refreshing]="detailRefreshing()"
-          [style.--nw-accent]="accent()"
-        >
+        <article class="nw-detail" [style.--nw-accent]="accent()">
+          @if (detailRefreshing()) {
+            <p class="hm-load-hint hm-load-hint--refresh" aria-live="polite">Actualizando artículo…</p>
+          }
           <nav class="nw-crumb" aria-label="Miga de pan">
             <a [routerLink]="homePath()">Inicio</a>
             <span>/</span>

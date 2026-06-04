@@ -502,7 +502,7 @@ export class HomeComponent implements OnInit, OnDestroy {
             },
           ];
 
-    if (!hadCache) {
+    if (!hadCache && !this.loading()) {
       this.refreshing.set(true);
     }
 
@@ -547,10 +547,12 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.applySnapshot(cached);
       this.loading.set(false);
       this.refreshing.set(true);
-    } else {
-      this.clearSeriesSignals();
+    } else if (!this.hasData()) {
       this.loading.set(true);
       this.refreshing.set(false);
+    } else {
+      this.loading.set(false);
+      this.refreshing.set(true);
     }
 
     this.runSeriesHybridLoad(seriesId, Boolean(cached));

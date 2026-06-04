@@ -284,21 +284,18 @@ button.nw-back {
   font-weight: 600;
 }
 
-.nw-empty,
-.nw-feed--refreshing {
-  opacity: 0.88;
-  transition: opacity 0.15s ease;
-}
-
-.nw-detail--refreshing {
-  opacity: 0.88;
-  transition: opacity 0.15s ease;
-}
-
 .nw-loading {
   text-align: center;
-  padding: 60px 20px;
-  color: #aaa;
+  padding: 24px 16px;
+  color: #888;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 1023px) {
+  .nw-loading {
+    padding: 16px 12px;
+  }
 }
 
 .nw-empty-title {

@@ -36,16 +36,17 @@
   <div class="hm-layout">
     <app-side (catChange)="setCat($event)"></app-side>
 
-    @if (showMainLoading()) {
-      <main class="hm-main hm-main--loading">
-        <p>Cargando datos…</p>
-      </main>
-    } @else if (error(); as err) {
-      <main class="hm-main hm-main--loading">
-        <p class="hm-error">{{ err }}</p>
+    @if (error() && !hasData(); as err) {
+      <main class="hm-main">
+        <p class="hm-error hm-error--block">{{ err }}</p>
       </main>
     } @else {
-      <main class="hm-main" [class.hm-main--refreshing]="refreshing()">
+      <main class="hm-main">
+        @if (showMainLoading()) {
+          <p class="hm-load-hint" aria-live="polite">Cargando datos…</p>
+        } @else if (refreshing()) {
+          <p class="hm-load-hint hm-load-hint--refresh" aria-live="polite">Actualizando datos…</p>
+        }
         <header class="hm-cat-header">
           <div class="hm-cat-bar"></div>
           <h1 class="hm-cat-title">{{ currentCat().label }}</h1>

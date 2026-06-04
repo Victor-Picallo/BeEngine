@@ -39,11 +39,7 @@
           <p>No hay noticias disponibles en este momento.</p>
         </div>
       } @else {
-        <div
-          class="nw-feed"
-          [class.nw-feed--refreshing]="refreshing() || liveSyncing()"
-          [style.--nw-accent]="accent()"
-        >
+        <div class="nw-feed" [style.--nw-accent]="accent()">
           @for (a of hero(); track a.id) {
             <a
               class="nw-card nw-card--hero"
