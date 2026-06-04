@@ -228,7 +228,10 @@
         }
 
         @if (p.careerHistory.length) {
-          <section class="dp-career" [class.is-career-loading]="careerHistoryLoading()">
+          <section
+            class="dp-career"
+            [class.is-career-loading]="careerHistoryLoading() || careerEnriching()"
+          >
             <div class="dp-season-card">
               <div class="dp-season-head">
                 <div class="dp-season-title">
@@ -241,6 +244,9 @@
                     }
                   </span>
                 </div>
+                @if (careerEnriching()) {
+                  <span class="dp-muted">Completando historial desde Jolpica…</span>
+                }
                 @if (showLoadFullCareer()) {
                   <button
                     type="button"
@@ -248,7 +254,7 @@
                     [disabled]="careerHistoryLoading()"
                     (click)="loadFullCareerHistory()"
                   >
-                    Cargar historial por temporadas
+                    Reintentar historial
                   </button>
                 }
                 @if (p.careerHistoryPagination; as pag) {

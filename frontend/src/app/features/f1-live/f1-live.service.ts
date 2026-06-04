@@ -218,7 +218,7 @@ export class F1LiveService {
     if (options?.liveRefresh || p > 1) {
       return this.api.get<JolpikaConstructorProfile>(path, { liveRefresh: true });
     }
-    return this.api.get<JolpikaConstructorProfile>(path);
+    return this.api.getDbThenLive<JolpikaConstructorProfile>(path);
   }
 
   getConstructorProfileAggregates(

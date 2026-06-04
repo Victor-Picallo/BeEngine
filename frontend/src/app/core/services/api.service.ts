@@ -36,11 +36,11 @@ export class ApiService {
   }
 
   /**
-   * Emite primero datos de DB (rápido) y, si la API en vivo responde, vuelve a emitir con `source: 'live'`.
+   * Emite primero datos de DB (rápido) y, si la API en vivo responde, vuelve a emitir (Jolpica: `external` / `live`).
    */
   getDbThenLive<T>(path: string): Observable<T> {
     return new Observable<T>((observer) => {
-      let gotFirst = false;
+      let gotDb = false;
       let finished = false;
 
       const finish = () => {
@@ -50,9 +50,14 @@ export class ApiService {
         }
       };
 
+      const isLivePayload = (value: T) => {
+        const src = String((value as SourcedData<unknown>)?.source ?? '');
+        return src !== 'db' && src !== 'empty' && src !== '';
+      };
+
       const subDb = this.get<T>(path).subscribe({
         next: (value) => {
-          gotFirst = true;
+          gotDb = true;
           observer.next(value);
         },
         error: (err) => observer.error(err),
@@ -60,8 +65,7 @@ export class ApiService {
 
       const subLive = this.get<T>(path, { liveRefresh: true }).subscribe({
         next: (value) => {
-          const src = (value as SourcedData<unknown>)?.source;
-          if (src === 'live' || !gotFirst) {
+          if (!gotDb || isLivePayload(value)) {
             observer.next(value);
           }
           finish();
