@@ -11,6 +11,11 @@ export const HEADER_CATEGORIES: Category[] = [
   { id: 'motogp', label: 'MotoGP', short: 'MotoGP', accent: '#0052CC' },
 ];
 
+/** Mundo del header (F1 vs MotoGP) a partir de cualquier id de serie o categoría. */
+export function headerWorldFromCategory(id: string): 'f1' | 'motogp' {
+  return id === 'motogp' || id === 'moto2' || id === 'moto3' ? 'motogp' : 'f1';
+}
+
 // Series shown inside the sidebar's "Categorías" section, keyed by the
 // top-level topbar category. The first entry is the parent series.
 export const SUB_CATEGORIES: Record<string, Category[]> = {

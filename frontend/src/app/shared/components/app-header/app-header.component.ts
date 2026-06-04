@@ -8,7 +8,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, map, startWith } from 'rxjs/operators';
 import { TopbarComponent } from '../topbar/topbar.component';
-import { HEADER_CATEGORIES } from '../../../data/sports.data';
+import { HEADER_CATEGORIES, headerWorldFromCategory } from '../../../data/sports.data';
 import { SeriesContextService } from '../../../core/series/series-context.service';
 import { homePathForSeries, newsPathForSeries } from '../../../core/series/series.config';
 import { formulaSeriesFromUrl, isFormulaAppRoute } from '../../../core/series/formula-route';
@@ -21,7 +21,7 @@ import { isMotoAppRoute, isMotoCategory } from '../../../core/series/series-moto
   template: `
     <app-topbar
       [categories]="displayCategories()"
-      [activeCat]="activeCat()"
+      [activeCat]="topbarWorld()"
       [accent]="accent()"
       [homeLink]="homeLink()"
       (catChange)="onCatChange($event)">
@@ -49,6 +49,7 @@ export class AppHeaderComponent {
 
   readonly homeLink = computed(() => this.seriesCtx.homePath());
 
+  /** Serie/categoría real según la ruta (sidebar, contexto). */
   readonly activeCat = computed(() => {
     if (this.inMotoApp()) {
       const seg = this.urlPath().split('/')[1];
@@ -59,10 +60,13 @@ export class AppHeaderComponent {
     if (path.startsWith('/noticias')) {
       const q = new URLSearchParams(this.router.url.split('?')[1] ?? '');
       const cat = q.get('cat') ?? '';
-      return isMotoCategory(cat) ? 'motogp' : 'f1';
+      return isMotoCategory(cat) ? cat : 'f1';
     }
     return 'f1';
   });
+
+  /** Mundo del topbar: solo F1 o MotoGP. */
+  readonly topbarWorld = computed(() => headerWorldFromCategory(this.activeCat()));
 
   readonly accent = computed(() => this.seriesCtx.config().accent);
 

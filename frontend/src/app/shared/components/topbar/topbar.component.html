@@ -22,17 +22,17 @@
     @for (cat of categories(); track cat.id) {
       <button
         type="button"
-        (click)="catChange.emit(cat.id)"
+        (click)="onCategoryClick(cat.id)"
         [ngStyle]="{
           'padding': '6px 14px',
           'font-family': 'Barlow Condensed, sans-serif',
-          'font-weight': activeCat() === cat.id ? '700' : '500',
+          'font-weight': displayWorld() === cat.id ? '700' : '500',
           'font-size': '13px',
           'letter-spacing': '0.5px',
           'text-transform': 'uppercase',
-          'color': activeCat() === cat.id ? '#1a1a1a' : '#888',
-          'background': activeCat() === cat.id ? (cat.accent + '22') : 'transparent',
-          'border-bottom': activeCat() === cat.id ? ('2px solid ' + cat.accent) : '2px solid transparent',
+          'color': displayWorld() === cat.id ? '#1a1a1a' : '#888',
+          'background': displayWorld() === cat.id ? (cat.accent + '22') : 'transparent',
+          'border-bottom': displayWorld() === cat.id ? ('2px solid ' + cat.accent) : '2px solid transparent',
           'transition': 'all 0.15s',
           'white-space': 'nowrap'
         }">{{ cat.short }}</button>
@@ -43,12 +43,11 @@
     <span class="sr-only">Categoría</span>
     <select
       class="tb-cat-select"
-      [value]="activeCat()"
       (change)="onCategorySelect($event)"
       aria-label="Seleccionar categoría"
     >
       @for (cat of categories(); track cat.id) {
-        <option [value]="cat.id">{{ cat.label }}</option>
+        <option [value]="cat.id" [selected]="displayWorld() === cat.id">{{ cat.label }}</option>
       }
     </select>
   </label>

@@ -30,6 +30,7 @@ import {
   NextRace,
   PodiumEntry,
   Session,
+  headerWorldFromCategory,
 } from '../../data/sports.data';
 import { HomeSeriesCacheService, type HomeSeriesSnapshot } from './services/home-series-cache.service';
 import { F1LiveService } from '../f1-live/f1-live.service';
@@ -162,9 +163,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private newsRaw       = signal<NewsItem[]>([]);
   // ── Derived ──
   /** Pestaña activa del header (solo F1 / MotoGP). */
-  topbarActiveCat = computed(() =>
-    this.seriesCtx.id() === 'motogp' ? 'motogp' : 'f1',
-  );
+  topbarActiveCat = computed(() => headerWorldFromCategory(this.seriesCtx.id()));
 
   rightRailActiveCat = computed(() =>
     this.seriesCtx.id() === 'motogp' ? 'motogp' : this.seriesCtx.id(),
