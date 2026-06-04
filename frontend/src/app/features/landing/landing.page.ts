@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  computed,
   DestroyRef,
   HostListener,
   inject,
@@ -12,7 +13,10 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { catchError, exhaustMap, filter, forkJoin, of, timer } from 'rxjs';
 import { NewsImageComponent } from '../news/news-image/news-image.component';
+import { NEWS_LIVE_POLL_MS, NewsService } from '../news/news.service';
+import type { NewsFeedResponse } from '../news/news.types';
 import {
   LANDING_ACCOUNT_BULLETS,
   LANDING_ASSIST_BULLETS,
@@ -29,6 +33,7 @@ import type {
 import {
   buildPlaceholderLandingData,
   LandingService,
+  mergeLandingNewsArticles,
   readLandingCache,
 } from './landing.service';
 import type { NewsArticle } from '../news/news.types';
@@ -43,6 +48,7 @@ import type { NewsArticle } from '../news/news.types';
 })
 export class LandingPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly landing = inject(LandingService);
+  private readonly newsService = inject(NewsService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -58,7 +64,9 @@ export class LandingPageComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly pendingData = signal(!this.cached);
   readonly categories = signal<LandingCategoryView[]>(this.cached?.categories ?? []);
   readonly favorites = signal<LandingShowcaseFavorite[]>(this.cached?.favorites ?? []);
-  readonly news = signal<NewsArticle[]>(this.cached?.news ?? []);
+  private readonly f1News = signal<NewsArticle[]>([]);
+  private readonly motogpNews = signal<NewsArticle[]>([]);
+  readonly news = computed(() => mergeLandingNewsArticles(this.f1News(), this.motogpNews()));
   readonly heroCircuitUrl = signal<string | null>(this.cached?.heroCircuitUrl ?? null);
   readonly heroNextRaceLabel = signal(this.cached?.heroNextRaceLabel ?? '');
 
@@ -77,6 +85,90 @@ export class LandingPageComponent implements OnInit, AfterViewInit, OnDestroy {
       this.applyLandingData(this.cached);
     }
     this.fetchLandingData();
+    this.refreshLandingNews();
+    this.startNewsLivePolling();
+  }
+
+  private newestPublishedAt(items: NewsArticle[]): number {
+    return items.reduce((max, a) => {
+      const t = a.publishedAt ? Date.parse(a.publishedAt) : 0;
+      return t > max ? t : max;
+    }, 0);
+  }
+
+  /** Aplica solo si el lote es más reciente (evita que RSS en caché pise la DB). */
+  private applyLandingNewsFeed(slot: 'f1' | 'motogp', res: NewsFeedResponse): void {
+    if (!res.items.length) return;
+
+    const current = slot === 'f1' ? this.f1News() : this.motogpNews();
+    const incomingTs = this.newestPublishedAt(res.items);
+    const currentTs = this.newestPublishedAt(current);
+
+    if (current.length && incomingTs < currentTs) return;
+
+    if (slot === 'f1') this.f1News.set(res.items);
+    else this.motogpNews.set(res.items);
+  }
+
+  /** getFeed emite DB y luego RSS; hay que suscribirse a cada emisión (forkJoin no sirve). */
+  private refreshLandingNews(): void {
+    this.subscribeNewsFeed('f1', 4);
+    this.subscribeNewsFeed('motogp', 2);
+  }
+
+  private subscribeNewsFeed(slot: 'f1' | 'motogp', limit: number): void {
+    this.newsService
+      .getFeed(slot, 'Todos', limit, 0)
+      .pipe(
+        catchError(() => of(this.emptyNewsFeed(slot, limit))),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((res) => {
+        this.applyLandingNewsFeed(slot, res);
+        this.cdr.markForCheck();
+        this.scheduleReveal();
+      });
+  }
+
+  private fetchLiveNews() {
+    return forkJoin({
+      f1: this.newsService
+        .getFeedLive('f1', 'Todos', 4, 0)
+        .pipe(catchError(() => of(null))),
+      motogp: this.newsService
+        .getFeedLive('motogp', 'Todos', 2, 0)
+        .pipe(catchError(() => of(null))),
+    });
+  }
+
+  private startNewsLivePolling(): void {
+    timer(NEWS_LIVE_POLL_MS, NEWS_LIVE_POLL_MS)
+      .pipe(
+        filter(
+          () =>
+            typeof document !== 'undefined' && document.visibilityState === 'visible',
+        ),
+        exhaustMap(() => this.fetchLiveNews()),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((res) => {
+        if (res.f1?.items?.length) this.applyLandingNewsFeed('f1', res.f1);
+        if (res.motogp?.items?.length) this.applyLandingNewsFeed('motogp', res.motogp);
+        this.cdr.markForCheck();
+        this.scheduleReveal();
+      });
+  }
+
+  private emptyNewsFeed(category: string, pageSize: number): NewsFeedResponse {
+    return {
+      items: [],
+      total: 0,
+      category,
+      tag: 'Todos',
+      page: 1,
+      pageSize,
+      totalPages: 1,
+    };
   }
 
   private fetchLandingData(): void {
@@ -101,7 +193,6 @@ export class LandingPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private applyLandingData(data: LandingPageData): void {
     this.categories.set(data.categories);
     this.favorites.set(data.favorites);
-    this.news.set(data.news);
     this.heroCircuitUrl.set(data.heroCircuitUrl);
     this.heroNextRaceLabel.set(data.heroNextRaceLabel);
     this.pendingData.set(false);

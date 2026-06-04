@@ -262,10 +262,27 @@ export async function getNewsArticles(category, opts = {}) {
     }
   }
 
-  let articles = forceLive
-    ? getCachedArticles(category, LIVE_CACHE_MS)
-    : getCachedArticles(category, CACHE_MS);
+  // refresh=live → RSS siempre fresco (sin caché en memoria que devolvía titulares viejos)
+  if (forceLive) {
+    try {
+      const articles = await fetchLiveArticles(category);
+      return {
+        ...paginateFeedArticles(articles, category, tag, limit, offset),
+        source: 'live',
+      };
+    } catch {
+      const stale = getCachedArticles(category, LIVE_CACHE_MS);
+      if (stale?.length) {
+        return {
+          ...paginateFeedArticles(stale, category, tag, limit, offset),
+          source: 'live',
+        };
+      }
+      throw new Error('No se pudo cargar el feed en vivo');
+    }
+  }
 
+  let articles = getCachedArticles(category, CACHE_MS);
   if (!articles) {
     articles = await fetchLiveArticles(category);
   }

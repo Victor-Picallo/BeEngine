@@ -47,7 +47,15 @@ interface LandingApiResponse {
   news: NewsArticle[];
 }
 
-const LANDING_CACHE_KEY = 'beengine.landing.db.v2';
+const LANDING_CACHE_KEY = 'beengine.landing.db.v3';
+
+/** Mezcla F1 + MotoGP para el bloque de noticias del landing (6 artículos). */
+export function mergeLandingNewsArticles(
+  f1: NewsArticle[],
+  motogp: NewsArticle[],
+): NewsArticle[] {
+  return [...f1, ...motogp].slice(0, 6);
+}
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -158,7 +166,7 @@ function mapLandingPayload(pack: LandingApiResponse): LandingPageData {
     categories,
     heroCircuitUrl: circuitUrl,
     heroNextRaceLabel,
-    news: pack.news ?? [],
+    news: [],
     favorites: buildFavorites(standings('f1'), standings('motogp'), standings('f2')),
   };
 }
@@ -192,7 +200,8 @@ export function readLandingCache(): LandingPageData | null {
 export function writeLandingCache(pack: LandingApiResponse): void {
   if (typeof sessionStorage === 'undefined') return;
   try {
-    sessionStorage.setItem(LANDING_CACHE_KEY, JSON.stringify(pack));
+    const { news: _news, ...core } = pack;
+    sessionStorage.setItem(LANDING_CACHE_KEY, JSON.stringify({ ...core, news: [] }));
   } catch {
     /* quota */
   }

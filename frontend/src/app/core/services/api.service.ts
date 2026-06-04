@@ -36,18 +36,18 @@ export class ApiService {
   }
 
   /**
-   * Emite primero datos de DB (rápido) y, si la API en vivo responde, vuelve a emitir (Jolpica: `external` / `live`).
+   * Emite primero datos de DB (rápido) y, si la API en vivo responde, vuelve a emitir.
+   * Si el RSS llega antes que la DB, no se pisa el live con el snapshot de DB.
    */
   getDbThenLive<T>(path: string): Observable<T> {
     return new Observable<T>((observer) => {
       let gotDb = false;
-      let finished = false;
+      let gotLive = false;
+      let settled = 0;
 
-      const finish = () => {
-        if (!finished) {
-          finished = true;
-          observer.complete();
-        }
+      const settle = () => {
+        settled += 1;
+        if (settled >= 2) observer.complete();
       };
 
       const isLivePayload = (value: T) => {
@@ -58,20 +58,26 @@ export class ApiService {
       const subDb = this.get<T>(path).subscribe({
         next: (value) => {
           gotDb = true;
-          observer.next(value);
+          if (!gotLive) observer.next(value);
         },
-        error: (err) => observer.error(err),
+        error: (err) => {
+          if (!gotDb && !gotLive) observer.error(err);
+          settle();
+        },
+        complete: () => settle(),
       });
 
       const subLive = this.get<T>(path, { liveRefresh: true }).subscribe({
         next: (value) => {
-          if (!gotDb || isLivePayload(value)) {
+          if (isLivePayload(value)) {
+            gotLive = true;
+            observer.next(value);
+          } else if (!gotDb) {
             observer.next(value);
           }
-          finish();
         },
-        error: () => finish(),
-        complete: () => finish(),
+        error: () => settle(),
+        complete: () => settle(),
       });
 
       return () => {
