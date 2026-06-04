@@ -495,3 +495,59 @@
   cursor: pointer;
   color: rgba(0, 0, 0, 0.5);
 }
+
+/* Móvil/tablet: una columna (los estilos globales no ganan a :host por encapsulación). */
+@media (max-width: 1023px) {
+  .hm-grid-2 {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .hm-grid-2-col {
+    min-height: auto;
+    width: 100%;
+  }
+
+  .hm-constructors-card {
+    flex: none;
+    min-height: auto;
+  }
+
+  .hm-last-race-card .hm-card-head {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .hm-last-race-card .hm-card-head > span:last-child {
+    width: 100%;
+    font-size: 11px;
+    color: #bbb;
+    line-height: 1.35;
+    word-break: break-word;
+  }
+
+  .hm-podium {
+    gap: 6px;
+    padding: 10px;
+  }
+
+  .hm-podium-slot {
+    min-width: 0;
+    overflow: visible;
+    padding: 8px 6px;
+  }
+
+  .hm-podium-driver,
+  .hm-podium-team {
+    word-break: break-word;
+  }
+
+  .hm-constructor-row > div[style*='flex: 1'] {
+    min-width: 0;
+  }
+
+  .hm-constructor-row span {
+    word-break: break-word;
+  }
+}

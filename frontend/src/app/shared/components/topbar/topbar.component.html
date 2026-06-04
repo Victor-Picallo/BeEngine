@@ -2,7 +2,7 @@
   <button
     type="button"
     class="tb-menu-btn"
-    [class.tb-menu-btn--show]="shell.sidebarEnabled()"
+    [class.tb-menu-btn--show]="shell.showMobileMenu()"
     aria-label="Abrir menú de navegación"
     (click)="shell.toggleSidebar()"
   >

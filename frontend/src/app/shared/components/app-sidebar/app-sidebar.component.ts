@@ -5,7 +5,6 @@ import {
   DestroyRef,
   inject,
   input,
-  OnInit,
   output,
 } from '@angular/core';
 import { ResponsiveShellService } from '../../../core/layout/responsive-shell.service';
@@ -67,14 +66,14 @@ function queryCatFromRouter(router: Router): string | null {
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppSidebarComponent implements OnInit {
+export class AppSidebarComponent {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly seriesCtx = inject(SeriesContextService);
   private readonly destroyRef = inject(DestroyRef);
   readonly shell = inject(ResponsiveShellService);
 
-  ngOnInit(): void {
+  constructor() {
     this.shell.registerSidebar();
     this.destroyRef.onDestroy(() => this.shell.unregisterSidebar());
   }

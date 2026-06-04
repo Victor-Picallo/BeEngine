@@ -1,6 +1,12 @@
 /* Escritorio: sin menú móvil. */
-.tb-menu-btn {
-  display: none;
+@media (min-width: 1024px) {
+  .tb-menu-btn {
+    display: none !important;
+  }
+
+  .tb-cat-select-wrap {
+    display: none !important;
+  }
 }
 
 .tb-cat-select-wrap {
@@ -8,6 +14,28 @@
 }
 
 @media (max-width: 1023px) {
+  .tb-menu-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-right: 4px;
+    margin-left: -4px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    color: #1a1a1a;
+    transition: background 0.15s;
+  }
+
+  .tb-menu-btn.tb-menu-btn--show {
+    display: flex !important;
+  }
+
+  .tb-menu-btn.tb-menu-btn--show:hover {
+    background: #f0f0f2;
+  }
+
   .tb-cats {
     display: none !important;
     width: 0 !important;
