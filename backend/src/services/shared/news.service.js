@@ -4,9 +4,9 @@ import {
   getNewsSummaryForHome,
 } from './newsFeed.service.js';
 
-export const getNewsByCategory = async (category) => {
+export const getNewsByCategory = async (category, opts = {}) => {
   try {
-    return await getNewsSummaryForHome(category, 4);
+    return await getNewsSummaryForHome(category, 4, opts);
   } catch {
     return [];
   }

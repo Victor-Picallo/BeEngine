@@ -75,3 +75,35 @@ export async function getNewsArticleByIdFromDb(id) {
   const row = await prisma.newsArticle.findUnique({ where: { id } });
   return row ? mapRow(row) : null;
 }
+
+/** Persiste artículos RSS para lecturas rápidas posteriores (no bloquea la respuesta HTTP). */
+export async function upsertNewsArticlesFromFeed(category, articles) {
+  if (!DB_ENABLED || !articles?.length) return;
+  const prisma = requirePrisma();
+  for (const a of articles) {
+    if (!a?.url || !a?.id) continue;
+    await prisma.newsArticle.upsert({
+      where: { link: a.url },
+      create: {
+        id: a.id,
+        category,
+        title: a.title,
+        link: a.url,
+        tag: a.tag ?? null,
+        summary: a.excerpt ?? null,
+        imageUrl: a.imageUrl ?? null,
+        pubDate: a.publishedAt ? new Date(a.publishedAt) : null,
+        hot: Boolean(a.hot),
+      },
+      update: {
+        title: a.title,
+        tag: a.tag ?? null,
+        summary: a.excerpt ?? null,
+        imageUrl: a.imageUrl ?? null,
+        pubDate: a.publishedAt ? new Date(a.publishedAt) : null,
+        hot: Boolean(a.hot),
+        fetchedAt: new Date(),
+      },
+    });
+  }
+}

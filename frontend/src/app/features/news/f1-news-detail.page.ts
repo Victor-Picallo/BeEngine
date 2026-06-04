@@ -10,7 +10,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
-import { catchError, of, switchMap } from 'rxjs';
+import { catchError, of, switchMap, tap } from 'rxjs';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
 import { BackNavigationService } from '../../core/services/back-navigation.service';
@@ -144,34 +144,44 @@ export class F1NewsDetailPageComponent implements OnInit {
           this.loading.set(true);
           this.error.set(null);
           return this.news.getArticle(id).pipe(
+            tap((art) => {
+              if (!art) return;
+              this.loading.set(false);
+              this.error.set(null);
+              this.article.set(art);
+              this.loadRelated(art);
+            }),
             catchError(() => {
               this.error.set('No se pudo cargar el artículo.');
+              this.loading.set(false);
               return of(null);
             }),
           );
         }),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe(art => {
-        this.loading.set(false);
-        if (!art) {
-          this.article.set(null);
-          return;
-        }
-        this.article.set(art);
-        this.loadRelated(art);
-      });
+      .subscribe();
   }
 
   private loadRelated(art: NewsArticle): void {
     this.news
       .getFeed(art.cat, 'Todos', 12)
       .pipe(
-        catchError(() => of({ items: [] as NewsArticle[], total: 0, category: art.cat, tag: 'Todos' })),
+        catchError(() =>
+          of({
+            items: [] as NewsArticle[],
+            total: 0,
+            category: art.cat,
+            tag: 'Todos',
+            page: 1,
+            pageSize: 12,
+            totalPages: 1,
+          }),
+        ),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe(res => {
-        this.related.set(res.items.filter(i => i.id !== art.id).slice(0, 3));
+      .subscribe((res) => {
+        this.related.set(res.items.filter((i) => i.id !== art.id).slice(0, 3));
       });
   }
 }

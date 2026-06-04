@@ -10,7 +10,18 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, NavigationEnd, Router, RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
-import { catchError, filter, finalize, map, of, startWith, switchMap, tap } from 'rxjs';
+import {
+  catchError,
+  exhaustMap,
+  filter,
+  finalize,
+  interval,
+  map,
+  of,
+  startWith,
+  switchMap,
+  tap,
+} from 'rxjs';
 import type { SeriesId } from '../../core/series/series.types';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
@@ -23,7 +34,8 @@ import {
 import { newsPathForSeries, seriesFromUrl } from '../../core/series/series.config';
 import type { MotoPulseSeriesId } from '../../core/series/series.types';
 import { SeriesContextService } from '../../core/series/series-context.service';
-import { NewsService } from './news.service';
+import { NEWS_LIVE_POLL_MS, NewsService } from './news.service';
+import type { NewsFeedResponse } from './news.types';
 import { NewsImageComponent } from './news-image/news-image.component';
 import { NEWS_PAGE_CATEGORIES, NEWS_PAGE_SIZE, type NewsArticle } from './news.types';
 
@@ -54,6 +66,8 @@ export class F1NewsPageComponent implements OnInit {
   readonly pageSize = NEWS_PAGE_SIZE;
 
   loading = signal(true);
+  /** DB pintada; esperando RSS en vivo. */
+  liveSyncing = signal(false);
   error = signal<string | null>(null);
   activeCat = signal<SeriesId | string>('f1');
   page = signal(1);
@@ -117,6 +131,27 @@ export class F1NewsPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    interval(NEWS_LIVE_POLL_MS)
+      .pipe(
+        filter(
+          () =>
+            typeof document !== 'undefined' &&
+            document.visibilityState === 'visible' &&
+            !this.loading(),
+        ),
+        exhaustMap(() => {
+          const offset = (this.page() - 1) * this.pageSize;
+          const cat = String(this.activeCat());
+          return this.news.getFeedLive(cat, 'Todos', this.pageSize, offset).pipe(
+            catchError(() => of(null)),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((res) => {
+        if (res) this.applyFeedResponse(res);
+      });
+
     this.route.queryParamMap
       .pipe(
         tap(params => {
@@ -209,9 +244,13 @@ export class F1NewsPageComponent implements OnInit {
             cat = String(this.activeCat());
           }
           this.activeCat.set(cat);
+          this.liveSyncing.set(false);
           return this.news.getFeed(cat, 'Todos', this.pageSize, offset).pipe(
+            tap((res) => this.applyFeedResponse(res)),
             catchError(() => {
               this.error.set('No se pudieron cargar las noticias. Inténtalo de nuevo.');
+              this.loading.set(false);
+              this.liveSyncing.set(false);
               return of({
                 category: cat,
                 tag: 'Todos',
@@ -222,24 +261,32 @@ export class F1NewsPageComponent implements OnInit {
                 items: [] as NewsArticle[],
               });
             }),
-            finalize(() => this.loading.set(false)),
+            finalize(() => {
+              this.loading.set(false);
+              this.liveSyncing.set(false);
+            }),
           );
         }),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe(res => {
-        const maxPage = Math.max(
-          1,
-          res.totalPages ?? (Math.ceil(res.total / this.pageSize) || 1),
-        );
-        if (this.page() > maxPage) {
-          this.goToPage(maxPage);
-          return;
-        }
-        this.articles.set(res.items);
-        this.total.set(res.total);
-        this.totalPages.set(maxPage);
-      });
+      .subscribe();
+  }
+
+  private applyFeedResponse(res: NewsFeedResponse): void {
+    const maxPage = Math.max(
+      1,
+      res.totalPages ?? (Math.ceil(res.total / this.pageSize) || 1),
+    );
+    if (this.page() > maxPage) {
+      this.goToPage(maxPage);
+      return;
+    }
+    this.articles.set(res.items);
+    this.total.set(res.total);
+    this.totalPages.set(maxPage);
+    this.error.set(null);
+    this.loading.set(false);
+    this.liveSyncing.set(res.source === 'db');
   }
 
   articleLink(id: string): (string | number)[] {

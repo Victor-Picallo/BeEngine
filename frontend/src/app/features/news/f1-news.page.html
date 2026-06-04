@@ -21,6 +21,9 @@
             Página {{ page() }} de {{ totalPages() }} ·
           }
           {{ total() }} artículos
+          @if (liveSyncing()) {
+            · Actualizando fuentes en vivo…
+          }
         </span>
       </header>
 

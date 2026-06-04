@@ -6,11 +6,17 @@ import {
   getNewsArticlesFromDb,
   getNewsArticleByIdFromDb,
   getNewsSummaryFromDb,
+  upsertNewsArticlesFromFeed,
 } from '../../repositories/db/newsArticle.repository.js';
 
 const CACHE_MS = Math.max(
   60_000,
   parseInt(process.env.NEWS_FEED_CACHE_MS || String(5 * 60 * 1000), 10),
+);
+/** Caché RSS tras fetch en vivo (polling); más corta que la de solo-DB. */
+const LIVE_CACHE_MS = Math.max(
+  30_000,
+  parseInt(process.env.NEWS_LIVE_CACHE_MS || '90000', 10),
 );
 const FETCH_TIMEOUT_MS = 12_000;
 const OG_FETCH_LIMIT = 12;
@@ -198,33 +204,7 @@ export async function fetchCategoryArticles(category) {
   return articles;
 }
 
-/**
- * @param {string} category
- * @param {{ tag?: string, limit?: number, offset?: number }} opts
- */
-export async function getNewsArticles(category, opts = {}) {
-  const tag = opts.tag ?? 'Todos';
-  const limit = Math.min(60, Math.max(1, parseInt(String(opts.limit ?? '30'), 10) || 30));
-  const offset = Math.max(0, parseInt(String(opts.offset ?? '0'), 10) || 0);
-
-  if (DB_ENABLED) {
-    try {
-      const fromDb = await getNewsArticlesFromDb(category, { tag, limit, offset });
-      if (fromDb?.items?.length) return fromDb;
-    } catch {
-      /* RSS live */
-    }
-  }
-
-  const hit = feedCache.get(category);
-  let articles;
-  if (hit && Date.now() - hit.ts < CACHE_MS) {
-    articles = hit.articles;
-  } else {
-    articles = await fetchCategoryArticles(category);
-    feedCache.set(category, { ts: Date.now(), articles });
-  }
-
+function paginateFeedArticles(articles, category, tag, limit, offset) {
   let filtered = articles;
   if (tag && tag !== 'Todos') {
     const want = tag.toUpperCase();
@@ -247,29 +227,81 @@ export async function getNewsArticles(category, opts = {}) {
   };
 }
 
-export async function getNewsArticleById(id) {
-  if (!id) return null;
+async function fetchLiveArticles(category, { persistDb = true } = {}) {
+  const articles = await fetchCategoryArticles(category);
+  feedCache.set(category, { ts: Date.now(), articles });
+  if (persistDb) {
+    upsertNewsArticlesFromFeed(category, articles).catch(() => {});
+  }
+  return articles;
+}
 
-  if (DB_ENABLED) {
+function getCachedArticles(category, maxAgeMs) {
+  const hit = feedCache.get(category);
+  if (hit && Date.now() - hit.ts < maxAgeMs) return hit.articles;
+  return null;
+}
+
+/**
+ * @param {string} category
+ * @param {{ tag?: string, limit?: number, offset?: number, preferDb?: boolean }} opts
+ */
+export async function getNewsArticles(category, opts = {}) {
+  const tag = opts.tag ?? 'Todos';
+  const limit = Math.min(60, Math.max(1, parseInt(String(opts.limit ?? '30'), 10) || 30));
+  const offset = Math.max(0, parseInt(String(opts.offset ?? '0'), 10) || 0);
+  const preferDb = opts.preferDb !== false;
+  const forceLive = !preferDb;
+
+  if (DB_ENABLED && preferDb) {
+    try {
+      const fromDb = await getNewsArticlesFromDb(category, { tag, limit, offset });
+      if (fromDb?.items?.length) return fromDb;
+    } catch {
+      /* RSS live */
+    }
+  }
+
+  let articles = forceLive
+    ? getCachedArticles(category, LIVE_CACHE_MS)
+    : getCachedArticles(category, CACHE_MS);
+
+  if (!articles) {
+    articles = await fetchLiveArticles(category);
+  }
+
+  return {
+    ...paginateFeedArticles(articles, category, tag, limit, offset),
+    source: 'live',
+  };
+}
+
+export async function getNewsArticleById(id, opts = {}) {
+  if (!id) return null;
+  const preferDb = opts.preferDb !== false;
+
+  if (DB_ENABLED && preferDb) {
     try {
       const fromDb = await getNewsArticleByIdFromDb(id);
-      if (fromDb) return fromDb;
+      if (fromDb) return { ...fromDb, source: 'db' };
     } catch {
       /* RSS / feedCache */
     }
   }
 
   for (const category of Object.keys(NEWS_FEEDS_BY_CATEGORY)) {
-    await getNewsArticles(category, { limit: 60 });
+    await getNewsArticles(category, { limit: 60, preferDb });
     const hit = feedCache.get(category)?.articles?.find((a) => a.id === id);
-    if (hit) return hit;
+    if (hit) return { ...hit, source: 'live' };
   }
   return null;
 }
 
 /** Resumen para home (tag, title, time, hot). */
-export async function getNewsSummaryForHome(category, count = 4) {
-  if (DB_ENABLED) {
+export async function getNewsSummaryForHome(category, count = 4, opts = {}) {
+  const preferDb = opts.preferDb !== false;
+
+  if (DB_ENABLED && preferDb) {
     try {
       const fromDb = await getNewsSummaryFromDb(category, count);
       if (fromDb?.length) {
@@ -287,7 +319,7 @@ export async function getNewsSummaryForHome(category, count = 4) {
       /* RSS */
     }
   }
-  const { items } = await getNewsArticles(category, { limit: count });
+  const { items } = await getNewsArticles(category, { limit: count, preferDb });
   return items.map(({ id, tag, title, time, hot, imageUrl, cat }) => ({
     id,
     tag,

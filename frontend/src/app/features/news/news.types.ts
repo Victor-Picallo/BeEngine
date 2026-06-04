@@ -23,6 +23,8 @@ export interface NewsFeedResponse {
   pageSize: number;
   totalPages: number;
   items: NewsArticle[];
+  /** db = snapshot Supabase; live = RSS recién leído */
+  source?: 'db' | 'live' | 'empty';
 }
 
 /** Artículos por página en el listado de noticias. */
