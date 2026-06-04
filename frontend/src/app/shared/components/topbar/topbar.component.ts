@@ -30,13 +30,4 @@ export class TopbarComponent {
       this.catChange.emit(id);
     }
   }
-
-  onCategorySelect(ev: Event): void {
-    const el = ev.target;
-    if (!(el instanceof HTMLSelectElement)) return;
-    const id = el.value;
-    if (id && id !== this.displayWorld()) {
-      this.catChange.emit(id);
-    }
-  }
 }

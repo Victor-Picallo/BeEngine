@@ -39,16 +39,24 @@
     }
   </div>
 
-  <label class="tb-cat-select-wrap">
-    <span class="sr-only">Categoría</span>
-    <select
-      class="tb-cat-select"
-      (change)="onCategorySelect($event)"
-      aria-label="Seleccionar categoría"
-    >
-      @for (cat of categories(); track cat.id) {
-        <option [value]="cat.id" [selected]="displayWorld() === cat.id">{{ cat.label }}</option>
-      }
-    </select>
-  </label>
+  <div
+    class="tb-cat-segment"
+    role="tablist"
+    aria-label="Categoría"
+  >
+    @for (cat of categories(); track cat.id) {
+      <button
+        type="button"
+        role="tab"
+        class="tb-cat-segment-btn"
+        [class.tb-cat-segment-btn--active]="displayWorld() === cat.id"
+        [attr.aria-selected]="displayWorld() === cat.id"
+        [style.--cat-accent]="cat.accent"
+        (click)="onCategoryClick(cat.id)"
+      >
+        <span class="tb-cat-segment-mark" aria-hidden="true"></span>
+        <span class="tb-cat-segment-label">{{ cat.short }}</span>
+      </button>
+    }
+  </div>
 </div>

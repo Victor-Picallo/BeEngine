@@ -1,15 +1,15 @@
-/* Escritorio: sin menú móvil. */
+/* Escritorio: sin menú móvil ni selector segmentado. */
 @media (min-width: 1024px) {
   .tb-menu-btn {
     display: none !important;
   }
 
-  .tb-cat-select-wrap {
+  .tb-cat-segment {
     display: none !important;
   }
 }
 
-.tb-cat-select-wrap {
+.tb-cat-segment {
   display: none;
 }
 
@@ -46,29 +46,111 @@
     margin: 0 !important;
   }
 
-  .tb-cat-select-wrap {
+  /* Selector móvil — segmento estilo BeEngine (pestañas + acento) */
+  .tb-cat-segment {
     display: flex;
-    align-items: center;
     flex: 1 1 auto;
     min-width: 0;
-    margin-left: 4px;
+    max-width: 220px;
+    margin-left: auto;
+    padding: 3px;
+    gap: 2px;
+    background: #f0f0f2;
+    border: 1px solid #e5e5e7;
+    border-radius: 8px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
   }
 
-  .tb-cat-select {
-    width: 100%;
-    max-width: 100%;
-    margin-left: 0;
-    height: 36px;
-    padding: 0 12px;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700;
-    font-size: 13px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    color: #1a1a1a;
-    background: #f5f5f7;
-    border: 1px solid #e5e5e7;
+  .tb-cat-segment-btn {
+    position: relative;
+    flex: 1 1 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-width: 0;
+    height: 32px;
+    padding: 0 8px;
+    border: none;
     border-radius: 6px;
+    background: transparent;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.55px;
+    text-transform: uppercase;
+    color: #888;
     cursor: pointer;
+    transition:
+      color 0.15s,
+      background 0.15s,
+      box-shadow 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .tb-cat-segment-btn:active:not(.tb-cat-segment-btn--active) {
+    background: rgba(255, 255, 255, 0.45);
+  }
+
+  .tb-cat-segment-btn--active {
+    color: #1a1a1a;
+    font-weight: 700;
+    background: #ffffff;
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.08),
+      0 0 0 1px rgba(0, 0, 0, 0.04);
+  }
+
+  .tb-cat-segment-btn--active::after {
+    content: '';
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    bottom: 3px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--cat-accent, #ffd100);
+  }
+
+  .tb-cat-segment-mark {
+    flex-shrink: 0;
+    width: 4px;
+    height: 13px;
+    background: var(--cat-accent, #ffd100);
+    clip-path: polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%);
+    opacity: 0;
+    transform: scaleY(0.6);
+    transition:
+      opacity 0.15s,
+      transform 0.15s;
+  }
+
+  .tb-cat-segment-btn--active .tb-cat-segment-mark {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+
+  .tb-cat-segment-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (max-width: 479px) {
+  .tb-cat-segment {
+    max-width: 168px;
+  }
+
+  .tb-cat-segment-btn {
+    padding: 0 6px;
+    font-size: 11px;
+    letter-spacing: 0.4px;
+    gap: 4px;
+  }
+
+  .tb-cat-segment-mark {
+    width: 3px;
+    height: 11px;
   }
 }
