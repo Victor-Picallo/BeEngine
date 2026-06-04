@@ -8,8 +8,12 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
-import { catchError, forkJoin, map, of, switchMap, tap } from 'rxjs';
+import { catchError, of } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  mergeHybridSources,
+  startHybridLoad,
+} from '../../core/profile/hybrid-dashboard.helpers';
 import { MotogpPulseService } from './motogp-pulse.service';
 import type {
   JolpikaCalendarRace,
@@ -108,53 +112,74 @@ export class MotogpClasificacionPageComponent {
   private fetchStandings(): void {
     this.loading.set(true);
     this.error.set(null);
+    this.races.set([]);
 
-    forkJoin({
-      drivers: this.motogp.getDriverStandingsResponse(true).pipe(
-        catchError(() => of({ items: [] as JolpikaDriverStanding[], source: undefined })),
-      ),
-      teams: this.motogp.getOfficialTeamsGrid(true).pipe(
-        catchError(() => of([] as MotogpTeamStanding[])),
-      ),
-      calendar: this.motogp.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
-      lastRace: this.motogp.getLastRace().pipe(catchError(() => of(null as JolpikaLastRace | null))),
-    })
-      .pipe(
-        switchMap((base) => {
-          const rounds = base.lastRace?.round
-            ? Array.from({ length: base.lastRace.round }, (_, i) => i + 1)
-            : [];
-          if (!rounds.length) {
-            return of({ ...base, races: [] as JolpikaRaceResult[] });
-          }
-          return forkJoin(
-            rounds.map((r) =>
-              this.motogp.getRaceResults(r).pipe(catchError(() => of(null as JolpikaRaceResult | null))),
+    let lastRace: JolpikaLastRace | null = null;
+
+    startHybridLoad(
+      [
+        {
+          load: () =>
+            this.motogp.getDriverStandingsResponse(true).pipe(
+              catchError(() => of({ items: [] as JolpikaDriverStanding[], source: undefined })),
             ),
-          ).pipe(
-            map((mapResults) => ({
-              ...base,
-              races: mapResults.filter((r): r is JolpikaRaceResult => r != null),
-            })),
-          );
-        }),
-        tap((res) => {
-          this.driverStands.set(res.drivers.items ?? []);
-          this.dataSource.set(mergeDataSources(res.drivers.source));
-          this.teamStands.set(res.teams);
-          this.calendar.set(res.calendar);
-          this.lastRace.set(res.lastRace);
-          this.races.set(res.races);
-          this.loading.set(false);
-        }),
-        catchError(() => {
-          this.error.set('No se pudo cargar la clasificación.');
-          this.loading.set(false);
-          return of(null);
-        }),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe();
+          onValue: (res) => {
+            const r = res as { items?: JolpikaDriverStanding[] };
+            this.driverStands.set(r.items ?? []);
+          },
+        },
+        {
+          load: () =>
+            this.motogp.getOfficialTeamsGrid(true).pipe(
+              catchError(() => of([] as MotogpTeamStanding[])),
+            ),
+          onValue: (teams) => this.teamStands.set(teams as MotogpTeamStanding[]),
+        },
+        {
+          load: () =>
+            this.motogp.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
+          onValue: (calendar) => this.calendar.set(calendar as JolpikaCalendarRace[]),
+        },
+        {
+          load: () =>
+            this.motogp.getLastRace().pipe(catchError(() => of(null as JolpikaLastRace | null))),
+          onValue: (lr) => {
+            lastRace = lr as JolpikaLastRace | null;
+            this.lastRace.set(lastRace);
+          },
+        },
+      ],
+      {
+        isActive: () => true,
+        onReady: () => this.loading.set(false),
+        onSources: (sources) => this.dataSource.set(mergeHybridSources(sources)),
+        onAllSettled: () => this.loadRaceEnrichment(lastRace),
+      },
+    );
+  }
+
+  private loadRaceEnrichment(lastRace: JolpikaLastRace | null): void {
+    const rounds = lastRace?.round
+      ? Array.from({ length: lastRace.round }, (_, i) => i + 1)
+      : [];
+    if (!rounds.length) return;
+
+    for (const round of rounds) {
+      this.motogp
+        .getRaceResults(round)
+        .pipe(
+          catchError(() => of(null as JolpikaRaceResult | null)),
+          takeUntilDestroyed(this.destroyRef),
+        )
+        .subscribe((result) => {
+          if (!result) return;
+          this.races.update((prev) => {
+            const next = prev.filter((r) => r.round !== result.round);
+            next.push(result);
+            return next.sort((a, b) => a.round - b.round);
+          });
+        });
+    }
   }
 
   setView(v: 'drivers' | 'constructors'): void {

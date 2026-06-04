@@ -14,7 +14,6 @@ import { SeriesContextService } from '../../core/series/series-context.service';
 import { SeriesAccentDirective } from '../../core/series/series-accent.directive';
 import { RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
-import { forkJoin } from 'rxjs';
 import { F1LiveService } from '../f1-live/f1-live.service';
 import { defaultSessionFor, slugifyRace } from '../race/race-slug';
 import { defaultMotogpSession } from '../race/motogp-session';
@@ -303,18 +302,15 @@ export class F1CalendarPageComponent {
     );
     if (!completed.length) return;
 
-    const requests = completed.map(race =>
-      this.service.getRaceResults(race.round, seriesId).pipe(catchError(() => of(null))),
-    );
-
-    forkJoin(requests).subscribe(results => {
-      if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return;
-      const byRound: Record<number, JolpikaRaceResult> = {};
-      for (const result of results) {
-        if (result) byRound[result.round] = result;
-      }
-      this.resultsByRound.set(byRound);
-    });
+    for (const race of completed) {
+      this.service
+        .getRaceResults(race.round, seriesId)
+        .pipe(catchError(() => of(null)))
+        .subscribe((result) => {
+          if (!result || !isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return;
+          this.resultsByRound.update((prev) => ({ ...prev, [result.round]: result }));
+        });
+    }
   }
 
   private isPastRace(race: JolpikaCalendarRace): boolean {

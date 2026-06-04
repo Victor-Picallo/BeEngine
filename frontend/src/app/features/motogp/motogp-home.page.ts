@@ -10,8 +10,12 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
-import { catchError, forkJoin, interval, of } from 'rxjs';
-import { mergeDataSources, type DataSource } from '../../core/data-source';
+import { catchError, interval, of } from 'rxjs';
+import {
+  mergeHybridSources,
+  startHybridLoad,
+} from '../../core/profile/hybrid-dashboard.helpers';
+import type { DataSource } from '../../core/data-source';
 import { DataSourceBadgeComponent } from '../../shared/components/data-source-badge/data-source-badge.component';
 import {
   CategoryData,
@@ -174,74 +178,141 @@ export class MotogpHomePageComponent implements OnInit, OnDestroy {
   private loadAll(): void {
     this.error.set(null);
     this.loading.set(true);
-    this.refreshing.set(false);
+    this.refreshing.set(true);
 
-    forkJoin({
-      calendar: this.motogpPulse.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
-      drivers: this.motogpPulse
-        .getDriverStandingsResponse()
-        .pipe(catchError(() => of({ items: [] as JolpikaDriverStanding[], source: undefined }))),
-      teamStands: this.motogpPulse.getOfficialTeamsGrid().pipe(catchError(() => of([] as MotogpTeamStanding[]))),
-      lastRace: this.motogpPulse.getLastRace().pipe(catchError(() => of(null as JolpikaLastRace | null))),
-      nextRace: this.motogpPulse.getNextRace().pipe(catchError(() => of(null))),
-      news: this.newsService.getFeed('motogp', 'Todos', 6, 0).pipe(
-        catchError(() =>
-          of({ items: [], total: 0, category: 'motogp', tag: 'Todos', page: 1, pageSize: 6, totalPages: 1 }),
-        ),
-      ),
-    })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (r) => {
-          this.calendarRaces.set(r.calendar);
-          this.driverStands.set(r.drivers.items ?? []);
-          this.dataSource.set(mergeDataSources(r.drivers.source));
-          this.teamStands.set(r.teamStands);
-          this.lastRaceRaw.set(r.lastRace);
-          this.nextRaceRaw.set(r.nextRace);
-          this.newsRaw.set(
-            r.news.items.map((a) => ({
-              id: a.id,
-              tag: a.tag,
-              title: a.title,
-              time: a.time,
-              hot: a.hot,
-              imageUrl: a.imageUrl,
-              cat: a.cat ?? 'motogp',
-            })),
-          );
-          this.loading.set(false);
-          this.refreshing.set(false);
+    startHybridLoad(
+      [
+        {
+          load: () =>
+            this.motogpPulse.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
+          onValue: (calendar) => this.calendarRaces.set(calendar as JolpikaCalendarRace[]),
         },
-        error: () => {
-          this.error.set('No se pudieron cargar los datos de MotoGP. Revisa que el backend esté arrancado.');
-          this.loading.set(false);
-          this.refreshing.set(false);
+        {
+          load: () =>
+            this.motogpPulse.getDriverStandingsResponse().pipe(
+              catchError(() => of({ items: [] as JolpikaDriverStanding[], source: undefined })),
+            ),
+          onValue: (res) => {
+            const r = res as { items?: JolpikaDriverStanding[] };
+            this.driverStands.set(r.items ?? []);
+          },
         },
-      });
+        {
+          load: () =>
+            this.motogpPulse
+              .getOfficialTeamsGrid()
+              .pipe(catchError(() => of([] as MotogpTeamStanding[]))),
+          onValue: (teams) => this.teamStands.set(teams as MotogpTeamStanding[]),
+        },
+        {
+          load: () =>
+            this.motogpPulse
+              .getLastRace()
+              .pipe(catchError(() => of(null as JolpikaLastRace | null))),
+          onValue: (lr) => this.lastRaceRaw.set(lr as JolpikaLastRace | null),
+        },
+        {
+          load: () => this.motogpPulse.getNextRace().pipe(catchError(() => of(null))),
+          onValue: (nr) => this.nextRaceRaw.set(nr as MotogpNextRacePayload | null),
+        },
+        {
+          load: () =>
+            this.newsService.getFeed('motogp', 'Todos', 6, 0).pipe(
+              catchError(() =>
+                of({
+                  items: [],
+                  total: 0,
+                  category: 'motogp',
+                  tag: 'Todos',
+                  page: 1,
+                  pageSize: 6,
+                  totalPages: 1,
+                }),
+              ),
+            ),
+          onValue: (feed) => {
+            const f = feed as {
+              items: Array<{
+                id?: string;
+                tag: string;
+                title: string;
+                time: string;
+                hot?: boolean;
+                imageUrl?: string | null;
+                cat?: string;
+              }>;
+            };
+            this.newsRaw.set(
+              f.items.map((a) => ({
+                id: a.id,
+                tag: a.tag,
+                title: a.title,
+                time: a.time,
+                hot: a.hot,
+                imageUrl: a.imageUrl,
+                cat: a.cat ?? 'motogp',
+              })),
+            );
+          },
+        },
+      ],
+      {
+        isActive: () => true,
+        onReady: () => {
+          this.loading.set(false);
+          this.error.set(null);
+        },
+        onSources: (sources) => this.dataSource.set(mergeHybridSources(sources)),
+        onAllSettled: () => this.refreshing.set(false),
+      },
+    );
   }
 
   private refreshAll(): void {
     this.refreshing.set(true);
-    forkJoin({
-      calendar: this.motogpPulse.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
-      driverStands: this.motogpPulse.getDriverStandings(true).pipe(catchError(() => of([] as JolpikaDriverStanding[]))),
-      teamStands: this.motogpPulse.getOfficialTeamsGrid(true).pipe(catchError(() => of([] as MotogpTeamStanding[]))),
-      lastRace: this.motogpPulse.getLastRace().pipe(catchError(() => of(null as JolpikaLastRace | null))),
-      nextRace: this.motogpPulse.getNextRace().pipe(catchError(() => of(null))),
-    })
-      .pipe(takeUntilDestroyed(this.destroyRef))
+
+    const done = () => this.refreshing.set(false);
+    let pending = 5;
+
+    const tick = () => {
+      pending -= 1;
+      if (pending === 0) done();
+    };
+
+    this.motogpPulse
+      .getCalendar()
+      .pipe(catchError(() => of([] as JolpikaCalendarRace[])), takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: (c) => this.calendarRaces.set(c), complete: tick, error: tick });
+
+    this.motogpPulse
+      .getDriverStandingsResponse(true)
+      .pipe(
+        catchError(() => of({ items: [] as JolpikaDriverStanding[], source: undefined })),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
         next: (r) => {
-          this.calendarRaces.set(r.calendar);
-          this.driverStands.set(r.driverStands);
-          this.teamStands.set(r.teamStands);
-          this.lastRaceRaw.set(r.lastRace);
-          this.nextRaceRaw.set(r.nextRace);
-          this.refreshing.set(false);
+          this.driverStands.set(r.items ?? []);
+          this.dataSource.set(mergeHybridSources([r.source]));
         },
-        error: () => this.refreshing.set(false),
+        complete: tick,
+        error: tick,
       });
+
+    this.motogpPulse
+      .getOfficialTeamsGrid(true)
+      .pipe(catchError(() => of([] as MotogpTeamStanding[])), takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: (t) => this.teamStands.set(t), complete: tick, error: tick });
+
+    this.motogpPulse
+      .getLastRace()
+      .pipe(catchError(() => of(null as JolpikaLastRace | null)), takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: (r) => this.lastRaceRaw.set(r), complete: tick, error: tick });
+
+    this.motogpPulse
+      .getNextRace()
+      .pipe(catchError(() => of(null)), takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: (n) => this.nextRaceRaw.set(n), complete: tick, error: tick });
   }
 
   private startIntervals(): void {

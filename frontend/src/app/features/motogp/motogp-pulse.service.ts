@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { catchError, map, Observable, of, shareReplay } from 'rxjs';
+import { HYBRID_SHARE_REPLAY } from '../../core/profile/hybrid-dashboard.helpers';
 import { ApiService } from '../../core/services/api.service';
 import type {
   JolpikaCalendarRace,
@@ -65,7 +66,7 @@ export class MotogpPulseService {
     if (!this.driverStandings$) {
       this.driverStandings$ = this.api
         .getDbThenLive<SourceWrapped<JolpikaDriverStanding>>(`${this.prefix}/driver-standings`)
-        .pipe(shareReplay({ bufferSize: 1, refCount: true }));
+        .pipe(shareReplay(HYBRID_SHARE_REPLAY));
     }
     return this.driverStandings$;
   }
@@ -84,7 +85,7 @@ export class MotogpPulseService {
         .getDbThenLive<SourceWrapped<MotogpTeamStanding>>(`${this.prefix}/constructor-standings`)
         .pipe(
           map((res) => res.items ?? []),
-          shareReplay({ bufferSize: 1, refCount: true }),
+          shareReplay(HYBRID_SHARE_REPLAY),
         );
     }
     return this.teamStandings$;
@@ -98,7 +99,7 @@ export class MotogpPulseService {
         .pipe(
           map((res) => res.items ?? []),
           catchError(() => this.getTeamStandings(forceRefresh)),
-          shareReplay({ bufferSize: 1, refCount: true }),
+          shareReplay(HYBRID_SHARE_REPLAY),
         );
     }
     return this.officialTeams$;

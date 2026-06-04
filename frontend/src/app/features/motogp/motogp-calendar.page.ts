@@ -6,7 +6,7 @@
   inject,
   signal,
 } from '@angular/core';
-import { catchError, forkJoin, of, tap } from 'rxjs';
+import { catchError, of, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
@@ -199,21 +199,18 @@ export class MotogpCalendarPageComponent {
   private loadCompletedResults(calendar: JolpikaCalendarRace[]): void {
     const completed = calendar.filter(r => this.isPastRace(r));
     if (!completed.length) return;
-    forkJoin(
-      completed.map(race =>
-        this.motogpPulse.getRaceResults(race.round).pipe(
+    for (const race of completed) {
+      this.motogpPulse
+        .getRaceResults(race.round)
+        .pipe(
           catchError(() => of(null as JolpikaRaceResult | null)),
-        ),
-      ),
-    ).pipe(
-      takeUntilDestroyed(this.destroyRef),
-    ).subscribe(results => {
-      const byRound: Record<number, JolpikaRaceResult> = {};
-      for (const result of results) {
-        if (result) byRound[result.round] = result;
-      }
-      this.resultsByRound.set(byRound);
-    });
+          takeUntilDestroyed(this.destroyRef),
+        )
+        .subscribe((result) => {
+          if (!result) return;
+          this.resultsByRound.update((prev) => ({ ...prev, [result.round]: result }));
+        });
+    }
   }
 
   private isPastRace(race: JolpikaCalendarRace): boolean {

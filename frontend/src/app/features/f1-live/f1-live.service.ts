@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { catchError, map, Observable, of, shareReplay } from 'rxjs';
+import { HYBRID_SHARE_REPLAY } from '../../core/profile/hybrid-dashboard.helpers';
 import { ApiService } from '../../core/services/api.service';
 import { SERIES_CONFIG } from '../../core/series/series.config';
 import { SeriesContextService } from '../../core/series/series-context.service';
@@ -154,7 +155,7 @@ export class F1LiveService {
     if (!this.driverStandingsCache.has(sid)) {
       const obs = this.api
         .getDbThenLive<ItemsWrapped<JolpikaDriverStanding>>(`${this.racingApi(sid)}/driver-standings`)
-        .pipe(shareReplay({ bufferSize: 1, refCount: true }));
+        .pipe(shareReplay(HYBRID_SHARE_REPLAY));
       this.driverStandingsCache.set(sid, obs);
     }
     return this.driverStandingsCache.get(sid)!;
@@ -199,7 +200,7 @@ export class F1LiveService {
         .getDbThenLive<ItemsWrapped<JolpikaConstructorStanding>>(
           `${this.racingApi(sid)}/constructor-standings`,
         )
-        .pipe(shareReplay({ bufferSize: 1, refCount: true }));
+        .pipe(shareReplay(HYBRID_SHARE_REPLAY));
       this.constructorStandingsCache.set(sid, obs);
     }
     return this.constructorStandingsCache.get(sid)!;

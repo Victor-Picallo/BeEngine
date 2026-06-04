@@ -8,7 +8,8 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
-import { catchError, forkJoin, map, of, tap } from 'rxjs';
+import { catchError, map, Observable, of, tap } from 'rxjs';
+import { startHybridLoad } from '../../core/profile/hybrid-dashboard.helpers';
 import { bindSeriesLoad, isSeriesStillActive } from '../../core/series/bind-series-load';
 import { isFeederSeries } from '../../core/series/series.config';
 import type { SeriesId } from '../../core/series/series.types';
@@ -137,23 +138,50 @@ export class F1DriversPageComponent {
     this.raw.set([]);
     this.openf1Drivers.set([]);
 
-    return forkJoin({
-      standings: this.f1.getDriverStandings(true, seriesId),
-      open: this.f1.getDrivers('latest', seriesId).pipe(catchError(() => of<OpenF1Driver[]>([]))),
+    return new Observable<void>((observer) => {
+      const sub = startHybridLoad(
+        [
+          {
+            load: () =>
+              this.f1.getDriverStandings(true, seriesId).pipe(
+                catchError(() => of([] as JolpikaDriverStanding[])),
+              ),
+            onValue: (rows) => {
+              this.raw.set(rows as JolpikaDriverStanding[]);
+            },
+          },
+        ],
+        {
+          isActive: () => isSeriesStillActive(seriesId, () => this.seriesCtx.id()),
+          onReady: () => {
+            this.loading.set(false);
+            this.error.set(null);
+            if (isFeederSeries(seriesId) || seriesId === 'motogp') {
+              this.prefetchPortraits(seriesId);
+            }
+          },
+          onAllSettled: () => {
+            observer.next();
+            observer.complete();
+          },
+        },
+      );
+
+      this.f1
+        .getDrivers('latest', seriesId)
+        .pipe(catchError(() => of<OpenF1Driver[]>([])))
+        .subscribe((open) => {
+          if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return;
+          this.openf1Drivers.set(open);
+        });
+
+      return () => sub.unsubscribe();
     }).pipe(
-      tap((res) => {
-        if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return;
-        this.raw.set(res.standings);
-        this.openf1Drivers.set(res.open);
-        this.loading.set(false);
-        this.error.set(null);
-        if (isFeederSeries(seriesId) || seriesId === 'motogp') this.prefetchPortraits(seriesId);
-      }),
       catchError(() => {
-        if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return of(null);
+        if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return of(undefined);
         this.loading.set(false);
         this.error.set('No se pudo cargar la clasificación de pilotos.');
-        return of(null);
+        return of(undefined);
       }),
       map(() => undefined),
     );

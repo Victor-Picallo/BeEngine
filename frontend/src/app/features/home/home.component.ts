@@ -11,7 +11,11 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgStyle } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { catchError, filter, forkJoin, interval, map, Observable, of } from 'rxjs';
+import { catchError, filter, interval, of } from 'rxjs';
+import {
+  mergeHybridSources,
+  startHybridLoad,
+} from '../../core/profile/hybrid-dashboard.helpers';
 import { NavigationEnd } from '@angular/router';
 import {
   Category,
@@ -29,7 +33,7 @@ import {
 } from '../../data/sports.data';
 import { HomeSeriesCacheService, type HomeSeriesSnapshot } from './services/home-series-cache.service';
 import { F1LiveService } from '../f1-live/f1-live.service';
-import { mergeDataSources, type DataSource } from '../../core/data-source';
+import type { DataSource } from '../../core/data-source';
 import { DataSourceBadgeComponent } from '../../shared/components/data-source-badge/data-source-badge.component';
 import { MotogpPulseService } from '../motogp/motogp-pulse.service';
 import { NewsService } from '../news/news.service';
@@ -331,54 +335,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.newsRaw.set([]);
   }
 
-  private snapshotFromResponse(
-    r: {
-      calendar: JolpikaCalendarRace[];
-      driverStands: JolpikaDriverStanding[];
-      teamStands: JolpikaConstructorStanding[];
-      lastRace: JolpikaLastRace | null;
-      sessions: OpenF1Session[];
-      news: { items: Array<{ id?: string; tag: string; title: string; time: string; hot?: boolean; imageUrl?: string | null; cat?: string }> };
-    },
-  ): HomeSeriesSnapshot {
-    return {
-      calendar: r.calendar,
-      driverStands: r.driverStands,
-      teamStands: r.teamStands,
-      lastRace: r.lastRace,
-      sessions: r.sessions,
-      news: r.news.items.map(a => ({
-        id: a.id,
-        tag: a.tag,
-        title: a.title,
-        time: a.time,
-        hot: a.hot,
-        imageUrl: a.imageUrl,
-        cat: a.cat,
-      })),
-    };
-  }
-
-  private seriesDataLoad$(seriesId: SeriesId): Observable<{
-    calendar: JolpikaCalendarRace[];
-    driverStands: JolpikaDriverStanding[];
-    teamStands: JolpikaConstructorStanding[];
-    lastRace: JolpikaLastRace | null;
-    sessions: OpenF1Session[];
-    dataSource: DataSource | null;
-    news: {
-      items: Array<{
-        id?: string;
-        tag: string;
-        title: string;
-        time: string;
-        hot?: boolean;
-        imageUrl?: string | null;
-        cat?: string;
-      }>;
-    };
-  }> {
-    const news$ = this.newsService.getFeed(seriesId, 'Todos', 6, 0).pipe(
+  private newsFeedLoad(seriesId: SeriesId) {
+    return this.newsService.getFeed(seriesId, 'Todos', 6, 0).pipe(
       catchError(() =>
         of({
           items: [],
@@ -391,58 +349,178 @@ export class HomeComponent implements OnInit, OnDestroy {
         }),
       ),
     );
+  }
 
-    if (seriesId === 'motogp') {
-    return forkJoin({
-      calendar: this.motogpPulse.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
-      drivers: this.motogpPulse
-        .getDriverStandingsResponse()
-        .pipe(catchError(() => of({ items: [] as JolpikaDriverStanding[], source: undefined }))),
-      teamStands: this.motogpPulse.getTeamStandings().pipe(
-        catchError(() => of([] as JolpikaConstructorStanding[])),
-      ),
-      lastRace: this.motogpPulse
-        .getLastRace()
-        .pipe(catchError(() => of(null as JolpikaLastRace | null))),
-      news: news$,
-    }).pipe(
-        map((r) => ({
-          calendar: r.calendar,
-          driverStands: r.drivers.items ?? [],
-          teamStands: r.teamStands,
-          lastRace: r.lastRace,
-          sessions: [],
-          news: r.news,
-          dataSource: mergeDataSources(r.drivers.source),
-        })),
-      );
+  private mapNewsItems(
+    items: Array<{
+      id?: string;
+      tag: string;
+      title: string;
+      time: string;
+      hot?: boolean;
+      imageUrl?: string | null;
+      cat?: string;
+    }>,
+  ): NewsItem[] {
+    return items.map((a) => ({
+      id: a.id,
+      tag: a.tag,
+      title: a.title,
+      time: a.time,
+      hot: a.hot,
+      imageUrl: a.imageUrl,
+      cat: a.cat,
+    }));
+  }
+
+  private buildSnapshotFromSignals(): HomeSeriesSnapshot {
+    return {
+      calendar: this.calendarRaces(),
+      driverStands: this.driverStands(),
+      teamStands: this.teamStands(),
+      lastRace: this.lastRaceRaw(),
+      sessions: this.sessionsRaw(),
+      news: this.newsRaw(),
+    };
+  }
+
+  private runSeriesHybridLoad(seriesId: SeriesId, hadCache: boolean): void {
+    const pulse = seriesId === 'motogp';
+
+    const streams =
+      pulse
+        ? [
+            {
+              load: () =>
+                this.motogpPulse.getCalendar().pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
+              onValue: (calendar: unknown) =>
+                this.calendarRaces.set(calendar as JolpikaCalendarRace[]),
+            },
+            {
+              load: () =>
+                this.motogpPulse.getDriverStandingsResponse().pipe(
+                  catchError(() =>
+                    of({ items: [] as JolpikaDriverStanding[], source: undefined }),
+                  ),
+                ),
+              onValue: (res: unknown) => {
+                const r = res as { items?: JolpikaDriverStanding[] };
+                this.driverStands.set(r.items ?? []);
+              },
+            },
+            {
+              load: () =>
+                this.motogpPulse
+                  .getTeamStandings()
+                  .pipe(catchError(() => of([] as JolpikaConstructorStanding[]))),
+              onValue: (teams: unknown) =>
+                this.teamStands.set(teams as JolpikaConstructorStanding[]),
+            },
+            {
+              load: () =>
+                this.motogpPulse
+                  .getLastRace()
+                  .pipe(catchError(() => of(null as JolpikaLastRace | null))),
+              onValue: (lr: unknown) =>
+                this.lastRaceRaw.set(lr as JolpikaLastRace | null),
+            },
+            {
+              load: () => this.newsFeedLoad(seriesId),
+              onValue: (feed: unknown) => {
+                const f = feed as {
+                  items: Array<{
+                    id?: string;
+                    tag: string;
+                    title: string;
+                    time: string;
+                    hot?: boolean;
+                    imageUrl?: string | null;
+                    cat?: string;
+                  }>;
+                };
+                this.newsRaw.set(this.mapNewsItems(f.items));
+              },
+            },
+          ]
+        : [
+            {
+              load: () =>
+                this.f1
+                  .getCalendar(seriesId)
+                  .pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
+              onValue: (calendar: unknown) =>
+                this.calendarRaces.set(calendar as JolpikaCalendarRace[]),
+            },
+            {
+              load: () =>
+                this.f1.getDriverStandingsResponse(false, seriesId).pipe(
+                  catchError(() =>
+                    of({ items: [] as JolpikaDriverStanding[], source: undefined }),
+                  ),
+                ),
+              onValue: (res: unknown) => {
+                const r = res as { items?: JolpikaDriverStanding[] };
+                this.driverStands.set(r.items ?? []);
+              },
+            },
+            {
+              load: () =>
+                this.f1.getConstructorStandingsResponse(false, seriesId).pipe(
+                  catchError(() =>
+                    of({ items: [] as JolpikaConstructorStanding[], source: undefined }),
+                  ),
+                ),
+              onValue: (res: unknown) => {
+                const r = res as { items?: JolpikaConstructorStanding[] };
+                this.teamStands.set(r.items ?? []);
+              },
+            },
+            {
+              load: () =>
+                this.f1
+                  .getLastRace(seriesId)
+                  .pipe(catchError(() => of(null as JolpikaLastRace | null))),
+              onValue: (lr: unknown) =>
+                this.lastRaceRaw.set(lr as JolpikaLastRace | null),
+            },
+            {
+              load: () => this.newsFeedLoad(seriesId),
+              onValue: (feed: unknown) => {
+                const f = feed as {
+                  items: Array<{
+                    id?: string;
+                    tag: string;
+                    title: string;
+                    time: string;
+                    hot?: boolean;
+                    imageUrl?: string | null;
+                    cat?: string;
+                  }>;
+                };
+                this.newsRaw.set(this.mapNewsItems(f.items));
+              },
+            },
+          ];
+
+    if (!hadCache) {
+      this.refreshing.set(true);
     }
 
-    return forkJoin({
-      calendar: this.f1.getCalendar(seriesId).pipe(catchError(() => of([] as JolpikaCalendarRace[]))),
-      drivers: this.f1
-        .getDriverStandingsResponse(false, seriesId)
-        .pipe(catchError(() => of({ items: [] as JolpikaDriverStanding[], source: undefined }))),
-      teams: this.f1
-        .getConstructorStandingsResponse(false, seriesId)
-        .pipe(
-          catchError(() => of({ items: [] as JolpikaConstructorStanding[], source: undefined })),
-        ),
-      lastRace: this.f1
-        .getLastRace(seriesId)
-        .pipe(catchError(() => of(null as JolpikaLastRace | null))),
-      news: news$,
-    }).pipe(
-      map((r) => ({
-        calendar: r.calendar,
-        driverStands: r.drivers.items ?? [],
-        teamStands: r.teams.items ?? [],
-        lastRace: r.lastRace,
-        sessions: [],
-        news: r.news,
-        dataSource: mergeDataSources(r.drivers.source, r.teams.source),
-      })),
-    );
+    startHybridLoad(streams, {
+      isActive: () => this.seriesCtx.id() === seriesId,
+      onReady: () => {
+        this.loading.set(false);
+        this.error.set(null);
+      },
+      onSources: (sources) => this.dataSource.set(mergeHybridSources(sources)),
+      onAllSettled: () => {
+        if (this.seriesCtx.id() !== seriesId) return;
+        this.seriesCache.set(seriesId, this.buildSnapshotFromSignals());
+        this.refreshing.set(false);
+        this.loadSessionsInBackground(seriesId);
+        if (seriesId === 'motogp') this.refreshLiveData();
+      },
+    });
   }
 
   /** OpenF1 / Pulse sessions en segundo plano (no bloquean el home). */
@@ -475,29 +553,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.refreshing.set(false);
     }
 
-    this.seriesDataLoad$(seriesId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: r => {
-          if (this.seriesCtx.id() !== seriesId) return;
-          const snapshot = this.snapshotFromResponse(r);
-          this.seriesCache.set(seriesId, snapshot);
-          this.applySnapshot(snapshot);
-          this.dataSource.set(r.dataSource);
-          this.loading.set(false);
-          this.refreshing.set(false);
-          this.loadSessionsInBackground(seriesId);
-          if (seriesId === 'motogp') this.refreshLiveData();
-        },
-        error: () => {
-          if (this.seriesCtx.id() !== seriesId) return;
-          if (!cached) {
-            this.error.set('No se pudieron cargar los datos. Revisa que el backend esté arrancado.');
-          }
-          this.loading.set(false);
-          this.refreshing.set(false);
-        },
-      });
+    this.runSeriesHybridLoad(seriesId, Boolean(cached));
   }
 
   private startIntervals(): void {
