@@ -13,20 +13,19 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   catchError,
   EMPTY,
-  expand,
   finalize,
-  forkJoin,
   fromEvent,
-  ignoreElements,
   map,
-  merge,
   Observable,
   of,
   switchMap,
-  takeWhile,
   tap,
-  timer,
 } from 'rxjs';
+import {
+  careerEnrichingAfterDbEmission,
+  isLiveProfileSource,
+  mergeDbWithLiveDriverProfile,
+} from '../../../core/profile/hybrid-profile.helpers';
 import {
   BackNavigationService,
   RETURN_URL_STATE_KEY,
@@ -148,6 +147,8 @@ export class F1DriverProfilePageComponent {
 
   loading = signal(true);
   careerHistoryLoading = signal(false);
+  /** DB pintada; esperando historial Jolpica en segundo plano. */
+  careerEnriching = signal(false);
   error = signal<string | null>(null);
   profile = signal<JolpikaDriverProfile | null>(null);
 
@@ -331,7 +332,7 @@ export class F1DriverProfilePageComponent {
     const gen = ++this.careerLoadGen;
     this.careerHistoryLoading.set(true);
     this.f1
-      .getDriverProfile(id, page)
+      .getDriverProfile(id, page, { liveRefresh: true })
       .pipe(
         catchError(() => EMPTY),
         finalize(() => {
@@ -344,119 +345,168 @@ export class F1DriverProfilePageComponent {
       .subscribe((profile) => {
         if (!profile || gen !== this.careerLoadGen) return;
         const prev = this.profile()!;
+        const merged =
+          prev.source === 'db' && isLiveProfileSource(profile.source)
+            ? mergeDbWithLiveDriverProfile(prev, profile)
+            : { ...prev, ...profile };
         this.profile.set({
-          ...prev,
+          ...merged,
           careerHistory: profile.careerHistory,
           careerHistoryPagination: profile.careerHistoryPagination,
         });
+        this.careerEnriching.set(false);
       });
+  }
+
+  private applyProfileEmission(incoming: JolpikaDriverProfile): void {
+    const prev = this.profile();
+    const next =
+      prev && prev.source === 'db' && isLiveProfileSource(incoming.source)
+        ? mergeDbWithLiveDriverProfile(prev, incoming)
+        : incoming;
+
+    this.profile.set(next);
+    this.loading.set(false);
+    this.error.set(null);
+
+    if (incoming.source === 'db') {
+      this.careerEnriching.set(careerEnrichingAfterDbEmission(incoming));
+    } else if (isLiveProfileSource(incoming.source)) {
+      this.careerEnriching.set(false);
+    }
   }
 
   private loadFullProfile(id: string): Observable<void> {
     this.syncCareerPageUrl(1);
     const careerPage = 1;
     this.loading.set(true);
+    this.careerEnriching.set(false);
     this.error.set(null);
+    this.openf1.set(undefined);
+    this.standing.set(undefined);
 
-    return forkJoin({
-      profile: this.f1.getDriverProfile(id, careerPage).pipe(catchError(() => of(null))),
-      openf1: this.f1.getDrivers('latest').pipe(catchError(() => of<OpenF1Driver[]>([]))),
-      standings: this.f1.getDriverStandings().pipe(catchError(() => of<JolpikaDriverStanding[]>([]))),
-    }).pipe(
-      switchMap((res) => {
-        if (!res.profile) {
-          this.profile.set(null);
-          this.loading.set(false);
-          this.error.set('No se encontró la ficha de este piloto.');
-          return EMPTY;
+    let sideEffectsStarted = false;
+
+    return this.f1.getDriverProfile(id, careerPage).pipe(
+      tap((profile) => {
+        if (!profile) return;
+        this.lastLoadedDriverId = id;
+        this.applyProfileEmission(profile);
+        if (!sideEffectsStarted) {
+          sideEffectsStarted = true;
+          this.runProfileSideEffects(id, profile);
         }
-
-        this.lastLoadedDriverId = res.profile.driverId;
-        const p = res.profile;
-        const o = matchOpenF1Driver(p, res.openf1);
-        const st = res.standings.find((s) => s.driverId === p.driverId);
-        this.profile.set(p);
-        this.openf1.set(o);
-        this.standing.set(st);
-        this.loading.set(false);
-        this.error.set(null);
-
-        const mergeAggregates = (agg: {
-          championships: number;
-          stats: JolpikaDriverProfile['stats'];
-          debut: string;
-          maxCareerPts: number;
-          partial?: boolean;
-        }) => {
-          const cur = this.profile();
-          if (!cur) return;
-          const pag = cur.careerHistoryPagination;
-          const stillPending = agg.partial === true;
-          const statsSource = stillPending
-            ? cur.statsSource === 'api'
-              ? 'api'
-              : 'live'
-            : 'api';
-          const nextStats = stillPending
-            ? {
-                wins: Math.max(cur.stats.wins, agg.stats.wins ?? 0),
-                podiums: Math.max(cur.stats.podiums, agg.stats.podiums ?? 0),
-                poles: Math.max(cur.stats.poles, agg.stats.poles ?? 0),
-                fastestLaps: Math.max(cur.stats.fastestLaps, agg.stats.fastestLaps ?? 0),
-                races: Math.max(cur.stats.races, agg.stats.races ?? 0),
-                points: Math.max(cur.stats.points, agg.stats.points ?? 0),
-                winsCurrentSeason:
-                  agg.stats.winsCurrentSeason ?? cur.stats.winsCurrentSeason,
-              }
-            : agg.stats;
-          this.profile.set({
-            ...cur,
-            championships: stillPending
-              ? Math.max(cur.championships, agg.championships ?? 0)
-              : agg.championships,
-            debut: agg.debut?.trim() ? agg.debut : cur.debut,
-            stats: nextStats,
-            aggregatesPending: stillPending,
-            aggregatesError: false,
-            statsSource,
-            careerHistoryPagination: pag
-              ? { ...pag, maxPts: agg.maxCareerPts ?? pag.maxPts }
-              : null,
-          });
-        };
-
-        const shouldSyncAggregates =
-          p.aggregatesPending || p.statsSource !== 'api';
-
-        if (!shouldSyncAggregates) {
-          return of(undefined);
-        }
-
-        const agg$ = this.f1.getDriverProfileAggregates(id).pipe(
-          expand((agg, i) =>
-            agg.partial && i < 40
-              ? timer(5000).pipe(switchMap(() => this.f1.getDriverProfileAggregates(id)))
-              : EMPTY,
-          ),
-          tap((agg) => mergeAggregates(agg)),
-          takeWhile((agg) => agg.partial === true, true),
-          catchError(() => {
-            const cur = this.profile();
-            if (cur && !cur.championships && !cur.stats.wins) {
-              this.profile.set({
-                ...cur,
-                aggregatesPending: false,
-                aggregatesError: true,
-              });
-            }
-            return EMPTY;
-          }),
-          ignoreElements(),
-        );
-
-        return merge(of(undefined), agg$).pipe(map(() => undefined));
       }),
+      catchError(() => {
+        this.profile.set(null);
+        this.loading.set(false);
+        this.careerEnriching.set(false);
+        this.error.set('No se encontró la ficha de este piloto.');
+        return EMPTY;
+      }),
+      finalize(() => this.careerEnriching.set(false)),
+      map(() => undefined),
     );
+  }
+
+  private runProfileSideEffects(id: string, profile: JolpikaDriverProfile): void {
+    this.f1
+      .getDrivers('latest')
+      .pipe(
+        tap((openf1) => {
+          const p = this.profile();
+          if (!p) return;
+          this.openf1.set(matchOpenF1Driver(p, openf1));
+        }),
+        catchError(() => {
+          this.openf1.set(undefined);
+          return of(undefined);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe();
+
+    this.f1
+      .getDriverStandings()
+      .pipe(
+        tap((standings) => {
+          const p = this.profile();
+          if (!p) return;
+          this.standing.set(standings.find((s) => s.driverId === p.driverId));
+        }),
+        catchError(() => {
+          this.standing.set(undefined);
+          return of(undefined);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe();
+
+    if (!profile.aggregatesPending && profile.statsSource === 'api') {
+      return;
+    }
+
+    const mergeAggregates = (agg: {
+      championships: number;
+      stats: JolpikaDriverProfile['stats'];
+      debut: string;
+      maxCareerPts: number;
+      partial?: boolean;
+    }) => {
+      const cur = this.profile();
+      if (!cur) return;
+      const pag = cur.careerHistoryPagination;
+      const stillPending = agg.partial === true;
+      const statsSource = stillPending
+        ? cur.statsSource === 'api'
+          ? 'api'
+          : 'live'
+        : 'api';
+      const nextStats = stillPending
+        ? {
+            wins: Math.max(cur.stats.wins, agg.stats.wins ?? 0),
+            podiums: Math.max(cur.stats.podiums, agg.stats.podiums ?? 0),
+            poles: Math.max(cur.stats.poles, agg.stats.poles ?? 0),
+            fastestLaps: Math.max(cur.stats.fastestLaps, agg.stats.fastestLaps ?? 0),
+            races: Math.max(cur.stats.races, agg.stats.races ?? 0),
+            points: Math.max(cur.stats.points, agg.stats.points ?? 0),
+            winsCurrentSeason: agg.stats.winsCurrentSeason ?? cur.stats.winsCurrentSeason,
+          }
+        : agg.stats;
+      this.profile.set({
+        ...cur,
+        championships: stillPending
+          ? Math.max(cur.championships, agg.championships ?? 0)
+          : agg.championships,
+        debut: agg.debut?.trim() ? agg.debut : cur.debut,
+        stats: nextStats,
+        aggregatesPending: stillPending,
+        aggregatesError: false,
+        statsSource,
+        careerHistoryPagination: pag
+          ? { ...pag, maxPts: agg.maxCareerPts ?? pag.maxPts }
+          : null,
+      });
+    };
+
+    this.f1
+      .getDriverProfileAggregates(id)
+      .pipe(
+        tap((agg) => mergeAggregates(agg)),
+        catchError(() => {
+          const cur = this.profile();
+          if (cur && !cur.championships && !cur.stats.wins) {
+            this.profile.set({
+              ...cur,
+              aggregatesPending: false,
+              aggregatesError: true,
+            });
+          }
+          return EMPTY;
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe();
   }
 
   imgError(ev: Event): void {

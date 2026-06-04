@@ -11,6 +11,7 @@ import {
   getDriverHistoricalStats,
   mergeDriverHistoricalWithLive,
 } from '../shared/profileMeta.service.js';
+import { toPublicMediaUrl } from '../../lib/supabaseStorage.js';
 
 /** Driver profile hits Jolpica many times; allow a bit more than the global default. */
 const PROFILE_JOLPICA = { timeoutMs: 8_000 };
@@ -697,6 +698,7 @@ async function getDriverProfileFromDb(rawDriverId) {
     number: null,
     dateOfBirth: null,
     nationality: d.nationality ?? row?.nationality ?? '',
+    headshotUrl: toPublicMediaUrl(entry.headshotUrl ?? d.headshotUrl),
     championships,
     debut,
     currentSeasonYear: seasonYear,

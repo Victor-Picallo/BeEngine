@@ -254,7 +254,7 @@
         }
 
         @if (p.careerHistory.length) {
-          <section class="dp-career" [class.is-career-loading]="careerHistoryLoading()">
+          <section class="dp-career" [class.is-career-loading]="careerHistoryLoading() || careerEnriching()">
             <div class="dp-season-card">
               <div class="dp-season-head">
                 <div class="dp-season-title">
@@ -267,6 +267,9 @@
                     }
                   </span>
                 </div>
+                @if (careerEnriching()) {
+                  <span class="dp-muted">Completando historial en vivo…</span>
+                }
                 @if (p.careerHistoryPagination; as pag) {
                   <div class="dp-career-pager" role="navigation" aria-label="Paginación del historial">
                     <button

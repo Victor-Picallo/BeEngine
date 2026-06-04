@@ -10,7 +10,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Location } from '@angular/common';
 import { DecimalPipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { catchError, EMPTY, finalize, map, of, switchMap, tap } from 'rxjs';
+import { catchError, EMPTY, finalize, map, Observable, switchMap, tap } from 'rxjs';
+import {
+  careerEnrichingAfterDbEmission,
+  isLiveProfileSource,
+  mergeDbWithLiveTeamProfile,
+} from '../../core/profile/hybrid-profile.helpers';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
 import { MotogpPulseService } from './motogp-pulse.service';
 import { SeriesContextService } from '../../core/series/series-context.service';
@@ -63,6 +68,7 @@ export class MotogpTeamProfilePageComponent {
 
   loading = signal(true);
   careerHistoryLoading = signal(false);
+  careerEnriching = signal(false);
   error = signal<string | null>(null);
   profile = signal<MotogpTeamProfile | null>(null);
 
@@ -134,48 +140,105 @@ export class MotogpTeamProfilePageComponent {
           if (!id) {
             this.error.set('Equipo no encontrado.');
             this.loading.set(false);
-            return of(null);
+            return EMPTY;
           }
           this.lastLoadedConstructorId = '';
-          this.loading.set(true);
-          this.error.set(null);
-          return this.motogp.getTeamProfile(id, 1).pipe(
-            switchMap((p) => {
-              if (!p) return of(null);
-              this.lastLoadedConstructorId = id;
-              this.profile.set(p);
-              this.loading.set(false);
-              if (!p.aggregatesPending) return of(null);
-              return this.motogp.getTeamProfileAggregates(id).pipe(
-                tap((agg) => {
-                  const cur = this.profile();
-                  if (!cur) return;
-                  this.profile.set({
-                    ...cur,
-                    stats: agg.stats,
-                    aggregatesPending: false,
-                    aggregatesError: false,
-                    careerHistoryPagination: cur.careerHistoryPagination
-                      ? { ...cur.careerHistoryPagination, maxPts: agg.maxCareerPts }
-                      : null,
-                  });
-                }),
-                catchError(() => {
-                  const cur = this.profile();
-                  if (cur) {
-                    this.profile.set({ ...cur, aggregatesPending: false, aggregatesError: true });
-                  }
-                  return of(null);
-                }),
-                map(() => null),
-              );
-            }),
-            catchError(() => {
-              this.error.set('No se pudo cargar la ficha del equipo.');
-              this.loading.set(false);
-              return of(null);
-            }),
-          );
+          return this.loadFullProfile(id);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe();
+  }
+
+  private applyProfileEmission(incoming: MotogpTeamProfile): void {
+    const prev = this.profile();
+    const next =
+      prev && prev.source === 'db' && isLiveProfileSource(incoming.source)
+        ? mergeDbWithLiveTeamProfile(prev, incoming)
+        : incoming;
+
+    this.profile.set(next);
+    this.loading.set(false);
+    this.error.set(null);
+
+    if (incoming.source === 'db') {
+      this.careerEnriching.set(careerEnrichingAfterDbEmission(incoming));
+    } else if (isLiveProfileSource(incoming.source)) {
+      this.careerEnriching.set(false);
+    }
+  }
+
+  private loadFullProfile(id: string): Observable<void> {
+    this.loading.set(true);
+    this.careerEnriching.set(false);
+    this.error.set(null);
+
+    let sideEffectsStarted = false;
+
+    return this.motogp.getTeamProfile(id, 1).pipe(
+      tap((profile) => {
+        if (!profile) return;
+        this.lastLoadedConstructorId = id;
+        this.applyProfileEmission(profile);
+        if (!sideEffectsStarted) {
+          sideEffectsStarted = true;
+          this.runProfileSideEffects(id, profile);
+        }
+      }),
+      catchError(() => {
+        this.profile.set(null);
+        this.loading.set(false);
+        this.careerEnriching.set(false);
+        this.error.set('No se pudo cargar la ficha del equipo.');
+        return EMPTY;
+      }),
+      finalize(() => this.careerEnriching.set(false)),
+      map(() => undefined),
+    );
+  }
+
+  private runProfileSideEffects(id: string, profile: MotogpTeamProfile): void {
+    if (!profile.aggregatesPending) return;
+
+    this.motogp
+      .getTeamProfileAggregates(id)
+      .pipe(
+        tap((agg) => {
+          const cur = this.profile();
+          if (!cur) return;
+          const stillPending = agg.partial === true;
+          const statsSource = stillPending
+            ? cur.statsSource === 'api'
+              ? 'api'
+              : 'live'
+            : 'api';
+          const nextStats = stillPending
+            ? {
+                championships: Math.max(cur.stats.championships, agg.stats.championships ?? 0),
+                totalWins: Math.max(cur.stats.totalWins, agg.stats.totalWins ?? 0),
+                totalPodiums: Math.max(cur.stats.totalPodiums, agg.stats.totalPodiums ?? 0),
+                totalPoles: Math.max(cur.stats.totalPoles, agg.stats.totalPoles ?? 0),
+                championshipYears: cur.stats.championshipYears,
+              }
+            : agg.stats;
+          this.profile.set({
+            ...cur,
+            stats: nextStats,
+            bioText: agg.bioText?.trim() ? agg.bioText : cur.bioText,
+            aggregatesPending: stillPending,
+            aggregatesError: false,
+            statsSource,
+            careerHistoryPagination: cur.careerHistoryPagination
+              ? { ...cur.careerHistoryPagination, maxPts: agg.maxCareerPts ?? cur.careerHistoryPagination.maxPts }
+              : null,
+          });
+        }),
+        catchError(() => {
+          const cur = this.profile();
+          if (cur) {
+            this.profile.set({ ...cur, aggregatesPending: false, aggregatesError: true });
+          }
+          return EMPTY;
         }),
         takeUntilDestroyed(this.destroyRef),
       )
@@ -197,7 +260,7 @@ export class MotogpTeamProfilePageComponent {
     const gen = ++this.careerLoadGen;
     this.careerHistoryLoading.set(true);
     this.motogp
-      .getTeamProfile(id, page)
+      .getTeamProfile(id, page, { liveRefresh: true })
       .pipe(
         catchError(() => EMPTY),
         finalize(() => {
@@ -214,12 +277,17 @@ export class MotogpTeamProfilePageComponent {
       .subscribe((profile) => {
         if (!profile || gen !== this.careerLoadGen) return;
         const prev = this.profile()!;
+        const merged =
+          prev.source === 'db' && isLiveProfileSource(profile.source)
+            ? mergeDbWithLiveTeamProfile(prev, profile)
+            : { ...prev, ...profile };
         this.profile.set({
-          ...prev,
+          ...merged,
           careerHistory: profile.careerHistory,
           careerHistoryPagination: profile.careerHistoryPagination,
           careerHistoryError: profile.careerHistoryError,
         });
+        this.careerEnriching.set(false);
       });
   }
 

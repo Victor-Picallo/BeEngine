@@ -127,11 +127,19 @@ export class Moto3LiveService {
     );
   }
 
-  getTeamProfile(constructorId: string, careerPage = 1): Observable<Moto3TeamProfile> {
+  getTeamProfile(
+    constructorId: string,
+    careerPage = 1,
+    options?: { liveRefresh?: boolean },
+  ): Observable<Moto3TeamProfile> {
     const id = encodeURIComponent(constructorId.trim());
     const p = Math.max(1, careerPage);
     const q = p > 1 ? `?careerPage=${p}` : '';
-    return this.api.getDbThenLive<Moto3TeamProfile>(`${this.prefix}/constructors/${id}/profile${q}`);
+    const path = `${this.prefix}/constructors/${id}/profile${q}`;
+    if (options?.liveRefresh || p > 1) {
+      return this.api.get<Moto3TeamProfile>(path, { liveRefresh: true });
+    }
+    return this.api.getDbThenLive<Moto3TeamProfile>(path);
   }
 
   getTeamProfileAggregates(constructorId: string): Observable<{

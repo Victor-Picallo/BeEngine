@@ -147,11 +147,19 @@ export class MotogpPulseService {
     return this.api.get<MotogpLiveFeedPayload>(`${this.prefix}/live-feed${qs}`);
   }
 
-  getTeamProfile(constructorId: string, careerPage = 1): Observable<MotogpTeamProfile> {
+  getTeamProfile(
+    constructorId: string,
+    careerPage = 1,
+    options?: { liveRefresh?: boolean },
+  ): Observable<MotogpTeamProfile> {
     const id = encodeURIComponent(constructorId.trim());
     const p = Math.max(1, careerPage);
     const q = p > 1 ? `?careerPage=${p}` : '';
-    return this.api.getDbThenLive<MotogpTeamProfile>(`${this.prefix}/constructors/${id}/profile${q}`);
+    const path = `${this.prefix}/constructors/${id}/profile${q}`;
+    if (options?.liveRefresh || p > 1) {
+      return this.api.get<MotogpTeamProfile>(path, { liveRefresh: true });
+    }
+    return this.api.getDbThenLive<MotogpTeamProfile>(path);
   }
 
   getTeamProfileAggregates(constructorId: string): Observable<{

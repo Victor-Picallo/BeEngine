@@ -166,11 +166,19 @@ export class F1LiveService {
     );
   }
 
-  getDriverProfile(driverId: string, careerPage = 1): Observable<JolpikaDriverProfile> {
+  getDriverProfile(
+    driverId: string,
+    careerPage = 1,
+    options?: { liveRefresh?: boolean },
+  ): Observable<JolpikaDriverProfile> {
     const id = encodeURIComponent(driverId.trim());
     const p = Math.max(1, careerPage);
     const q = p > 1 ? `?careerPage=${p}` : '';
-    return this.api.getDbThenLive<JolpikaDriverProfile>(`${this.racingApi()}/drivers/${id}/profile${q}`);
+    const path = `${this.racingApi()}/drivers/${id}/profile${q}`;
+    if (options?.liveRefresh || p > 1) {
+      return this.api.get<JolpikaDriverProfile>(path, { liveRefresh: true });
+    }
+    return this.api.getDbThenLive<JolpikaDriverProfile>(path);
   }
 
   getDriverProfileAggregates(driverId: string): Observable<JolpikaDriverProfileAggregates> {
