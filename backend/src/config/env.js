@@ -95,8 +95,13 @@ export const PREFER_DB_FIRST = envFlag('PREFER_DB_FIRST', DB_ENABLED);
 
 /** Resumen para arranque (sin secretos). */
 export function logRuntimeConfig() {
+  if (NODE_ENV === 'production' && /localhost|127\.0\.0\.1/i.test(FRONTEND_URL)) {
+    console.warn(
+      '\n  ⚠ FRONTEND_URL apunta a localhost en producción. OAuth redirigirá mal: define FRONTEND_URL=https://tu-frontend-publico en Render.\n',
+    );
+  }
   const lines = [
-    `  PORT=${PORT}  NODE_ENV=${NODE_ENV}`,
+    `  PORT=${PORT}  NODE_ENV=${NODE_ENV}  FRONTEND_URL=${FRONTEND_URL}`,
     `  Jolpica F1: ${JOLPICA_F1_ENABLED ? 'on' : 'off'}  → ${JOLPICA_BASE_URL}`,
     `  OpenF1: ${OPENF1_BASE_URL}`,
     `  Pulse Live: ${MOTOGP_PULSELIVE_BASE_URL}`,

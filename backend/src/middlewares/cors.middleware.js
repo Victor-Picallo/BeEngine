@@ -1,16 +1,5 @@
 import cors from 'cors';
-import { FRONTEND_URL, NODE_ENV } from '../config/env.js';
-
-const isAllowedOrigin = (origin) => {
-  if (!origin) return true;
-  if (origin === FRONTEND_URL) return true;
-
-  if (NODE_ENV === 'development') {
-    return /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
-  }
-
-  return false;
-};
+import { isAllowedOrigin } from '../utils/allowedOrigins.js';
 
 export default cors({
   origin(origin, callback) {

@@ -17,8 +17,11 @@ export interface MeProfile {
 
 export interface AuthConfigResponse {
   configured: boolean;
+  serverAuth?: boolean;
   supabaseUrl: string;
   supabaseAnonKey: string;
   oauthRedirectUrl: string;
+  /** URLs que deben estar en Supabase → Authentication → Redirect URLs */
+  supabaseRedirectUrls?: string[];
   hint?: string | null;
 }

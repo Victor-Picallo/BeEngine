@@ -26,6 +26,10 @@ import {
 } from './auth-favorites.utils';
 import type { Favorite } from '../../data/sports.data';
 import { authErrorMessage } from './auth-error.messages';
+import {
+  assertPublicOAuthRedirect,
+  resolveOAuthRedirectBase,
+} from './auth-redirect.util';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -43,6 +47,8 @@ export class AuthService {
   readonly session = signal<Session | null>(null);
   readonly profile = signal<MeProfile | null>(null);
   readonly initError = signal<string | null>(null);
+  /** URL pública del frontend para OAuth (desde /auth/config o window.location). */
+  private oauthRedirectBase: string | null = null;
   /** Tras el primer GET /api/me (o intento fallido). */
   readonly profileSettled = signal(false);
   /** Sesión temporal tras el enlace de “restablecer contraseña”. */
@@ -101,6 +107,24 @@ export class AuthService {
       const ok = Boolean(data.configured && url && anonKey);
 
       this.configured.set(ok);
+      this.oauthRedirectBase = resolveOAuthRedirectBase(data.oauthRedirectUrl, {
+        production: environment.production,
+        appUrl: environment.appUrl,
+      });
+      if (environment.production && !this.oauthRedirectBase) {
+        this.initError.set(
+          data.hint?.trim() ||
+            'OAuth en producción: define FRONTEND_URL en el API (Render) y Site URL en Supabase con la URL pública del frontend, sin localhost.',
+        );
+      } else if (data.hint?.trim()) {
+        console.warn('[auth]', data.hint.trim());
+      }
+      if (data.supabaseRedirectUrls?.length) {
+        console.info(
+          '[auth] Añade en Supabase → Auth → Redirect URLs:',
+          data.supabaseRedirectUrls.join(', '),
+        );
+      }
       if (!ok) {
         this.initError.set(
           data.hint?.trim() ||
@@ -189,8 +213,19 @@ export class AuthService {
     return 'confirm_email';
   }
 
+  private authRedirectTo(path: string): string {
+    const base =
+      this.oauthRedirectBase ??
+      resolveOAuthRedirectBase('', {
+        production: environment.production,
+        appUrl: environment.appUrl,
+      });
+    return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+  }
+
   async resetPassword(email: string): Promise<void> {
-    const redirectTo = `${window.location.origin}/login?tab=new-password`;
+    const redirectTo = this.authRedirectTo('/login?tab=new-password');
+    assertPublicOAuthRedirect(redirectTo, environment.production);
     const { error } = await this.supabase().auth.resetPasswordForEmail(email, {
       redirectTo,
     });
@@ -248,7 +283,8 @@ export class AuthService {
   }
 
   async signInWithGoogle(): Promise<void> {
-    const redirectTo = `${window.location.origin}/login?tab=onboarding`;
+    const redirectTo = this.authRedirectTo('/login?tab=onboarding');
+    assertPublicOAuthRedirect(redirectTo, environment.production);
     const { error } = await this.supabase().auth.signInWithOAuth({
       provider: 'google',
       options: {
