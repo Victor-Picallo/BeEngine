@@ -9,6 +9,22 @@
   --bp-phone-max: 767px;
   --bp-phone-sm-max: 479px;
   --shell-topbar-h: 50px;
+  --shell-sidebar-w: 196px;
+}
+
+/* Escritorio: reserva hueco en el flex aunque el panel sea position:fixed */
+@media (min-width: 1024px) {
+  app-side {
+    display: block;
+    width: var(--shell-sidebar-w);
+    flex: 0 0 var(--shell-sidebar-w);
+    flex-shrink: 0;
+  }
+
+  app-side .shell-sidebar-host {
+    width: var(--shell-sidebar-w);
+    flex: 0 0 var(--shell-sidebar-w);
+  }
 }
 
 /* ── Sin scroll horizontal en móvil/tablet ───────────────────────────────── */
