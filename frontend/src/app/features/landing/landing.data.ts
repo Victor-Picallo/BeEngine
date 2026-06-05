@@ -178,3 +178,44 @@ export const LANDING_ASSIST_DEMO: LandingAssistDemoMessage[] = [
 
 /** Ruta para explorar la app sin registro. */
 export const LANDING_GUEST_ROUTE = '/inicio';
+
+export interface LandingApiSource {
+  name: string;
+  url: string;
+}
+
+export interface LandingApiGroup {
+  title: string;
+  items: LandingApiSource[];
+}
+
+/** Fuentes externas que alimentan BeEngine (enlaces al sitio oficial de cada API). */
+export const LANDING_API_GROUPS: LandingApiGroup[] = [
+  {
+    title: 'Datos deportivos',
+    items: [
+      { name: 'Jolpica (Ergast)', url: 'https://api.jolpi.ca/ergast/f1' },
+      { name: 'OpenF1', url: 'https://openf1.org' },
+      { name: 'FIA Formula 2', url: 'https://www.fiaformula2.com' },
+      { name: 'FIA Formula 3', url: 'https://www.fiaformula3.com' },
+      { name: 'Pulse Live (MotoGP)', url: 'https://www.motogp.com' },
+      { name: 'Open-Meteo', url: 'https://open-meteo.com' },
+    ],
+  },
+  {
+    title: 'Infraestructura',
+    items: [
+      { name: 'Supabase', url: 'https://supabase.com' },
+      { name: 'Groq', url: 'https://groq.com' },
+    ],
+  },
+  {
+    title: 'Noticias (RSS)',
+    items: [
+      { name: 'BBC Sport', url: 'https://www.bbc.co.uk/sport/formula1' },
+      { name: 'Formula 1', url: 'https://www.formula1.com' },
+      { name: 'Motorsport.com', url: 'https://www.motorsport.com' },
+      { name: 'Crash.net', url: 'https://www.crash.net' },
+    ],
+  },
+];

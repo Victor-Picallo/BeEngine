@@ -554,4 +554,34 @@
       </div>
     </div>
   </section>
+
+  <footer class="landing-footer landing-reveal">
+    <div class="landing-footer__inner">
+      <div class="landing-footer__grid">
+        <div class="landing-footer__brand-col">
+          <div class="landing-footer__brand">
+            <span class="landing-footer__mark" aria-hidden="true"></span>
+            <span class="landing-footer__logo">BeEngine</span>
+          </div>
+          <p class="landing-footer__about">
+            Datos reales de F1, F2, F3, MotoGP, Moto2 y Moto3. BeEngine combina estas fuentes con su propio
+            API y base de datos.
+          </p>
+        </div>
+        @for (group of apiGroups; track group.title) {
+          <div>
+            <h3 class="landing-footer__col-title">{{ group.title }}</h3>
+            <nav class="landing-footer__links" [attr.aria-label]="group.title">
+              @for (api of group.items; track api.url) {
+                <a [href]="api.url" target="_blank" rel="noopener noreferrer">{{ api.name }}</a>
+              }
+            </nav>
+          </div>
+        }
+      </div>
+      <div class="landing-footer__bottom">
+        <p class="landing-footer__copy">© {{ currentYear }} BeEngine. Datos de terceros; enlaces a sus sitios oficiales.</p>
+      </div>
+    </div>
+  </footer>
 </div>

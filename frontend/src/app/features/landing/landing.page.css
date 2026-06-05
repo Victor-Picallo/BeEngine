@@ -47,7 +47,8 @@
   .landing-cat-card__link,
   .landing-cat-card,
   .landing-hub__row,
-  .landing-news__card
+  .landing-news__card,
+  .landing-footer__links a
 ) {
   color: inherit;
 }
@@ -1411,15 +1412,17 @@
   gap: 9px;
 }
 
-.landing-footer__links a,
-.landing-footer__links span {
+.landing-footer__links a {
   font-size: 13px;
   color: #999;
   transition: color 0.15s;
+  text-decoration: none;
 }
 
 .landing-footer__links a:hover {
   color: #111;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .landing-footer__bottom {
@@ -1500,7 +1503,8 @@
   .landing-categories,
   .landing-hub,
   .landing-account,
-  .landing-final {
+  .landing-final,
+  .landing-footer {
     padding-left: 16px;
     padding-right: 16px;
   }

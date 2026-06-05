@@ -20,6 +20,7 @@ import type { NewsFeedResponse } from '../news/news.types';
 import {
   LANDING_ACCOUNT_BULLETS,
   LANDING_ASSIST_BULLETS,
+  LANDING_API_GROUPS,
   LANDING_ASSIST_DEMO,
   LANDING_FEATURE_GROUPS,
   LANDING_GUEST_ROUTE,
@@ -58,6 +59,8 @@ export class LandingPageComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly assistBullets = LANDING_ASSIST_BULLETS;
   readonly assistDemo = LANDING_ASSIST_DEMO;
   readonly guestRoute = LANDING_GUEST_ROUTE;
+  readonly apiGroups = LANDING_API_GROUPS;
+  readonly currentYear = new Date().getFullYear();
 
   private readonly cached = readLandingCache();
 
