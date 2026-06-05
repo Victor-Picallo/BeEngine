@@ -1,144 +1,66 @@
 # BeEngine API
 
-REST API para el dashboard de motorsport BeEngine.
-
-## Stack
-
-- **Runtime**: Node.js (ES Modules)
-- **Framework**: Express 5
-- **Seguridad**: Helmet + CORS
-- **Logging**: Morgan
+API REST del backend (Node.js + Express).
 
 ## Arrancar
 
 ```bash
 npm install
-npm start         # producción
-npm run dev       # desarrollo con --watch (Node.js nativo)
+npm run dev      # local
+npm start        # producción
 ```
 
-## Endpoints
-
-| Método | Ruta                       | Descripción                    |
-|--------|----------------------------|--------------------------------|
-| GET    | `/api/health`              | Estado del servidor            |
-| GET    | `/api/categories`          | Lista de categorías            |
-| GET    | `/api/home/:category`      | Datos completos de la home     |
-| GET    | `/api/news/:category`      | Noticias por categoría         |
-| GET    | `/api/calendar/:category`  | Próximas sesiones              |
-| GET    | `/api/f1/jolpica/*`        | F1 — calendario, standings, perfiles |
-| GET    | `/api/f2/jolpica/*`        | F2 — FIA oficial + fallback local |
-| GET    | `/api/f3/jolpica/*`        | F3 — FIA oficial + fallback local |
-| GET    | `/api/motogp/pulselive/*`  | MotoGP — Pulse Live            |
-
-**Categorías válidas**: `f1`, `f2`, `f3`, `motogp`, `moto2`, `moto3`
-
-## Formato de respuesta
-
-```json
-{ "success": true,  "data": { ... } }
-{ "success": false, "error": "mensaje" }
-```
-
-## Estructura
-
-El código de negocio se agrupa **por serie/categoría**. Lo compartido vive en `shared/`.
-
-```
-src/
-├── config/
-├── constants/
-├── controllers/
-│   ├── f1/              jolpica.controller.js, openf1.controller.js
-│   ├── f2/              jolpica.controller.js
-│   ├── f3/              jolpica.controller.js
-│   ├── motogp/          pulselive.controller.js
-│   ├── calendar.controller.js
-│   ├── home.controller.js
-│   ├── news.controller.js
-│   └── …
-├── data/
-│   ├── f1/              mocks y grids F1
-│   ├── f2/
-│   ├── f3/
-│   ├── motogp/
-│   └── shared/          categories, news feeds
-├── external/
-│   ├── jolpica/
-│   ├── openf1/
-│   ├── fia/             cliente HTML (__NEXT_DATA__) F2/F3
-│   └── motogp/
-├── middlewares/
-├── repositories/
-├── routes/              f1.routes.js, f2.routes.js, …
-├── services/
-│   ├── f1/              jolpica, openf1, standings stores, media
-│   ├── f2/
-│   ├── f3/
-│   ├── motogp/          pulseLive + perfiles, equipos, circuitos
-│   └── shared/          calendar, home, news, fiaFeederApi, lastRaceImage
-├── utils/
-├── validators/
-├── app.js
-└── server.js
-```
-
-### Convención al añadir código
-
-- **Solo F1** → `services/f1/`, `controllers/f1/`, `data/f1/`
-- **Solo F2/F3** → carpeta de la serie (mismo patrón que ya tienen)
-- **MotoGP / moto2 / moto3** → `services/motogp/` (Pulse compartido por categoría)
-- **Varias series** → `services/shared/` + `data/shared/`
+Por defecto: `http://localhost:3000`
 
 ## Variables de entorno
 
-Copia `backend/.env.example` → `backend/.env` y ajusta valores. Toda la API lee `src/config/env.js` (no uses `process.env` suelto en servicios).
+Crea `backend/.env`. Lo importante:
 
-```
-PORT=3000
-NODE_ENV=development
-FRONTEND_URL=http://localhost:4200
+| Variable | Para qué |
+|----------|----------|
+| `PORT` | Puerto (3000) |
+| `FRONTEND_URL` | URL del Angular (CORS y OAuth) |
+| `DATABASE_URL` / `DIRECT_URL` | Postgres (Supabase) |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Auth y storage |
+| `GROQ_API_KEY` | Asistente IA (opcional) |
 
-JOLPICA_F1_ENABLED=true
-JOLPICA_BASE_URL=https://api.jolpi.ca/ergast/f1
-OPENF1_BASE_URL=https://api.openf1.org/v1
-EXTERNAL_API_TIMEOUT_MS=8000
+El resto (Jolpica, Pulse, FIA…) tiene valores por defecto en `src/config/env.js`.
 
-MOTOGP_PULSELIVE_BASE_URL=https://api.motogp.pulselive.com/motogp/v1
+## Respuestas
 
-FIA_F2_ENABLED=true
-FIA_F2_BASE_URL=https://www.fiaformula2.com
-FIA_F2_SEASON_ID=183
-
-FIA_F3_ENABLED=true
-FIA_F3_BASE_URL=https://www.fiaformula3.com
-FIA_F3_SEASON_ID=183
-
-# Opcional (Prisma / Supabase)
-# DATABASE_URL=...
-# DIRECT_URL=...
+```json
+{ "success": true, "data": { ... } }
+{ "success": false, "error": "mensaje" }
 ```
 
-Al arrancar el API se imprime un resumen de config (sin contraseñas).
+## Datos
 
-Datos de temporada: **API en vivo primero**, fallback **Postgres** (`source: live | db`). Tras un GP: **`npm run refresh`** (6 series, Storage completo, auditoría 100%). Fin de semana: `npm run refresh:weekend`.
+- **En vivo** cuando hay API externa disponible.
+- **Fallback** a Postgres si falla la red.
+- Tras un GP: `npm run refresh` (sync completo) o `npm run refresh:weekend` (fin de semana).
 
-**Moto (GP / 2 / 3) en directo:** Pulse Live `GET /pulselive/live-feed` (timing + clima + sectores PDF con colores + clasificación provisional + mensajes race control). Misma ruta en `/api/motogp`, `/api/moto2`, `/api/moto3`. Livetiming global solo MotoGP™; Moto2/Moto3 usan resultados + PDF por sesión. Frontend: `/motogp|moto2|moto3/calendario/:gp/:sesión` y `/motogp/live` → hub al GP activo.
+## Base de datos
 
-**Moto / F2 / F3:** Pulse o FIA en vivo; si fallan, lectura desde Supabase (sin mocks de calendario/resultados en runtime).
+```bash
+npm run db:migrate
+npm run db:seed
+npm run db:sync          # sync manual
+npm run refresh          # todo (recomendado post-GP)
+```
 
-**F1:** Jolpica (`JOLPICA_F1_ENABLED`) + fallback DB. Parrilla curada en `data/f1/f1*Grid2026.js` (solo seed de sync).
+Health check: `GET /api/health`
 
-## PostgreSQL (Supabase + Prisma)
+## Estructura (resumen)
 
-1. `DATABASE_URL` (pooler 6543) y `DIRECT_URL` (5432) en `backend/.env`
-2. `npm run db:migrate` — migraciones (CLI usa `DIRECT_URL` vía `prisma.config.ts`)
-3. `npm run db:seed` — series F1–Moto3 + temporadas 2026
-4. Cliente: `src/lib/prisma.js` (`@prisma/adapter-pg` + pooler en runtime)
-5. **Post-GP (todo en uno):** `npm run refresh` — sync 6 series + check `profile_meta` + noticias → circuitos → Storage → auditoría 100% → smoke DB
-6. **Solo fin de semana:** `npm run refresh:weekend`
-7. Comandos sueltos si hace falta: `db:sync`, `storage:upload:*`, `verify:media`, `smoke:db` (ver `package.json`)
-8. **Health:** `GET /api/health` incluye `db.ok` y `lastSync` por serie
-9. Lista de pendientes: `docs/TODO.md`
+```
+src/
+├── routes/        Rutas HTTP
+├── controllers/
+├── services/      f1, f2, f3, motogp, shared
+├── repositories/  Prisma / DB
+└── config/env.js  Variables centralizadas
+```
 
-Variables Storage (opcional): `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET=beengine-media`
+## Documentación del asistente IA
+
+Documentación del asistente IA: [`docs/README.md`](docs/README.md)

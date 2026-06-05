@@ -5,44 +5,27 @@ scope: global
 tags: datos api base de datos sync refresh fuentes
 ---
 
-# Origen y actualización de datos
+# Origen de los datos
 
-BeEngine muestra datos desde un **API backend** (`/api/...`) que combina:
+El API (`/api/...`) mezcla **Postgres (Supabase)** y **APIs externas**.
 
-- **PostgreSQL (Supabase)** — calendarios, standings, perfiles enriquecidos, noticias, medios (URLs de imágenes en Storage).
-- **APIs externas en vivo o bajo demanda** — según categoría y configuración del servidor.
+| Serie | Fuente |
+|-------|--------|
+| F1 | Jolpica + OpenF1 (live) |
+| F2 / F3 | FIA + DB |
+| MotoGP / 2 / 3 | Pulse Live + DB |
 
-## Fuentes por categoría (resumen)
+## Actualización
 
-| Serie | Fuente principal | Notas |
-|-------|------------------|--------|
-| F1 | Jolpica/Ergast + OpenF1 | Live timing OpenF1; perfiles enriquecidos en DB |
-| F2 / F3 | FIA (web oficial) + DB | Calendario/resultados; fallback si falla red |
-| MotoGP | Pulse Live + DB | Live en fin de semana; sync a DB |
-| Moto2 / Moto3 | Pulse Live + DB | Similar a MotoGP sin página live dedicada en app |
+La app no sincroniza sola. Tras un GP, en el servidor:
 
-## Badge «Datos en caché»
+- `npm run refresh` — sync completo
+- `npm run refresh:weekend` — solo fin de semana
 
-En la home puede aparecer un indicador de si los datos vienen de caché/DB o de fuente en vivo. No significa que estén desactualizados necesariamente.
+Imágenes y logos: **Supabase Storage** (`beengine-media`).
 
-## Actualización (equipo / servidor)
+## En el asistente
 
-Tras cada Gran Premio el mantenedor suele ejecutar en el backend:
-
-- `npm run refresh` — sync completo F1+F2+F3+Moto + medios.
-- `npm run refresh:weekend` — solo standings y resultados recientes.
-
-La app **no** actualiza sola la base de datos; depende de esos procesos.
-
-## Medios (fotos, logos, circuitos)
-
-- URLs públicas desde **Supabase Storage** (bucket `beengine-media`).
-- El frontend **no** usa carpetas locales de equipos; todo viene del API.
-
-## Datos en el asistente de ayuda
-
-- **Documentación** (snapshots / guía `beengine-completo`): cómo usar la app.
-- **Datos deportivos actuales** (automático por pregunta): líderes, equipos, próxima y última carrera desde la misma DB/API que la app. Si preguntan por **todas las categorías** o desde scope global sin serie concreta, se inyecta resumen de F1, F2, F3, MotoGP, Moto2 y Moto3.
-- **Noticias** (automático si preguntan por noticias/titulares): últimos titulares RSS/BD por categoría.
-- **Búsqueda de piloto** por nombre en las clasificaciones cuando el mensaje parece referirse a un piloto concreto.
-- **No** incluye timing vuelta a vuelta en directo; eso está en `/f1/live` y `/motogp/live`.
+- Guía de uso → snapshots de documentación.
+- Datos deportivos y noticias → inyectados automáticamente al preguntar.
+- Live timing → no; solo en las páginas de directo.

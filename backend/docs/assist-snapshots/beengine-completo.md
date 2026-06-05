@@ -15,79 +15,51 @@ Para clasificación actual, líder del mundial o próxima carrera, el asistente 
 
 ## Asistente de ayuda
 
-## Dónde está
+Botón flotante **abajo a la derecha** (chat amarillo). Visible en todas las páginas excepto `/login`.
 
-Botón flotante **abajo a la derecha** (icono de chat amarillo). Visible en todas las páginas excepto `/login`.
+## Qué responde
 
-## Qué hace
+- Cómo usar BeEngine: rutas, secciones, cuenta, live.
+- Clasificación, líder, próxima/última carrera (datos actuales de la misma DB/API que la app).
+- Noticias recientes si preguntas por titulares.
 
-- Responde preguntas sobre **cómo usar BeEngine**: rutas, secciones, cuenta, live, datos.
-- Usa documentación interna (snapshots) cargada en el servidor, **no** resultados en vivo de la pista.
-- El contexto se adapta a la sección en la que estás (F1, MotoGP, etc.) para priorizar documentos de esa serie.
+## Qué no hace
 
-## Cómo preguntar
+- Timing vuelta a vuelta → usa `/f1/live` o `/motogp/live`.
+- Necesita `GROQ_API_KEY` y base de datos en el servidor.
 
-Ejemplos útiles:
+## Ejemplos
 
 - «¿Cómo veo el calendario de MotoGP?»
 - «¿Dónde está el live de F1?»
 - «¿Cómo guardo un piloto favorito?»
-- «¿De dónde salen los datos?»
-
-## Datos deportivos (clasificación, líder, calendario)
-
-Para preguntas como «¿quién va primero en F1?», «clasificación», «próxima carrera» o «última carrera», el servidor **inyecta datos actuales** desde la misma base de datos / APIs que usa la app (bloque «DATOS ACTUALES BEENGINE»). No hace falta subir eso como snapshot manual.
-
-## Límites
-
-- El timing vuelta a vuelta en directo sigue en `/f1/live` o `/motogp/live`, no en el chat.
-- Si el servidor no tiene `GROQ_API_KEY` o base de datos, dirá que no está disponible.
-- Límite de preguntas por minuto (rate limit) para evitar abuso.
-
-## Fuentes en la respuesta
-
-A veces verás «Basado en: …» con el título de los documentos usados.
-
-## Mantenimiento (equipo técnico)
-
-Los textos se suben a la tabla `assist_knowledge_snapshots` con `npm run assist:snapshot:seed` desde archivos en `backend/docs/assist-snapshots/`.
 
 ---
 
-## BeEngine — visión general
+## BeEngine
 
-BeEngine es una **plataforma web de motor** que unifica seis categorías en una sola interfaz:
+Plataforma web de motor con seis categorías:
 
-| Serie | URL raíz | Color marca |
-|-------|----------|-------------|
-| Formula 1 | `/` (inicio) y `/f1/...` | Amarillo #FFD100 |
-| Formula 2 | `/f2` | Azul #0090FF |
-| Formula 3 | `/f3` | Gris #9E9E9E |
-| MotoGP | `/motogp` | Azul #0052CC |
-| Moto2 | `/moto2` | Naranja #FF6B35 |
-| Moto3 | `/moto3` | Verde #52C41A |
+| Serie | URL | Color |
+|-------|-----|-------|
+| F1 | `/`, `/f1/...` | #FFD100 |
+| F2 | `/f2` | #0090FF |
+| F3 | `/f3` | #9E9E9E |
+| MotoGP | `/motogp` | #0052CC |
+| Moto2 | `/moto2` | #FF6B35 |
+| Moto3 | `/moto3` | #52C41A |
 
-## Qué puedes hacer
+## Funciones
 
-- Ver **inicio** de cada categoría: próxima carrera, countdown, última carrera, podio, clasificación resumida, noticias.
-- Consultar **calendario**, **clasificación** (pilotos y equipos/escuderías), **listado de pilotos** y **fichas detalladas**.
-- Leer **noticias** (F1 y categorías moto según disponibilidad en base de datos).
-- Seguir **timing en directo** donde esté disponible: F1 (`/f1/live`) y MotoGP (hub `/motogp/live` y sesiones desde calendario).
-- **Cuenta de usuario**: registro, login con email o Google, favoritos en la barra lateral.
+Inicio, calendario, clasificación, pilotos, equipos/escuderías, noticias, live (F1 y MotoGP), cuenta con favoritos.
 
-## Interfaz común
+## UI
 
-- **Barra superior (topbar)**: cambia de categoría (F1, F2, F3, MotoGP, Moto2, Moto3).
-- **Barra lateral (sidebar)**: secciones (Inicio, Noticias, Calendario, Pilotos, Escuderías/Equipos, Clasificación) y bloque «Tus favoritos» si has iniciado sesión.
-- **Asistente de ayuda**: botón flotante abajo a la derecha (icono de chat). Responde según la documentación cargada; no inventa resultados en vivo no documentados.
+- **Topbar**: cambiar categoría.
+- **Sidebar**: secciones + favoritos (si hay sesión).
+- **Asistente**: chat abajo a la derecha.
 
-## Temporada
-
-La interfaz muestra **Temporada 2026** en la home. Los datos dependen de la sincronización del servidor (ver snapshot «Datos y actualización»).
-
-## URLs antiguas (redirecciones)
-
-Rutas sin prefijo `/f1` redirigen automáticamente: `/pilotos` → `/f1/pilotos`, `/calendario` → `/f1/calendario`, etc.
+Temporada mostrada: **2026**. Rutas antiguas (`/pilotos`, `/calendario`…) redirigen a `/f1/...`.
 
 ---
 
@@ -95,481 +67,251 @@ Rutas sin prefijo `/f1` redirigen automáticamente: `/pilotos` → `/f1/pilotos`
 
 ## Calendario
 
-Ruta: `/{serie}/calendario`
+`/{serie}/calendario` — lista de GPs. Cada uno enlaza a sesiones o resultados:
 
-- Lista de rondas / Grandes Premios del campeonato.
-- Cada evento enlaza a resultados o sesiones según la serie:
-  - **F1**: sesiones FP1–FP3, clasificación, carrera (`/f1/calendario/:race/:session`).
-  - **F2/F3/Moto**: misma idea con página feeder de resultados.
-  - **MotoGP**: sesiones pueden abrir live feed.
-
-Los circuitos pueden mostrar trazado SVG o imagen si están enriquecidos en la base de datos.
+- **F1**: `/f1/calendario/:gp/:session` (fp1, qualifying, race…)
+- **F2/F3/Moto**: resultados por sesión
+- **MotoGP**: puede abrir live
 
 ## Clasificación
 
-Ruta: `/{serie}/clasificacion`
+`/{serie}/clasificacion` — puntos de pilotos y equipos/constructores.
 
-- **Campeonato de pilotos**: posición, puntos, victorias.
-- **Campeonato de equipos/constructores**: paralelo en la misma página o pestañas según el diseño de la serie.
+## Dónde ver la próxima carrera
 
-Los puntos se actualizan cuando el backend sincroniza resultados tras cada carrera.
-
-## API
-
-- Calendario: rutas `jolpica/calendar` (fórmula) o `pulselive/...` (moto) bajo `/api/{serie}/`.
-- Standings: `driver-standings`, `constructor-standings`.
-
-## Consulta habitual
-
-«¿Cuándo es la próxima carrera?» → mirar **Inicio** (countdown) o **Calendario** de la categoría elegida en el topbar.
+Home (countdown) o calendario de la serie activa en el topbar.
 
 ---
 
-## Cuenta de usuario
+## Cuenta
 
-## Acceso
+## Login y registro
 
-- **Iniciar sesión / Crear cuenta**: `/login` (alias `/registro` → registro).
-- **Email y contraseña**: mínimo 8 caracteres en registro.
-- **Google**: botón Google en login; primera vez redirige a **Completar tu perfil** (categoría + piloto favoritos).
-- **Recuperar contraseña**: en login → «¿Olvidaste la contraseña?» → email con enlace → `/login?tab=new-password`.
-
-## Registro
-
-1. Nombre, email, contraseña.
-2. Elegir **categoría favorita** (F1, F2, F3, MotoGP, Moto2, Moto3).
-3. Elegir **piloto favorito** de esa categoría (lista cargada desde el API).
-4. Si Supabase exige confirmar email, los favoritos se guardan al primer login tras confirmar.
+- `/login` — email/contraseña o **Google**
+- Google (primera vez): onboarding con categoría y piloto favoritos
+- Recuperar contraseña: enlace por email → `/login?tab=new-password`
 
 ## Favoritos
 
-- Se guardan en el servidor (perfil de usuario).
-- Aparecen en la sidebar como «Tus favoritos» con enlace a la home de la categoría o a la ficha del piloto.
-- Tras login con Google sin favoritos previos, la app pide completar onboarding.
+Categoría + piloto elegidos en registro. Aparecen en la sidebar. Requieren sesión.
 
 ## Cerrar sesión
 
-Botón al pie del sidebar cuando hay sesión activa.
+Botón al pie del sidebar.
 
-## Limitaciones
-
-- No hay pantalla pública «editar perfil» para cambiar favoritos después del registro (solo vía nuevo bootstrap interno).
-- El asistente de ayuda y el resto de la app funcionan **sin** cuenta; la cuenta personaliza favoritos y nombre mostrado.
+La app funciona sin cuenta; la cuenta solo personaliza favoritos y nombre.
 
 ---
 
-## Origen y actualización de datos
+## Origen de los datos
 
-BeEngine muestra datos desde un **API backend** (`/api/...`) que combina:
+El API (`/api/...`) mezcla **Postgres (Supabase)** y **APIs externas**.
 
-- **PostgreSQL (Supabase)** — calendarios, standings, perfiles enriquecidos, noticias, medios (URLs de imágenes en Storage).
-- **APIs externas en vivo o bajo demanda** — según categoría y configuración del servidor.
+| Serie | Fuente |
+|-------|--------|
+| F1 | Jolpica + OpenF1 (live) |
+| F2 / F3 | FIA + DB |
+| MotoGP / 2 / 3 | Pulse Live + DB |
 
-## Fuentes por categoría (resumen)
+## Actualización
 
-| Serie | Fuente principal | Notas |
-|-------|------------------|--------|
-| F1 | Jolpica/Ergast + OpenF1 | Live timing OpenF1; perfiles enriquecidos en DB |
-| F2 / F3 | FIA (web oficial) + DB | Calendario/resultados; fallback si falla red |
-| MotoGP | Pulse Live + DB | Live en fin de semana; sync a DB |
-| Moto2 / Moto3 | Pulse Live + DB | Similar a MotoGP sin página live dedicada en app |
+La app no sincroniza sola. Tras un GP, en el servidor:
 
-## Badge «Datos en caché»
+- `npm run refresh` — sync completo
+- `npm run refresh:weekend` — solo fin de semana
 
-En la home puede aparecer un indicador de si los datos vienen de caché/DB o de fuente en vivo. No significa que estén desactualizados necesariamente.
+Imágenes y logos: **Supabase Storage** (`beengine-media`).
 
-## Actualización (equipo / servidor)
+## En el asistente
 
-Tras cada Gran Premio el mantenedor suele ejecutar en el backend:
-
-- `npm run refresh` — sync completo F1+F2+F3+Moto + medios.
-- `npm run refresh:weekend` — solo standings y resultados recientes.
-
-La app **no** actualiza sola la base de datos; depende de esos procesos.
-
-## Medios (fotos, logos, circuitos)
-
-- URLs públicas desde **Supabase Storage** (bucket `beengine-media`).
-- El frontend **no** usa carpetas locales de equipos; todo viene del API.
-
-## Datos en el asistente de ayuda
-
-- **Documentación** (snapshots / guía `beengine-completo`): cómo usar la app.
-- **Datos deportivos actuales** (automático por pregunta): líderes, equipos, próxima y última carrera desde la misma DB/API que la app. Si preguntan por **todas las categorías** o desde scope global sin serie concreta, se inyecta resumen de F1, F2, F3, MotoGP, Moto2 y Moto3.
-- **Noticias** (automático si preguntan por noticias/titulares): últimos titulares RSS/BD por categoría.
-- **Búsqueda de piloto** por nombre en las clasificaciones cuando el mensaje parece referirse a un piloto concreto.
-- **No** incluye timing vuelta a vuelta en directo; eso está en `/f1/live` y `/motogp/live`.
+- Guía de uso → snapshots de documentación.
+- Datos deportivos y noticias → inyectados automáticamente al preguntar.
+- Live timing → no; solo en las páginas de directo.
 
 ---
 
-## Cómo navegar en BeEngine
+## Navegación
 
-## Barra superior (topbar)
+## Topbar
 
-- Muestra el logo y enlaces a cada **categoría**: F1, F2, F3, MotoGP, Moto2, Moto3.
-- Al pulsar una categoría, cambias el contexto de toda la app a esa serie.
-- El enlace «home» de la categoría lleva a `/` para F1 o a `/f2`, `/f3`, `/motogp`, etc. para el resto.
+Logo + selector de categoría (F1, F2, F3, MotoGP, Moto2, Moto3). El home de cada una: `/` (F1) o `/f2`, `/motogp`, etc.
 
-## Barra lateral (sidebar)
+## Sidebar
 
-Secciones habituales (pueden variar ligeramente en moto: «Equipos» en lugar de «Escuderías»):
+| Sección | Qué es |
+|---------|--------|
+| Inicio | Home de la serie |
+| Noticias | Artículos |
+| Calendario | Rondas / GPs |
+| Pilotos | Listado y fichas |
+| Escuderías / Equipos | Constructores (moto: «Equipos») |
+| Clasificación | Pilotos y equipos |
 
-| Sección | Descripción |
-|---------|-------------|
-| **Inicio** | Home de la categoría activa |
-| **Noticias** | Listado de artículos |
-| **Calendario** | Grandes Premios / rondas del campeonato |
-| **Pilotos** | Grid o listado; clic abre ficha |
-| **Escuderías / Equipos** | Constructores o equipos |
-| **Clasificación** | Campeonato de pilotos y equipos |
+Con sesión: **Tus favoritos** (categoría + piloto) y **Cerrar sesión** abajo.
 
-## Bloque «Tus favoritos» (con sesión)
+## Banner EN VIVO
 
-Si has iniciado sesión (`/login`):
-
-- Verás hasta dos accesos rápidos: **categoría favorita** y **piloto favorito** elegidos en el registro u onboarding Google.
-- Si no hay sesión, el bloque invita a «Iniciar sesión».
-
-## Bloque «Conectado como»
-
-Al final del sidebar: nombre de usuario y botón **Cerrar sesión**.
-
-## Banner «EN VIVO»
-
-En la home, si hay sesión en directo, aparece un banner amarillo/acento con enlace **Ver Live** (F1 o MotoGP según la serie).
+En la home, si hay sesión activa, banner con enlace al live de la serie.
 
 ---
 
 ## Live timing
 
-Solo **Formula 1** y **MotoGP** tienen experiencia live dedicada en la app.
+Solo **F1** y **MotoGP** tienen directo en la app.
+
+| Serie | Ruta |
+|-------|------|
+| F1 | `/f1/live` (OpenF1) |
+| MotoGP | `/motogp/live` y `/motogp/calendario/:gp/:session` |
+
+F2, F3, Moto2 y Moto3: resultados en el **calendario**, no timing continuo.
+
+Fuera de horario las páginas live pueden estar vacías; no es error de login.
+
+---
 
 ## Formula 1
 
-- **Ruta**: `/f1/live`
-- Datos en tiempo real vía **OpenF1** cuando hay sesión.
-- Desde la home, el banner «EN VIVO» enlaza aquí.
-- Muestra tiempos de vuelta, posiciones, etc., según disponibilidad de la API externa.
-
-## MotoGP
-
-- **Hub**: `/motogp/live` — entrada al fin de semana.
-- **Por GP y sesión**: `/motogp/calendario/:race/:session` — feed live de Pulse Live (FP1, FP2, FP3, Q1, Q2, Sprint, Race… según el evento).
-- Home MotoGP puede enlazar al live cuando hay sesión activa.
-
-## F2, F3, Moto2, Moto3
-
-**No** tienen página `/live` global. Los resultados se consultan en el **calendario** → evento → sesión (vista de resultados, no timing continuo tipo F1).
-
-## Fuera de horario
-
-Si no hay sesión en curso, las páginas live pueden estar vacías o mostrar estado inactivo; no es un error de login.
-
----
-
-## Formula 1 en BeEngine
-
-F1 es la categoría por defecto. El inicio global es `/` (misma home que F1).
-
-## Rutas principales
+Categoría por defecto. Inicio: `/` o `/f1`.
 
 | Sección | Ruta |
 |---------|------|
-| Inicio | `/` o `/f1` |
 | Calendario | `/f1/calendario` |
 | Clasificación | `/f1/clasificacion` |
 | Pilotos | `/f1/pilotos` |
-| Ficha piloto | `/f1/pilotos/:driverId` |
+| Piloto | `/f1/pilotos/:id` |
 | Escuderías | `/f1/escuderias` |
-| Ficha escudería | `/f1/escuderias/:constructorId` |
-| Noticias | `/f1/noticias` o `/noticias` |
-| Artículo | `/f1/noticias/:articleId` o `/noticias/:articleId` |
-| **Live timing** | `/f1/live` |
+| Noticias | `/f1/noticias` |
+| **Live** | `/f1/live` |
 
-## Calendario y sesiones de un GP
-
-- Desde el calendario se entra a un Gran Premio.
-- Ruta de sesión: `/f1/calendario/:race/:session` (ej. `fp1`, `fp2`, `fp3`, `qualifying`, `race`).
-- `/f1/calendario/:race` redirige a la primera sesión (fp1).
-
-## Home F1
-
-Muestra: progreso de temporada, próxima carrera con countdown, última carrera y podio, tabla de clasificación de pilotos resumida, noticias recientes.
-
-## Perfiles
-
-- **Piloto**: estadísticas, trayectoria, foto desde API.
-- **Escudería**: plantilla, resultados, branding.
-
-## Live
-
-`/f1/live` — timing en directo cuando hay sesión activa (OpenF1). Si no hay sesión, la página puede estar vacía o informativa.
-
-## Compatibilidad URLs antiguas
-
-`/pilotos`, `/calendario`, `/escuderias`, `/clasificacion` → redirigen a rutas bajo `/f1/`.
+Sesión de GP: `/f1/calendario/:gp/:session`. URLs cortas (`/pilotos`, `/calendario`…) redirigen a `/f1/...`.
 
 ---
 
-## Formula 2 en BeEngine
+## Formula 2
 
-URL raíz: **`/f2`**
-
-Misma estructura de menú que F1 (Inicio, Noticias, Calendario, Pilotos, Escuderías, Clasificación).
-
-## Rutas
+Inicio: `/f2`. Misma estructura que F1, sin página live.
 
 | Sección | Ruta |
 |---------|------|
-| Inicio | `/f2` |
 | Calendario | `/f2/calendario` |
 | Clasificación | `/f2/clasificacion` |
 | Pilotos | `/f2/pilotos` |
-| Ficha piloto | `/f2/pilotos/:driverId` |
 | Escuderías | `/f2/escuderias` |
-| Ficha escudería | `/f2/escuderias/:constructorId` |
 | Noticias | `/f2/noticias` |
-| **Resultados por sesión** | `/f2/calendario/:race/:session` |
 
-## Sesiones de carrera (feeder)
-
-Al abrir un evento del calendario F2, ves resultados por sesión (entrenamientos, clasificación, carrera sprint/feature según el fin de semana). UI tipo «feeder race», no la misma que F1 live timing.
-
-## Diferencias con F1
-
-- **No** hay `/f2/live` de timing OpenF1.
-- Perfiles de piloto más básicos que F1.
-- Datos sincronizados desde FIA + base de datos del proyecto.
-
-## Cambiar desde otra categoría
-
-Usa el topbar o el selector de categorías en el sidebar y elige **F2**.
+Datos: FIA + base de datos.
 
 ---
 
-## Formula 3 en BeEngine
+## Formula 3
 
-URL raíz: **`/f3`**
-
-Estructura idéntica a F2.
-
-## Rutas
+Inicio: `/f3`. Igual que F2 (sin live).
 
 | Sección | Ruta |
 |---------|------|
-| Inicio | `/f3` |
 | Calendario | `/f3/calendario` |
 | Clasificación | `/f3/clasificacion` |
 | Pilotos | `/f3/pilotos` |
-| Ficha piloto | `/f3/pilotos/:driverId` |
 | Escuderías | `/f3/escuderias` |
-| Ficha escudería | `/f3/escuderias/:constructorId` |
 | Noticias | `/f3/noticias` |
-| Resultados sesión | `/f3/calendario/:race/:session` |
 
-## Funcionalidad
-
-- Home con próxima carrera, clasificación y noticias de F3.
-- Calendario con acceso a resultados por sesión (página feeder).
-- Sin página de live timing dedicada.
-
-## Datos
-
-Fuente principal: **FIA Formula 3** (oficial) con respaldo en PostgreSQL tras sync del backend.
+Datos: FIA + base de datos.
 
 ---
 
-## Moto2 en BeEngine
+## Moto2
 
-URL raíz: **`/moto2`**
-
-## Rutas
+Inicio: `/moto2`. Como MotoGP pero **sin** página live central.
 
 | Sección | Ruta |
 |---------|------|
-| Inicio | `/moto2` |
 | Calendario | `/moto2/calendario` |
 | Clasificación | `/moto2/clasificacion` |
 | Pilotos | `/moto2/pilotos` |
-| Ficha piloto | `/moto2/pilotos/:driverId` |
-| Equipos | `/moto2/escuderias` |
-| Ficha equipo | `/moto2/escuderias/:constructorId` |
+| Equipos | `/moto2/equipos` |
 | Noticias | `/moto2/noticias` |
-| Resultados sesión | `/moto2/calendario/:race/:session` |
 
-## Diferencias con MotoGP
-
-- **No** hay página `/moto2/live` centralizada como MotoGP.
-- Resultados por sesión desde el calendario (feeder race UI).
-- Perfiles de piloto y equipo completos (fotos desde API/Storage).
-
-## Navegación
-
-Selector de categoría en topbar → **Moto2**, o sidebar si ya estás en el árbol moto.
+Resultados por sesión desde el calendario.
 
 ---
 
-## Moto3 en BeEngine
+## Moto3
 
-URL raíz: **`/moto3`**
-
-## Rutas
+Inicio: `/moto3`. Igual que Moto2 (sin live hub).
 
 | Sección | Ruta |
 |---------|------|
-| Inicio | `/moto3` |
 | Calendario | `/moto3/calendario` |
 | Clasificación | `/moto3/clasificacion` |
 | Pilotos | `/moto3/pilotos` |
-| Ficha piloto | `/moto3/pilotos/:driverId` |
-| Equipos | `/moto3/escuderias` |
-| Ficha equipo | `/moto3/escuderias/:constructorId` |
+| Equipos | `/moto3/equipos` |
 | Noticias | `/moto3/noticias` |
-| Resultados sesión | `/moto3/calendario/:race/:session` |
 
-## Funcionalidad
-
-Igual patrón que Moto2: home, calendario, clasificaciones duales (pilotos y equipos), noticias, fichas.
-
-## Datos
-
-Pulse Live + base de datos; sincronización con los comandos `refresh` del backend (bloque moto).
+Datos: Pulse Live + DB.
 
 ---
 
-## MotoGP en BeEngine
+## MotoGP
 
-URL raíz: **`/motogp`**
-
-En el menú lateral la sección de constructores se llama **Equipos** (misma ruta `/motogp/escuderias`).
-
-## Rutas
+Inicio: `/motogp`.
 
 | Sección | Ruta |
 |---------|------|
-| Inicio | `/motogp` |
 | Calendario | `/motogp/calendario` |
 | Clasificación | `/motogp/clasificacion` |
 | Pilotos | `/motogp/pilotos` |
-| Ficha piloto | `/motogp/pilotos/:driverId` |
-| Equipos | `/motogp/escuderias` |
-| Ficha equipo | `/motogp/escuderias/:constructorId` |
+| Equipos | `/motogp/equipos` |
 | Noticias | `/motogp/noticias` |
 | **Live hub** | `/motogp/live` |
-| **Live sesión GP** | `/motogp/calendario/:race/:session` |
 
-## Live MotoGP
-
-- **`/motogp/live`**: punto de entrada al live del fin de semana.
-- Desde el **calendario**, al elegir un GP y sesión (FP, Q, Sprint, Race…), se abre la página de live feed con tiempos y contexto de circuito.
-
-## Home MotoGP
-
-Similar a F1: countdown, última carrera, clasificación, noticias; puede mostrar banner EN VIVO con enlace al live.
-
-## Datos
-
-**Pulse Live** (API oficial MotoGP) en fin de semana; resto desde PostgreSQL tras sincronización.
-
-## Moto2 y Moto3
-
-Categorías hermanas con rutas `/moto2` y `/moto3`. El asistente incluye documentación específica; en consultas de Moto2/Moto3 también se usa contexto MotoGP cuando aplica.
+Sesiones en vivo desde calendario o hub live. Datos: Pulse Live + DB.
 
 ---
 
-## Noticias en BeEngine
+## Noticias
 
-## Acceso
+Listado: `/{serie}/noticias` (F1 también `/noticias`).
 
-- Por categoría: `/f1/noticias`, `/f2/noticias`, … `/motogp/noticias`, etc.
-- Ruta global F1 también: `/noticias` y `/noticias/:articleId` (redirige o sirve F1 según implementación).
+Detalle: `/{serie}/noticias/:id`
 
-## Listado
+Artículos en Postgres (RSS sincronizado). Si no hay noticias, puede faltar sync en el servidor (`npm run db:sync:news`).
 
-- Tarjetas con imagen, título, fecha, tags si existen.
-- Filtro por categoría vía query `?cat=` en algunas vistas moto/noticias cruzadas.
-
-## Detalle
-
-- Ruta tipo `/f1/noticias/:articleId` — cuerpo del artículo, imagen destacada.
-- Los artículos viven en PostgreSQL (`news_articles`), sincronizados para **F1 y MotoGP** (según configuración del proyecto).
-
-## Si no hay noticias
-
-Puede deberse a que el sync de noticias no se ha ejecutado (`npm run db:sync:news` en el servidor) o no hay artículos para esa categoría.
-
-## API
-
-- `GET /api/news/:category` — listado.
-- `GET /api/news/article/:articleId` — detalle.
+API: `GET /api/news/feed/:category`
 
 ---
 
-## Pantalla de inicio
+## Home
 
-Cada categoría tiene una **home** al pulsar «Inicio» en el sidebar:
+Cada serie tiene su inicio: `/` (F1), `/f2`, `/f3`, `/motogp`, `/moto2`, `/moto3`.
 
-- F1: `/` o `/f1`
-- F2: `/f2`, F3: `/f3`, MotoGP: `/motogp`, etc.
+## Qué muestra
 
-## Elementos habituales
+- Progreso de temporada 2026
+- Próxima carrera + cuenta atrás
+- Última carrera y podio
+- Top de clasificación
+- Noticias recientes
+- Banner EN VIVO si aplica
 
-1. **Cabecera** — nombre de la categoría, badge «Temporada 2026», indicador de fuente de datos.
-2. **Progreso de temporada** — rondas completadas vs total (barra y puntos).
-3. **Próxima carrera** — nombre del GP, circuito, fecha, cuenta atrás (días/horas/minutos).
-4. **Última carrera** — resultado resumido, podio (P1–P3).
-5. **Clasificación** — top pilotos del campeonato con enlace a clasificación completa.
-6. **Noticias** — últimos titulares con enlace a la sección Noticias.
-
-## Banner en vivo
-
-Si hay sesión activa según el API, banner **EN VIVO** con enlace a Live (F1 o MotoGP).
-
-## Carga y errores
-
-- Mientras carga: mensaje «Cargando datos…».
-- Si falla el API: mensaje de error en la zona principal.
-- Los datos vienen de `GET /api/home/:category` (category = f1, f2, f3, motogp, moto2, moto3).
-
-## Cambiar de categoría
-
-Desde el topbar sin perder el concepto de «inicio»: cada serie tiene su propia home independiente.
+Datos: `GET /api/home/:category`. Cambia de serie desde el topbar.
 
 ---
 
-## Fichas de pilotos y equipos
+## Perfiles
 
 ## Pilotos
 
-- Listado: `/{serie}/pilotos` (ej. `/f1/pilotos`).
-- Ficha: `/{serie}/pilotos/:driverId` — el `driverId` es el identificador del API (no siempre el nombre visible).
+- Listado: `/{serie}/pilotos`
+- Ficha: `/{serie}/pilotos/:driverId`
 
-Contenido típico:
+Foto, stats, trayectoria (más completo en F1 y MotoGP).
 
-- Nombre, número, nacionalidad, equipo actual.
-- Foto (headshot) desde URL del API / Supabase Storage.
-- Estadísticas de temporada y, en F1/MotoGP, secciones más ricas (trayectoria, agregados).
-
-**F1 y MotoGP**: perfiles «completos». **F2/F3**: perfiles más básicos.
-
-## Escuderías / equipos
+## Equipos / escuderías
 
 - Listado: `/{serie}/escuderias`
-- Ficha: `/{serie}/escuderias/:constructorId`
+- Ficha: `/{serie}/escuderias/:id`
 
-Incluye branding (color), plantilla de pilotos, resultados por carrera en algunas series.
+En moto el menú dice **Equipos** pero la URL es `/escuderias`.
 
-## Moto: «Equipos» en el menú
-
-En MotoGP, Moto2 y Moto3 el sidebar dice **Equipos** pero la URL sigue siendo `/escuderias`.
-
-## Cómo llegar desde favoritos
-
-Si tienes piloto favorito en la sidebar, un clic te lleva directamente a su ficha (en F1: `/f1/pilotos/:id`).
-
-## API (ejemplos F1)
-
-- `GET /api/f1/jolpica/drivers/:driverId/profile`
-- `GET /api/f1/jolpica/constructors/:constructorId/profile`
-
-Otras series tienen rutas análogas bajo `/api/f2`, `/api/f3`, `/api/motogp`, etc.
+Los favoritos del sidebar enlazan a la ficha del piloto.
