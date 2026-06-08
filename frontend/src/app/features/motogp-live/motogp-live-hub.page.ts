@@ -1,30 +1,29 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   inject,
   OnInit,
   signal,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, forkJoin, of } from 'rxjs';
 import { MotogpPulseService } from '../motogp/motogp-pulse.service';
-import { slugifyRace } from '../race/race-slug';
-import { pulseLiveSessionKeyFromShort } from './motogp-live-session-key';
+import { resolveMotogpLiveRoute } from './motogp-live-route.util';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 
-/**
- * Entrada “MotoGP Live”: lleva al GP y sesión activos (livetiming o próxima carrera).
- */
+/** Entrada `/motogp/live` → sesión Pulse Live activa en el calendario. */
 @Component({
   selector: 'app-motogp-live-hub-page',
   standalone: true,
-  imports: [AppHeaderComponent],
+  imports: [AppHeaderComponent, RouterLink],
   template: `
     <app-header></app-header>
     <div class="motogp-live-hub">
       @if (error()) {
         <p>{{ error() }}</p>
-        <a href="/motogp/calendario">Ir al calendario</a>
+        <a routerLink="/motogp/calendario">Ir al calendario</a>
       } @else {
         <p>Conectando con la sesión en directo…</p>
       }
@@ -36,53 +35,37 @@ import { AppHeaderComponent } from '../../shared/components/app-header/app-heade
       text-align: center;
       color: #444;
     }
+    .motogp-live-hub a {
+      color: #0052cc;
+      font-weight: 600;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MotogpLiveHubPageComponent implements OnInit {
   private readonly motogp = inject(MotogpPulseService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   error = signal<string | null>(null);
 
   ngOnInit(): void {
     forkJoin({
-      cal: this.motogp.getCalendar(),
+      cal: this.motogp.getCalendar().pipe(catchError(() => of([]))),
       live: this.motogp.getLiveTiming().pipe(
         catchError(() =>
           of({ active: false, categoryId: 'motogp', head: null, riders: [] }),
         ),
       ),
-    }).subscribe({
-      next: ({ cal, live }) => {
-        let round = cal.length;
-        let sessionKey = 'race';
-
-        if (live.active && live.head) {
-          sessionKey = pulseLiveSessionKeyFromShort(live.head.sessionShortName);
-          const match = cal.find(
-            (r) =>
-              r.circuitName.toLowerCase().includes(live.head!.circuitName.toLowerCase()) ||
-              live.head!.circuitName.toLowerCase().includes(r.circuitName.toLowerCase()),
-          );
-          if (match) round = match.round;
-        } else {
-          const upcoming = cal.find((r) => {
-            const t = new Date(`${r.date}T${r.time ?? '12:00:00Z'}`);
-            return Number.isFinite(t.getTime()) && t >= new Date();
-          });
-          if (upcoming) round = upcoming.round;
-        }
-
-        const race = cal.find((r) => r.round === round);
-        if (!race) {
-          this.error.set('No hay un gran premio activo en el calendario.');
+    })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(({ cal, live }) => {
+        const target = resolveMotogpLiveRoute(cal, live);
+        if (target) {
+          void this.router.navigate(target, { replaceUrl: true });
           return;
         }
-
-        void this.router.navigate(['/motogp', 'calendario', slugifyRace(race), sessionKey]);
-      },
-      error: () => this.error.set('No se pudo conectar con MotoGP Live.'),
-    });
+        this.error.set('No hay un gran premio activo en el calendario.');
+      });
   }
 }

@@ -40,6 +40,7 @@ import {
   type MotogpWeekendSession,
 } from '../race/motogp-session';
 import { pulseLiveSessionKeyFromShort } from './motogp-live-session-key';
+import { findRaceForPulseLive } from './motogp-live-route.util';
 import type {
   JolpikaCalendarRace,
   JolpikaDriverStanding,
@@ -195,14 +196,32 @@ export class MotogpLivePageComponent implements OnInit, OnDestroy {
     return pulseLiveSessionKeyFromShort(f.head.sessionShortName) === this.activeSessionKey();
   });
 
-  isSessionLive = computed(() => {
+  /** Pulse Live activo para el GP de la URL (aunque el tab aún no coincida). */
+  pulseLiveForCurrentRace = computed(() => {
+    const t = this.feed()?.timing;
+    if (!t?.active || !t.head) return false;
+    const race = this.currentRace();
+    if (!race) return false;
+    return findRaceForPulseLive([race], t.head) !== null;
+  });
+
+  liveDataActive = computed(() => {
     const tab = this.sessionTabs().find((t) => t.sessionKey === this.activeSessionKey());
     if (tab?.isLive) return true;
+    const t = this.feed()?.timing;
+    if (!t?.active || !(t.riders?.length ?? 0)) return false;
+    if (!this.pulseLiveForCurrentRace()) return false;
+    const pulseKey = pulseLiveSessionKeyFromShort(t.head?.sessionShortName ?? '');
+    return pulseKey === this.activeSessionKey();
+  });
+
+  isSessionLive = computed(() => {
+    if (this.liveDataActive()) return true;
     return this.liveTimingMatchesSession() && (this.feed()?.timing?.riders?.length ?? 0) > 0;
   });
 
   racePhase = computed<'live' | 'done' | 'upcoming'>(() => {
-    if (this.isSessionLive()) return 'live';
+    if (this.liveDataActive()) return 'live';
     const res = this.raceResult();
     if (res?.results?.length && !res.live && !res.sessionPending) return 'done';
     const tab = this.sessionTabs().find((t) => t.sessionKey === this.activeSessionKey());
@@ -251,12 +270,15 @@ export class MotogpLivePageComponent implements OnInit, OnDestroy {
   timingRows = computed<TimingDriver[]>(() => {
     const f = this.feed();
     const liveRiders = f?.timing?.riders ?? [];
-    const useLive =
-      this.isSessionLive() &&
-      this.liveTimingMatchesSession() &&
-      liveRiders.some((r) => r.position > 0);
+    const timingActive =
+      Boolean(f?.timing?.active) && liveRiders.some((r) => r.position > 0);
+    const sessionAligned =
+      !timingActive ||
+      this.liveTimingMatchesSession() ||
+      pulseLiveSessionKeyFromShort(f?.timing?.head?.sessionShortName ?? '') ===
+        this.activeSessionKey();
 
-    if (useLive) {
+    if (timingActive && sessionAligned) {
       return liveRiders
         .filter((r) => r.position > 0)
         .map((r) => this.riderToTimingRow(r))
@@ -430,6 +452,9 @@ export class MotogpLivePageComponent implements OnInit, OnDestroy {
   });
 
   timingEmptySubtitle = computed(() => {
+    if (this.liveDataActive() && !this.timingRows().length) {
+      return 'Esperando datos de Pulse Live…';
+    }
     if (this.racePhase() === 'upcoming') return 'Sesión programada — esperando datos oficiales';
     if (this.racePhase() === 'done') return 'Consulta otra sesión del fin de semana o vuelve más tarde';
     return 'Sin timing en vivo — datos oficiales cuando estén disponibles';
@@ -548,13 +573,16 @@ export class MotogpLivePageComponent implements OnInit, OnDestroy {
 
     interval(5_000)
       .pipe(
-        filter(() => this.isSessionLive()),
+        filter(() => this.liveDataActive()),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe(() => this.refreshFeed());
 
     interval(12_000)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        filter(() => this.liveDataActive()),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe(() => this.refreshFeed());
   }
 
@@ -741,9 +769,14 @@ export class MotogpLivePageComponent implements OnInit, OnDestroy {
           this.activeSessionKey.set(data.sessionKey);
           this.round.set(data.round);
         }
+        this.error.set(null);
         this.restartMap();
       },
-      error: () => {},
+      error: () => {
+        if (this.liveDataActive()) {
+          this.error.set('No se pudo actualizar el directo MotoGP. Reintentando…');
+        }
+      },
     });
 
     this.service.getRaceResults(round, this.activeSessionKey()).subscribe({

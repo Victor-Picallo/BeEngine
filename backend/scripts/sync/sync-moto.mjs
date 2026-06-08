@@ -24,6 +24,10 @@ import {
   enrichCalendarRow,
   enrichSeasonEventsMissingCircuits,
 } from '../../src/services/shared/circuitEnrichment.service.js';
+import {
+  aliasedLogoStorageCandidates,
+  firstReachableUrl,
+} from '../../src/services/motogp/motogpTeams.service.js';
 import { MOTO2_DRIVERS_GRID_2026 } from '../../src/data/moto2/moto2DriversGrid2026.js';
 import { MOTO2_CONSTRUCTORS_GRID_2026 } from '../../src/data/moto2/moto2ConstructorsGrid2026.js';
 import { MOTO3_DRIVERS_GRID_2026 } from '../../src/data/moto3/moto3DriversGrid2026.js';
@@ -109,11 +113,16 @@ async function syncFromPulse() {
 
   const teams = await fetchOfficialTeamsGrid(categoryId);
   const resolveConstructorId = buildTeamResolver(teams);
+  const resolveLogoUrl = async (constructorId, logoUrl) => {
+    if (logoUrl) return logoUrl;
+    if (categoryId !== 'motogp') return null;
+    return firstReachableUrl(aliasedLogoStorageCandidates(categoryId, constructorId));
+  };
   for (const t of teams) {
     await upsertConstructor(prisma, SEASON_ID, t.constructorId, t.team, {
       externalId: t.teamId != null ? String(t.teamId) : null,
       teamColor: t.teamColor ?? null,
-      logoUrl: t.logoUrl ?? null,
+      logoUrl: await resolveLogoUrl(t.constructorId, t.logoUrl ?? null),
       bikeImageUrl: t.bikeImageUrl ?? null,
     });
     await upsertConstructorStanding(prisma, SEASON_ID, {
@@ -132,7 +141,11 @@ async function syncFromPulse() {
     await upsertConstructor(prisma, SEASON_ID, constructorId, row.team, {
       externalId: row.teamId != null ? String(row.teamId) : null,
       teamColor: row.teamColor ?? official?.teamColor ?? null,
-      logoUrl: official?.logoUrl ?? row.logoUrl ?? null,
+      logoUrl:
+        (await resolveLogoUrl(
+          constructorId,
+          official?.logoUrl ?? row.logoUrl ?? null,
+        )) ?? null,
       bikeImageUrl: official?.bikeImageUrl ?? null,
     });
     await upsertDriverEntry(prisma, SEASON_ID, {

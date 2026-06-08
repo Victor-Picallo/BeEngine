@@ -9,6 +9,13 @@ import { interval, map } from 'rxjs';
 import { BackNavigationService } from '../../core/services/back-navigation.service';
 import { F1LiveService } from '../f1-live/f1-live.service';
 import { sessionsForRaceWeekend } from '../f1-live/f1-weekend-sessions';
+import {
+  defaultSessionLinkForRace,
+  isOpenF1SessionLive,
+  isRaceWeekendLive,
+  OPENF1_SESSION_TO_KEY,
+  SESSION_KEY_TO_OPENF1_NAMES,
+} from '../f1-live/f1-openf1-session.util';
 import { findOfficialCircuit, projectCircuitCoords } from '../calendar/official-circuits';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { jolpikaDriverIdForOpenF1 } from '../drivers/drivers-shared';
@@ -65,27 +72,6 @@ const FALLBACK_DOT_COLORS = ['#FFD100', '#E8002D', '#FF8000', '#27F4D2', '#64C4F
 const FALLBACK_DOT_NAMES = ['P1', 'P2', 'P3', 'P4', 'P5'];
 
 const COMPOUND_MAP: Record<string, TireType> = { SOFT: 's', MEDIUM: 'm', HARD: 'h', INTERMEDIATE: 'i', WET: 'w' };
-
-const OPENF1_SESSION_TO_KEY: Record<string, SessionKey> = {
-  'Practice 1':        'fp1',
-  'Practice 2':        'fp2',
-  'Practice 3':        'fp3',
-  'Qualifying':        'qualy',
-  'Sprint Shootout':   'qualy-sprint',
-  'Sprint Qualifying': 'qualy-sprint',
-  'Sprint':            'sprint',
-  'Race':              'race',
-};
-
-const SESSION_KEY_TO_OPENF1_NAMES: Record<SessionKey, string[]> = {
-  fp1:            ['Practice 1'],
-  fp2:            ['Practice 2'],
-  fp3:            ['Practice 3'],
-  qualy:          ['Qualifying'],
-  'qualy-sprint': ['Sprint Shootout', 'Sprint Qualifying'],
-  sprint:         ['Sprint'],
-  race:           ['Race'],
-};
 
 @Component({
   selector: 'app-race-session-page',
@@ -178,16 +164,51 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
     const weekend = this.weekendSessions();
     if (!weekend.length) return null;
     const nowMs = this.now().getTime();
-    const live = weekend.find(s => {
-      const start = Date.parse(s.dateStart);
-      const end   = Date.parse(s.dateEnd);
-      return Number.isFinite(start) && Number.isFinite(end) && nowMs >= start && nowMs <= end;
-    });
+    const live = weekend.find((s) => isOpenF1SessionLive(s, nowMs));
     if (!live) return null;
     return OPENF1_SESSION_TO_KEY[live.sessionName] ?? null;
   });
 
   isSessionLive = computed(() => this.liveSessionKey() === this.sessionKey());
+
+  /** OpenF1 key numérico, o `latest` si la sesión está en curso pero aún no enlazamos el fin de semana. */
+  effectiveOpenF1Key = computed((): number | 'latest' | null => {
+    const key = this.openF1SessionKey();
+    if (key !== null) return key;
+
+    const weekend = this.weekendSessions();
+    const wanted = SESSION_KEY_TO_OPENF1_NAMES[this.sessionKey()] ?? [];
+    const match = weekend.find((s) => wanted.includes(s.sessionName));
+    if (match && isOpenF1SessionLive(match, this.now().getTime())) {
+      return match.sessionKey;
+    }
+
+    if (this.isSessionLive()) return 'latest';
+    if (
+      this.raceStatus() === 'live' &&
+      (this.sessionKey() === 'race' || this.sessionKey() === 'sprint')
+    ) {
+      return 'latest';
+    }
+    return null;
+  });
+
+  /** Ventana horaria OpenF1 de la pestaña actual. */
+  isCurrentSessionLiveWindow = computed(() => {
+    const weekend = this.weekendSessions();
+    const wanted = SESSION_KEY_TO_OPENF1_NAMES[this.sessionKey()] ?? [];
+    const match = weekend.find((s) => wanted.includes(s.sessionName));
+    return match ? isOpenF1SessionLive(match, this.now().getTime()) : false;
+  });
+
+  /** Polling y timing en vivo (OpenF1) activos. */
+  liveDataActive = computed(
+    () =>
+      this.effectiveOpenF1Key() !== null &&
+      (this.isSessionLive() ||
+        this.isCurrentSessionLiveWindow() ||
+        this.raceStatus() === 'live'),
+  );
 
   // Session tabs: FP1–FP3 + qualy + race; sprint qualy + sprint when OpenF1 has them.
   // Sprint weekends only schedule one free practice in OpenF1 — hide FP2 and FP3.
@@ -237,8 +258,9 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
 
   /** Footer text when timing table has no rows. */
   timingEmptySubtitle = computed(() => {
-    const rs = this.raceStatus();
     if (this.timingRows().length > 0) return '';
+    if (this.liveDataActive()) return 'Esperando datos del proveedor';
+    const rs = this.raceStatus();
     if (rs === 'upcoming') return 'Esta sesión aún no ha comenzado';
     const sk = this.sessionKey();
     if (rs === 'done' && (sk === 'race' || sk === 'sprint')) {
@@ -338,8 +360,10 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
   });
 
   timingRows = computed<TimingDriver[]>(() => {
-    const fromDb = this.buildDbTimingRows();
-    if (fromDb.length) return fromDb;
+    if (!this.liveDataActive()) {
+      const fromDb = this.buildDbTimingRows();
+      if (fromDb.length) return fromDb;
+    }
 
     const drivers = this.openF1Drivers();
     if (!drivers.length) return [];
@@ -482,7 +506,7 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
   // Refetch session-specific data whenever the resolved OpenF1 session_key
   // changes (route → race or session swap, or sessions list arrived later).
   private readonly sessionDataEffect = effect(() => {
-    const key = this.openF1SessionKey();
+    const key = this.effectiveOpenF1Key();
     this.loadSessionData(key);
   });
 
@@ -491,7 +515,8 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
     const race = this.currentRace();
     const sk = this.sessionKey();
     const openKey = this.openF1SessionKey();
-    if (!race || openKey !== null) {
+    const effective = this.effectiveOpenF1Key();
+    if (!race || openKey !== null || effective !== null) {
       untracked(() => this.sessionRaceResults.set(null));
       return;
     }
@@ -533,25 +558,37 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
     this.loadAll();
     interval(1_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.now.set(new Date()));
     interval(10_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      if (!this.isSessionLive()) return;
-      const key = this.openF1SessionKey();
+      if (!this.liveDataActive()) return;
+      const key = this.effectiveOpenF1Key();
+      if (key === null) return;
       this.service.getPositions(key).subscribe({ next: p => this.positions.set(p), error: () => {} });
       this.service.getIntervals(key).subscribe({ next: i => this.intervals.set(i), error: () => {} });
     });
     interval(15_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      if (!this.isSessionLive()) return;
-      this.service.getLaps(this.openF1SessionKey()).subscribe({ next: l => this.laps.set(l), error: () => {} });
+      if (!this.liveDataActive()) return;
+      const key = this.effectiveOpenF1Key();
+      if (key === null) return;
+      this.service.getLaps(key).subscribe({ next: l => this.laps.set(l), error: () => {} });
     });
     interval(60_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      if (!this.isSessionLive()) return;
-      this.service.getWeather(this.openF1SessionKey()).subscribe({ next: w => this.weather.set(w), error: () => {} });
+      if (!this.liveDataActive()) return;
+      const key = this.effectiveOpenF1Key();
+      if (key === null) return;
+      this.service.getWeather(key).subscribe({ next: w => this.weather.set(w), error: () => {} });
     });
     interval(30_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      if (!this.isSessionLive()) return;
-      const key = this.openF1SessionKey();
+      if (!this.liveDataActive()) return;
+      const key = this.effectiveOpenF1Key();
+      if (key === null) return;
       this.service.getRaceControl(key).subscribe({ next: r => this.raceControl.set(r), error: () => {} });
       this.service.getTeamRadio(key).subscribe({ next: t => this.teamRadio.set(t), error: () => {} });
       this.service.getStints(key).subscribe({ next: s => this.stints.set(s), error: () => {} });
+    });
+    interval(60_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.service.getSessions().subscribe({
+        next: (s) => this.sessions.set(s),
+        error: () => {},
+      });
     });
   }
 
@@ -652,7 +689,7 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
       });
   }
 
-  private loadSessionData(key: number | null): void {
+  private loadSessionData(key: number | 'latest' | null): void {
     if (key === null) {
       this.openF1Drivers.set([]);
       this.positions.set([]);
@@ -665,13 +702,28 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
       this.locations.set([]);
       return;
     }
-    const stillCurrent = () => this.openF1SessionKey() === key;
+    const stillCurrent = () => this.effectiveOpenF1Key() === key;
+    this.error.set(null);
     this.service.getDrivers(key).subscribe({
-      next: d => stillCurrent() && this.openF1Drivers.set(d),
-      error: () => {},
+      next: (d) => {
+        if (!stillCurrent()) return;
+        this.openF1Drivers.set(d);
+        if (
+          !d.length &&
+          this.liveDataActive()
+        ) {
+          this.error.set(
+            'OpenF1 no devolvió datos de pilotos. Comprueba la conexión o espera unos segundos.',
+          );
+        }
+      },
+      error: (err) => {
+        if (!stillCurrent()) return;
+        this.reportLiveError(err);
+      },
     });
     this.service.getPositions(key).subscribe({
-      next: p => stillCurrent() && this.positions.set(p),
+      next: (p) => stillCurrent() && this.positions.set(p),
       error: () => {},
     });
     this.service.getWeather(key).subscribe({
@@ -707,6 +759,19 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
       },
       error: () => {},
     });
+  }
+
+  private reportLiveError(err: unknown): void {
+    const msg = err instanceof Error ? err.message : String(err ?? '');
+    if (/429|rate/i.test(msg)) {
+      this.error.set('OpenF1 limitó las peticiones. Reintentando en unos segundos…');
+      return;
+    }
+    if (/503|502|504|timeout|abort/i.test(msg)) {
+      this.error.set('El servidor no pudo contactar OpenF1. Reintentando…');
+      return;
+    }
+    this.error.set('No se pudieron cargar los datos en directo.');
   }
 
   private buildCircuitPath(): [number, number][] {

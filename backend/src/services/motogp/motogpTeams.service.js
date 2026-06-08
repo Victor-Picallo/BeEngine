@@ -2,6 +2,7 @@ import {
   pulseliveClient,
   MOTOGP_CATEGORY_UUID,
 } from '../../external/motogp/pulselive.client.js';
+import { SUPABASE_STORAGE_PUBLIC_BASE } from '../../config/env.js';
 import { toPublicMediaUrl } from '../../lib/supabaseStorage.js';
 
 /** Categoría broadcast MotoGP™ (equipos / riders con fotos). */
@@ -15,6 +16,11 @@ const BROADCAST_UUIDS = {
   moto3:  MOTO3_BROADCAST_CATEGORY_UUID,
 };
 
+/** Rebrands: heredar logo/moto del slug anterior en Storage. */
+export const CONSTRUCTOR_MEDIA_ALIASES = {
+  'superfile-trackhouse-motogp-team': 'trackhouse-motogp-team',
+};
+
 const TEAM_COLOR_OVERRIDES = {
   'pertamina-enduro-vr46-racing-team': '#C6D637',
   'vr46-racing-team':                  '#C6D637',
@@ -22,6 +28,7 @@ const TEAM_COLOR_OVERRIDES = {
   'prima-pramac-yamaha':               '#5B2D8E',
   'red-bull-ktm-tech3':                '#FF6600',
   'trackhouse-motogp-team':            '#0057B8',
+  'superfile-trackhouse-motogp-team':  '#0057B8',
   'castrol-honda-lcr':                 '#009343',
   'lcr-honda':                         '#009343',
   'blu-cru-pramac-yamaha-moto2':       '#5B2D8E',
@@ -46,6 +53,34 @@ const slugify = (s) =>
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
+
+export const aliasedConstructorId = (constructorId) =>
+  CONSTRUCTOR_MEDIA_ALIASES[String(constructorId || '').toLowerCase()] ?? null;
+
+/** URLs conocidas del logo predecesor en beengine-media (p. ej. rebrand Trackhouse → SuperFile). */
+export const aliasedLogoStorageCandidates = (seriesId, constructorId) => {
+  const alias = aliasedConstructorId(constructorId);
+  if (!alias) return [];
+  const base = SUPABASE_STORAGE_PUBLIC_BASE;
+  if (!base) return [];
+  return ['png', 'jpg', 'svg', 'webp'].map((ext) => `${base}/${seriesId}/constructors/${alias}.${ext}`);
+};
+
+export const firstReachableUrl = async (urls) => {
+  for (const url of urls) {
+    if (!url) continue;
+    try {
+      const res = await fetch(url, {
+        method: 'HEAD',
+        headers: { 'User-Agent': 'BeEngine/1.0 (media-sync)' },
+      });
+      if (res.ok) return url;
+    } catch {
+      /* siguiente candidato */
+    }
+  }
+  return null;
+};
 
 const pickPortrait = (rider) => {
   const step =

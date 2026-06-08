@@ -7,7 +7,8 @@ const RETRY_ATTEMPTS = 4;
 const RETRY_DELAY_MS = 500;
 
 /** OpenF1 rate-limits aggressively when the live page fires many endpoints at once. */
-const MAX_CONCURRENT_FETCHES = 4;
+const MAX_CONCURRENT_FETCHES = 3;
+const OPENF1_TIMEOUT_MS = Math.max(EXTERNAL_API_TIMEOUT_MS, 8_000);
 
 const cache = new Map();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -43,7 +44,7 @@ const fetchOnce = async (path) => {
   const url = `${OPENF1_BASE_URL}${path}`;
   for (let burst = 0; burst < RETRY_ATTEMPTS; burst++) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), EXTERNAL_API_TIMEOUT_MS);
+    const timer = setTimeout(() => controller.abort(), OPENF1_TIMEOUT_MS);
     try {
       const res = await fetch(url, { signal: controller.signal });
       // OpenF1 uses 404 to mean "no data for this query" (e.g. team_radio

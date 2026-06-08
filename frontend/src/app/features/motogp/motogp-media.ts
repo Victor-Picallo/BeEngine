@@ -45,6 +45,7 @@ const WIDE_LOGO_SLUGS = new Set([
   'vr46-racing-team',
   'prima-pramac-yamaha-motogp',
   'trackhouse-motogp-team',
+  'superfile-trackhouse-motogp-team',
 ]);
 
 const COMPACT_LOGO_SLUGS = new Set(['castrol-honda-lcr', 'lcr-honda', 'gresini-racing-motogp']);

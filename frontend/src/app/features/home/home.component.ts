@@ -39,6 +39,13 @@ import { DataSourceBadgeComponent } from '../../shared/components/data-source-ba
 import { MotogpPulseService } from '../motogp/motogp-pulse.service';
 import { NewsService } from '../news/news.service';
 import { sessionsForRaceWeekend } from '../f1-live/f1-weekend-sessions';
+import {
+  findFeaturedF1Race,
+  resolveF1LiveRoute,
+} from '../f1-live/f1-openf1-session.util';
+import { findFeaturedMotogpRace } from '../motogp-live/motogp-live-route.util';
+import { resolveMotogpLiveRoute } from '../motogp-live/motogp-live-route.util';
+import type { MotogpLiveTimingPayload } from '../motogp-live/motogp-live.types';
 import { slugifyRace } from '../race/race-slug';
 import type {
   JolpikaCalendarRace,
@@ -160,6 +167,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private sessionsRaw   = signal<OpenF1Session[]>([]);
   private motogpLiveActive = signal(false);
   private motogpLiveHead = signal<{ sessionLabel: string; raceName: string; circuitName: string } | null>(null);
+  private motogpLiveTiming = signal<MotogpLiveTimingPayload | null>(null);
   private newsRaw       = signal<NewsItem[]>([]);
   // ── Derived ──
   /** Pestaña activa del header (solo F1 / MotoGP). */
@@ -179,8 +187,17 @@ export class HomeComponent implements OnInit, OnDestroy {
   accentPodium = computed(() => accentPodiumHighlight(this.accent()));
 
   private nextRaceRaw = computed<JolpikaCalendarRace | null>(() => {
+    const cal = this.calendarRaces();
+    const seriesId = this.seriesCtx.id();
+    if (!cal.length) return null;
+    if (seriesId === 'f1') {
+      return findFeaturedF1Race(cal, this.sessionsRaw());
+    }
+    if (seriesId === 'motogp') {
+      return findFeaturedMotogpRace(cal, this.motogpLiveTiming());
+    }
     const today = new Date().toISOString().slice(0, 10);
-    return this.calendarRaces().find(r => r.date >= today) ?? null;
+    return cal.find((r) => r.date >= today) ?? cal[cal.length - 1] ?? null;
   });
 
   private nextMeetingSessions = computed<OpenF1Session[]>(() => {
@@ -260,6 +277,20 @@ export class HomeComponent implements OnInit, OnDestroy {
       raceName: race.raceName,
       circuitName: race.circuitName,
     };
+  });
+
+  /** Enlace directo al GP/sesión en curso. */
+  liveBannerLink = computed((): (string | number)[] | string => {
+    if (this.seriesCtx.id() === 'motogp') {
+      const route = resolveMotogpLiveRoute(
+        this.calendarRaces(),
+        this.motogpLiveTiming(),
+        this.seriesCtx.homePath(),
+      );
+      return route ?? '/motogp/live';
+    }
+    const route = resolveF1LiveRoute(this.calendarRaces(), this.sessionsRaw());
+    return route ?? ['/f1/live'];
   });
 
   private countdownInterval?: ReturnType<typeof setInterval>;
@@ -597,6 +628,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.motogpPulse.getLiveTiming().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (lt) => {
           if (this.seriesCtx.id() !== 'motogp') return;
+          this.motogpLiveTiming.set(lt);
           const active = lt.active && lt.head != null;
           this.motogpLiveActive.set(active);
           if (active && lt.head) {
@@ -612,6 +644,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         error: () => {
           this.motogpLiveActive.set(false);
           this.motogpLiveHead.set(null);
+          this.motogpLiveTiming.set(null);
         },
       });
       return;

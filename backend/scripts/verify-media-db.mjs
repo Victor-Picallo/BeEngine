@@ -50,7 +50,7 @@ async function auditSeries(seriesId) {
     }),
     prisma.constructorSeason.findMany({
       where: { seasonId },
-      select: { logoUrl: true, bikeImageUrl: true, name: true },
+      select: { constructorId: true, logoUrl: true, bikeImageUrl: true, name: true },
     }),
   ]);
 
@@ -70,6 +70,12 @@ async function auditSeries(seriesId) {
     logos,
     bikes,
     constructors: constructors.length,
+    missingLogos: constructors
+      .filter((c) => !isBucketUrl(c.logoUrl))
+      .map((c) => c.name || c.constructorId),
+    missingBikes: constructors
+      .filter((c) => !isBucketUrl(c.bikeImageUrl))
+      .map((c) => c.name || c.constructorId),
   };
 }
 
@@ -120,6 +126,12 @@ async function main() {
       const issues = checkSeriesComplete(r);
       if (issues.length) {
         console.log(`         ⚠ falta: ${issues.join(', ')}`);
+        if (r.missingLogos?.length) {
+          console.log(`           logos: ${r.missingLogos.join(', ')}`);
+        }
+        if (r.missingBikes?.length) {
+          console.log(`           motos: ${r.missingBikes.join(', ')}`);
+        }
         if (strict || formulaOnly || motoOnly) failed = true;
       } else if (r.events > 0 || r.drivers > 0) {
         console.log('         ✓ completo');

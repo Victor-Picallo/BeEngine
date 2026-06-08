@@ -128,13 +128,17 @@
                   <div class="fc-round">R{{ card.race.round }}</div>
                   <div class="fc-date">{{ card.dateLabel }}</div>
 
-                  @if (card.status === 'done') {
+                  @if (card.isLive) {
+                    <div class="fc-tag-live">
+                      <span class="fc-tag-dot fc-tag-dot--live"></span>
+                      <span>EN VIVO</span>
+                    </div>
+                  } @else if (card.status === 'done') {
                     <div class="fc-tag-done">
                       <span class="fc-tag-dot"></span>
                       <span>COMPLETADA</span>
                     </div>
-                  }
-                  @if (card.status === 'next') {
+                  } @else if (card.status === 'next') {
                     <div class="fc-tag-next">PRÓXIMA CARRERA</div>
                   }
                 </div>
@@ -193,7 +197,11 @@
           <a [routerLink]="seriesCtx.urlPath('pilotos')">Pilotos →</a>
           <a [routerLink]="seriesCtx.urlPath('escuderias')">Escuderías →</a>
           @if (seriesCtx.config().features.livePage) {
-            <a routerLink="/f1/live">F1 Live →</a>
+            @if (seriesCtx.id() === 'motogp') {
+              <a routerLink="/motogp/live">MotoGP Live →</a>
+            } @else {
+              <a routerLink="/f1/live">F1 Live →</a>
+            }
           }
         </div>
       </footer>

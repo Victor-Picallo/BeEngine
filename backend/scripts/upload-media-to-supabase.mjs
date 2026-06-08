@@ -23,12 +23,17 @@ import { SUPABASE_STORAGE_PUBLIC_BASE } from '../src/config/env.js';
 import { F1_CONSTRUCTORS_GRID_2026 } from '../src/data/f1/f1ConstructorsGrid2026.js';
 import { F1_DRIVERS_GRID_2026 } from '../src/data/f1/f1DriversGrid2026.js';
 import { f1TeamCarImageUrl, f1TeamShowcaseImageUrl } from '../src/services/f1/teamMedia.js';
+import {
+  aliasedLogoStorageCandidates,
+  firstReachableUrl,
+} from '../src/services/motogp/motogpTeams.service.js';
 import { getDrivers } from '../src/services/f1/openf1.service.js';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const publicRoot = join(root, 'frontend', 'public');
 const SERIES = ['motogp', 'moto2', 'moto3'];
 const motogpOnly = process.argv.includes('--motogp-only');
 const motoOnly = process.argv.includes('--moto-only');
+const logosOnly = process.argv.includes('--logos-only');
 const circuitsOnly = process.argv.includes('--circuits-only');
 const skipMoto = process.argv.includes('--skip-moto');
 const formulaOnly = process.argv.includes('--formula-only');
@@ -41,6 +46,19 @@ const needsRemoteUpload = (url) => {
   return true;
 };
 
+const constructorLogoNeedsUpload = (logoUrl, seriesId, constructorId) => {
+  if (!logoUrl?.startsWith('http')) return true;
+  const base = SUPABASE_STORAGE_PUBLIC_BASE || '';
+  if (!base || !logoUrl.startsWith(base)) return true;
+  return !logoUrl.includes(`/${seriesId}/constructors/${constructorId}.`);
+};
+
+async function resolveConstructorLogoRemote(seriesId, team) {
+  if (team.logoUrl?.startsWith('http')) return team.logoUrl;
+  if (seriesId !== 'motogp') return null;
+  return firstReachableUrl(aliasedLogoStorageCandidates(seriesId, team.constructorId));
+}
+
 /** Logos en constructor_season que aún apuntan fuera de Supabase. */
 async function uploadConstructorLogosFromDb(prisma, seriesId) {
   const seasonId = seasonIdFor(seriesId, currentSeasonYear());
@@ -49,8 +67,8 @@ async function uploadConstructorLogosFromDb(prisma, seriesId) {
   const teams = await prisma.constructorSeason.findMany({ where: { seasonId } });
 
   for (const t of teams) {
-    const remote = t.logoUrl;
-    if (!needsRemoteUpload(remote)) continue;
+    const remote = (await resolveConstructorLogoRemote(seriesId, t)) ?? t.logoUrl;
+    if (!constructorLogoNeedsUpload(remote, seriesId, t.constructorId)) continue;
     try {
       const { path, url } = await uploadRemoteImage(
         `${seriesId}/constructors/${t.constructorId}`,
@@ -532,6 +550,18 @@ async function main() {
   let totalDb = 0;
 
   try {
+    if (logosOnly) {
+      for (const seriesId of MOTO_SERIES) {
+        console.log(`\n=== ${seriesId} logos (DB) ===`);
+        const logos = await uploadConstructorLogosFromDb(prisma, seriesId);
+        totalUp += logos.uploaded;
+        totalDb += logos.dbUpdated;
+        console.log(`  ${logos.uploaded} logos, ${logos.dbUpdated} constructor_season rows`);
+      }
+      console.log(`\nDone — ${totalUp} uploads, ${totalDb} DB updates.`);
+      return;
+    }
+
     if (motogpOnly) {
       console.log('\n=== motogp bikes + portraits ===');
       const mgp = await uploadMotogpBikesAndPortraits(prisma);

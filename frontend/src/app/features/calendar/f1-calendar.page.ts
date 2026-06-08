@@ -6,7 +6,8 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { catchError, map, of, tap } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, interval, map, of, tap, type Observable } from 'rxjs';
 import { bindSeriesLoad, isSeriesStillActive } from '../../core/series/bind-series-load';
 import { isFormulaFeederSeries } from '../../core/series/series.config';
 import type { SeriesId } from '../../core/series/series.types';
@@ -15,12 +16,25 @@ import { SeriesAccentDirective } from '../../core/series/series-accent.directive
 import { RouterLink } from '@angular/router';
 import { ReturnNavDirective } from '../../core/directives/return-nav.directive';
 import { F1LiveService } from '../f1-live/f1-live.service';
+import { MotogpPulseService } from '../motogp/motogp-pulse.service';
+import {
+  defaultSessionLinkForMotogpRace,
+  findFeaturedMotogpRace,
+  isMotogpRaceLive,
+  isMotogpWeekendComplete,
+} from '../motogp-live/motogp-live-route.util';
+import type { MotogpLiveTimingPayload } from '../motogp-live/motogp-live.types';
 import { defaultSessionFor, slugifyRace } from '../race/race-slug';
-import { defaultMotogpSession } from '../race/motogp-session';
+import {
+  defaultSessionLinkForRace,
+  findFeaturedF1Race,
+  isRaceWeekendComplete,
+  isRaceWeekendLive,
+} from '../f1-live/f1-openf1-session.util';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { AppSidebarComponent } from '../../shared/components/app-sidebar/app-sidebar.component';
 import { FormulaCircuitCardMapComponent } from './formula-circuit-card-map.component';
-import type { JolpikaCalendarRace, JolpikaRaceResult } from '../f1-live/f1-live.types';
+import type { JolpikaCalendarRace, JolpikaRaceResult, OpenF1Session } from '../f1-live/f1-live.types';
 
 type CalendarFilter = 'all' | 'completed' | 'upcoming';
 
@@ -33,6 +47,7 @@ interface CalendarCard {
   dateLabel: string;
   slug: string;
   defaultSession: string;
+  isLive: boolean;
   podium: { position: number; driver: string; team: string; teamColor: string; time: string | null }[];
 }
 
@@ -137,24 +152,32 @@ const normalize = (value: string) =>
 })
 export class F1CalendarPageComponent {
   private readonly service = inject(F1LiveService);
+  private readonly motogpPulse = inject(MotogpPulseService);
   private readonly destroyRef = inject(DestroyRef);
   readonly seriesCtx = inject(SeriesContextService);
 
   loading = signal(true);
   error = signal<string | null>(null);
   calendar = signal<JolpikaCalendarRace[]>([]);
+  sessions = signal<OpenF1Session[]>([]);
+  liveTiming = signal<MotogpLiveTimingPayload | null>(null);
   resultsByRound = signal<Record<number, JolpikaRaceResult>>({});
   filter = signal<CalendarFilter>('all');
 
   totalRounds = computed(() => this.calendar().length);
-  completedRounds = computed(() => this.calendar().filter(r => this.isPastRace(r)).length);
+
+  private featuredRace = computed(() => this.resolveFeaturedRace());
+
+  completedRounds = computed(() =>
+    this.calendar().filter((r) => this.isRaceCompleted(r)).length,
+  );
   remainingRounds = computed(() => this.totalRounds() - this.completedRounds());
   progressPct = computed(() => {
     const total = this.totalRounds();
     if (!total) return 0;
     return Math.round((this.completedRounds() / total) * 100);
   });
-  nextRace = computed(() => this.calendar().find(r => !this.isPastRace(r)) ?? null);
+  nextRace = computed(() => this.featuredRace());
   nextRaceDateLabel = computed(() => {
     const race = this.nextRace();
     return race ? this.formatLongDate(race) : '';
@@ -162,16 +185,17 @@ export class F1CalendarPageComponent {
 
   allCards = computed<CalendarCard[]>(() => {
     const results = this.resultsByRound();
-    const nextRound = this.nextRace()?.round ?? null;
+    const featuredRound = this.featuredRace()?.round ?? null;
 
     const seriesId = this.seriesCtx.id();
+    const openF1Sessions = this.sessions();
+    const pulseLive = this.liveTiming();
     return this.calendar().map(race => {
-      const datePast = this.isPastRace(race);
       const done = isFormulaFeederSeries(seriesId)
         ? race.resultsAvailable === true
-        : datePast;
+        : this.isRaceCompleted(race);
       const status: CalendarCard['status'] =
-        done ? 'done' : race.round === nextRound ? 'next' : 'upcoming';
+        done ? 'done' : race.round === featuredRound ? 'next' : 'upcoming';
       const result = results[race.round];
       const stats = this.statsFor(race);
 
@@ -183,7 +207,18 @@ export class F1CalendarPageComponent {
         km: stats?.km ?? null,
         dateLabel: this.formatRaceDate(race),
         slug: slugifyRace(race),
-        defaultSession: defaultSessionFor(race),
+        defaultSession:
+          seriesId === 'motogp'
+            ? defaultSessionLinkForMotogpRace(race, pulseLive)
+            : seriesId === 'f1' && this.seriesCtx.config().features.raceSessionPage
+              ? defaultSessionLinkForRace(race, openF1Sessions)
+              : defaultSessionFor(race),
+        isLive:
+          seriesId === 'motogp'
+            ? isMotogpRaceLive(race, pulseLive)
+            : seriesId === 'f1'
+              ? isRaceWeekendLive(race, openF1Sessions)
+              : false,
         podium: result?.results
           ?.slice(0, 3)
           .map(r => ({
@@ -226,13 +261,66 @@ export class F1CalendarPageComponent {
 
   constructor() {
     bindSeriesLoad((seriesId) => this.fetchCalendar(seriesId), this.destroyRef);
+
+    interval(60_000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        const sid = this.seriesCtx.id();
+        if (sid === 'f1' && this.seriesCtx.config().features.openF1) {
+          this.service
+            .getSessions('f1')
+            .pipe(catchError(() => of([] as OpenF1Session[])))
+            .subscribe((sessions) => this.sessions.set(sessions));
+        }
+        if (sid === 'motogp') {
+          this.motogpPulse
+            .getLiveTiming()
+            .pipe(
+              catchError(() =>
+                of({ active: false, categoryId: 'motogp', head: null, riders: [] }),
+              ),
+            )
+            .subscribe((live) => this.liveTiming.set(live));
+        }
+      });
   }
 
   private fetchCalendar(seriesId: SeriesId) {
     this.loading.set(true);
     this.error.set(null);
     this.calendar.set([]);
+    this.sessions.set([]);
     this.resultsByRound.set({});
+
+    const sessions$ =
+      seriesId === 'f1' && this.seriesCtx.config().features.openF1
+        ? this.service.getSessions(seriesId).pipe(catchError(() => of([] as OpenF1Session[])))
+        : of([] as OpenF1Session[]);
+
+    const liveTiming$: Observable<MotogpLiveTimingPayload | null> =
+      seriesId === 'motogp'
+        ? this.motogpPulse.getLiveTiming().pipe(
+            catchError(() =>
+              of({
+                active: false,
+                categoryId: 'motogp',
+                head: null,
+                riders: [],
+              } satisfies MotogpLiveTimingPayload),
+            ),
+          )
+        : of(null);
+
+    sessions$.subscribe((sessions) => {
+      if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return;
+      this.sessions.set(sessions);
+    });
+
+    liveTiming$.subscribe((live) => {
+      if (!isSeriesStillActive(seriesId, () => this.seriesCtx.id())) return;
+      if (live) this.liveTiming.set(live);
+      else this.liveTiming.set(null);
+    });
 
     return this.service.getCalendar(seriesId).pipe(
       tap((calendar) => {
@@ -280,11 +368,7 @@ export class F1CalendarPageComponent {
 
   raceCardLink(card: CalendarCard): (string | number)[] {
     if (this.seriesCtx.id() === 'motogp') {
-      return this.seriesCtx.path(
-        'calendario',
-        card.slug,
-        defaultMotogpSession(card.race),
-      );
+      return this.seriesCtx.path('calendario', card.slug, card.defaultSession);
     }
     if (!this.seriesCtx.config().features.raceSessionPage) {
       return this.seriesCtx.path('calendario', card.slug, 'race');
@@ -298,7 +382,9 @@ export class F1CalendarPageComponent {
 
   private loadCompletedResults(calendar: JolpikaCalendarRace[], seriesId: SeriesId): void {
     const completed = calendar.filter((race) =>
-      isFormulaFeederSeries(seriesId) ? race.resultsAvailable === true : this.isPastRace(race),
+      isFormulaFeederSeries(seriesId)
+        ? race.resultsAvailable === true
+        : this.isRaceCompleted(race),
     );
     if (!completed.length) return;
 
@@ -311,6 +397,34 @@ export class F1CalendarPageComponent {
           this.resultsByRound.update((prev) => ({ ...prev, [result.round]: result }));
         });
     }
+  }
+
+  private resolveFeaturedRace(): JolpikaCalendarRace | null {
+    const cal = this.calendar();
+    const seriesId = this.seriesCtx.id();
+    if (!cal.length) return null;
+
+    if (seriesId === 'f1') {
+      return findFeaturedF1Race(cal, this.sessions());
+    }
+    if (seriesId === 'motogp') {
+      return findFeaturedMotogpRace(cal, this.liveTiming());
+    }
+    return cal.find((r) => !this.isPastRace(r)) ?? null;
+  }
+
+  private isRaceCompleted(race: JolpikaCalendarRace): boolean {
+    const seriesId = this.seriesCtx.id();
+    if (isFormulaFeederSeries(seriesId)) {
+      return race.resultsAvailable === true;
+    }
+    if (seriesId === 'f1') {
+      return isRaceWeekendComplete(race, this.sessions());
+    }
+    if (seriesId === 'motogp') {
+      return isMotogpWeekendComplete(race, this.calendar(), this.liveTiming());
+    }
+    return this.isPastRace(race);
   }
 
   private isPastRace(race: JolpikaCalendarRace): boolean {

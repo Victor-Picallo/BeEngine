@@ -47,15 +47,19 @@
           <div class="fl-header-label">
             <div class="fl-header-pulse"></div>
             <span class="fl-header-en-directo">
-              @switch (raceStatus()) {
-                @case ('live')     { EN DIRECTO }
-                @case ('upcoming') { PRÓXIMA CITA }
-                @case ('done')     { FINALIZADA }
-                @default           { SESIÓN }
+              @if (isSessionLive() || isCurrentSessionLiveWindow()) {
+                EN DIRECTO
+              } @else {
+                @switch (raceStatus()) {
+                  @case ('live')     { EN DIRECTO }
+                  @case ('upcoming') { PRÓXIMA CITA }
+                  @case ('done')     { FINALIZADA }
+                  @default           { SESIÓN }
+                }
               }
             </span>
           </div>
-          <div class="fl-header-title-big">{{ sessionConfig().label }} <span>{{ raceStatus() === 'live' ? 'LIVE' : '' }}</span></div>
+          <div class="fl-header-title-big">{{ sessionConfig().label }} <span>{{ (isSessionLive() || isCurrentSessionLiveWindow() || raceStatus() === 'live') ? 'LIVE' : '' }}</span></div>
         </div>
 
         <div class="fl-header-sep"></div>

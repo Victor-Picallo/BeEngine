@@ -26,7 +26,7 @@
       </div>
       <div style="display: flex; gap: 8px; align-items: center">
         @if (seriesCtx.config().features.livePage) {
-          <a [routerLink]="seriesCtx.id() === 'motogp' ? '/motogp/live' : '/f1/live'" class="hm-live-link">Ver Live →</a>
+          <a [routerLink]="liveBannerLink()" class="hm-live-link">Ver Live →</a>
         }
         <button type="button" class="hm-live-dismiss" (click)="dismissBanner()">✕</button>
       </div>
