@@ -359,7 +359,22 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`;
   });
 
+  /** Clasificación Jolpica lista (p. ej. tras sanciones post-carrera). */
+  private hasOfficialRaceClassification = computed(() => {
+    const sk = this.sessionKey();
+    if (sk !== 'race' && sk !== 'sprint') return false;
+    const rows = this.sessionRaceResults()?.results ?? [];
+    return rows.length > 0 && rows.some((r) => r.position === 1);
+  });
+
   timingRows = computed<TimingDriver[]>(() => {
+    const sk = this.sessionKey();
+    if (sk === 'race' || sk === 'sprint') {
+      const fromDb = this.buildDbTimingRows();
+      // Priorizar Jolpica cuando hay resultado oficial (OpenF1 puede quedar en orden en pista).
+      if (fromDb.length && this.hasOfficialRaceClassification()) return fromDb;
+    }
+
     if (!this.liveDataActive()) {
       const fromDb = this.buildDbTimingRows();
       if (fromDb.length) return fromDb;
@@ -510,17 +525,11 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
     this.loadSessionData(key);
   });
 
-  /** Carrera/sprint finalizada: tabla desde `/jolpica/results/:round` (DB). */
+  /** Carrera/sprint: clasificación oficial desde `/jolpica/results/:round` (aunque OpenF1 siga activo). */
   private readonly dbRaceResultsEffect = effect(() => {
     const race = this.currentRace();
     const sk = this.sessionKey();
-    const openKey = this.openF1SessionKey();
-    const effective = this.effectiveOpenF1Key();
-    if (!race || openKey !== null || effective !== null) {
-      untracked(() => this.sessionRaceResults.set(null));
-      return;
-    }
-    if (sk !== 'race' && sk !== 'sprint') {
+    if (!race || (sk !== 'race' && sk !== 'sprint')) {
       untracked(() => this.sessionRaceResults.set(null));
       return;
     }
