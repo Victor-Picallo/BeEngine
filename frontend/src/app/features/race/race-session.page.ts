@@ -28,6 +28,7 @@ import type {
   JolpikaConstructorStanding, JolpikaDriverStanding, JolpikaLastRace,
   OpenF1Driver, OpenF1Interval, OpenF1Lap, OpenF1Location, OpenF1Position,
   OpenF1RaceControl, OpenF1Session, OpenF1Stint, OpenF1TeamRadio,   OpenF1Weather,
+  JolpikaLastRaceResult,
   JolpikaRaceResult,
   RadioMessage, SectorColor, TimingDriver, TireType,
 } from '../f1-live/f1-live.types';
@@ -370,9 +371,11 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
   timingRows = computed<TimingDriver[]>(() => {
     const sk = this.sessionKey();
     if (sk === 'race' || sk === 'sprint') {
-      const fromDb = this.buildDbTimingRows();
-      // Priorizar Jolpica cuando hay resultado oficial (OpenF1 puede quedar en orden en pista).
-      if (fromDb.length && this.hasOfficialRaceClassification()) return fromDb;
+      // Clasificación Jolpica + telemetría OpenF1 (vueltas, sectores, gomas).
+      if (this.hasOfficialRaceClassification()) {
+        const official = this.buildOfficialTimingRows();
+        if (official.length) return official;
+      }
     }
 
     if (!this.liveDataActive()) {
@@ -567,14 +570,16 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
     this.loadAll();
     interval(1_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.now.set(new Date()));
     interval(10_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      if (!this.liveDataActive()) return;
+      if (!this.shouldPollOpenF1Telemetry()) return;
       const key = this.effectiveOpenF1Key();
       if (key === null) return;
-      this.service.getPositions(key).subscribe({ next: p => this.positions.set(p), error: () => {} });
-      this.service.getIntervals(key).subscribe({ next: i => this.intervals.set(i), error: () => {} });
+      if (this.liveDataActive()) {
+        this.service.getPositions(key).subscribe({ next: p => this.positions.set(p), error: () => {} });
+        this.service.getIntervals(key).subscribe({ next: i => this.intervals.set(i), error: () => {} });
+      }
     });
     interval(15_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      if (!this.liveDataActive()) return;
+      if (!this.shouldPollOpenF1Telemetry()) return;
       const key = this.effectiveOpenF1Key();
       if (key === null) return;
       this.service.getLaps(key).subscribe({ next: l => this.laps.set(l), error: () => {} });
@@ -586,11 +591,13 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
       this.service.getWeather(key).subscribe({ next: w => this.weather.set(w), error: () => {} });
     });
     interval(30_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      if (!this.liveDataActive()) return;
+      if (!this.shouldPollOpenF1Telemetry()) return;
       const key = this.effectiveOpenF1Key();
       if (key === null) return;
-      this.service.getRaceControl(key).subscribe({ next: r => this.raceControl.set(r), error: () => {} });
-      this.service.getTeamRadio(key).subscribe({ next: t => this.teamRadio.set(t), error: () => {} });
+      if (this.liveDataActive()) {
+        this.service.getRaceControl(key).subscribe({ next: r => this.raceControl.set(r), error: () => {} });
+        this.service.getTeamRadio(key).subscribe({ next: t => this.teamRadio.set(t), error: () => {} });
+      }
       this.service.getStints(key).subscribe({ next: s => this.stints.set(s), error: () => {} });
     });
     interval(60_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
@@ -649,6 +656,110 @@ export class RaceSessionPageComponent implements OnInit, OnDestroy {
   // before writing the signal. Without this, fast tab switches leave many
   // requests in flight and the last-resolved response wins — making all
   // tabs appear to share the same data.
+  private shouldPollOpenF1Telemetry(): boolean {
+    return this.liveDataActive() || this.hasOfficialRaceClassification();
+  }
+
+  /** Intervalo al coche de delante según tiempos oficiales (+X.XXX de Jolpica). */
+  private intervalsFromOfficialTimes(rows: JolpikaLastRaceResult[]): Map<number, string> {
+    const sorted = [...rows].sort((a, b) => a.position - b.position);
+    const gaps = sorted.map((r) => this.gapToLeaderSeconds(r.time, r.position));
+    const out = new Map<number, string>();
+    for (let i = 0; i < sorted.length; i += 1) {
+      const pos = sorted[i].position;
+      if (i === 0) {
+        out.set(pos, '—');
+        continue;
+      }
+      const prev = gaps[i - 1];
+      const cur = gaps[i];
+      if (prev == null || cur == null) {
+        out.set(pos, '—');
+        continue;
+      }
+      const delta = cur - prev;
+      out.set(pos, delta > 0 ? `+${delta.toFixed(3)}` : '—');
+    }
+    return out;
+  }
+
+  private gapToLeaderSeconds(time: string | null | undefined, position: number): number | null {
+    const t = (time ?? '').trim();
+    if (!t) return null;
+    if (position === 1 || !t.startsWith('+')) return 0;
+    const body = t.slice(1);
+    if (body.includes(':')) {
+      const parts = body.split(':').map((x) => Number.parseFloat(x));
+      if (parts.length === 2 && parts.every(Number.isFinite)) return parts[0] * 60 + parts[1];
+      if (parts.length === 3 && parts.every(Number.isFinite)) {
+        return parts[0] * 3600 + parts[1] * 60 + parts[2];
+      }
+    }
+    const n = Number.parseFloat(body);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  /** Posiciones Jolpica + gaps oficiales + vueltas/sectores/gomas OpenF1. */
+  private buildOfficialTimingRows(): TimingDriver[] {
+    const base = this.buildDbTimingRows();
+    if (!base.length) return [];
+
+    const officialRows = this.sessionRaceResults()?.results ?? [];
+    const intervalByPos = this.intervalsFromOfficialTimes(officialRows);
+
+    const byDriverId = new Map<string, OpenF1Driver>();
+    for (const d of this.openF1Drivers()) {
+      const id = jolpikaDriverIdForOpenF1(d, this.driverStands());
+      if (id) byDriverId.set(id, d);
+    }
+
+    const latestLap = this.latestLapByDriver();
+    const bestLap = this.bestLapByDriver();
+    const currStint = this.currentStintByDriver();
+
+    return base.map((row, i) => {
+      const interval = row.pos === 1 ? '—' : (intervalByPos.get(row.pos) ?? row.interval);
+      const oaf1 = row.driverId ? byDriverId.get(row.driverId) : null;
+      if (!oaf1) {
+        return { ...row, interval };
+      }
+
+      const lap = latestLap.get(oaf1.driverNumber);
+      const best = bestLap.get(oaf1.driverNumber);
+      const stint = currStint.get(oaf1.driverNumber);
+      const ll = this.fmtLap(lap?.lapDuration ?? null);
+      const bl = this.fmtLap(best?.lapDuration ?? null);
+      const s1 = this.fmtSector(lap?.durationSector1 ?? null);
+      const s2 = this.fmtSector(lap?.durationSector2 ?? null);
+      const s3 = this.fmtSector(lap?.durationSector3 ?? null);
+      const isPB = Boolean(lap && best && lap.lapNumber === best.lapNumber);
+      const sc: SectorColor = isPB ? 'sec-yellow' : 'sec-white';
+      const compound = stint?.compound?.toUpperCase() ?? '';
+      const tire: TireType = COMPOUND_MAP[compound] ?? row.tire;
+      const lapNum = lap?.lapNumber ?? row.laps;
+      const tyreAge =
+        stint?.lapStart != null && lapNum > 0 ? lapNum - stint.lapStart + 1 : row.tyreAge;
+
+      return {
+        ...row,
+        num: oaf1.driverNumber,
+        interval,
+        lastLap: ll,
+        bestLap: bl !== '—' ? bl : row.bestLap,
+        tire,
+        tyreAge,
+        laps: lapNum || row.laps,
+        s1,
+        s2,
+        s3,
+        s1c: s1 === '—' ? 'sec-white' : sc,
+        s2c: s2 === '—' ? 'sec-white' : sc,
+        s3c: s3 === '—' ? 'sec-white' : sc,
+        speed: lap?.stSpeed ?? lap?.i2Speed ?? row.speed,
+      };
+    });
+  }
+
   private buildDbTimingRows(): TimingDriver[] {
     const sk = this.sessionKey();
     if (sk !== 'race' && sk !== 'sprint') return [];
