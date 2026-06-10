@@ -177,7 +177,7 @@ export class F1DriverProfilePageComponent {
       isMotoPulseSeries(sid) || sid === 'f2' || sid === 'f3'
         ? p?.headshotUrl
         : this.openf1()?.headshotUrl;
-    return resolveDriverHeadshotUrl(p?.driverId ?? '', full, mediaUrl, {
+    return resolveDriverHeadshotUrl(p?.driverId ?? '', full, mediaUrl ?? p?.headshotUrl, {
       // F2/F3: «card» = imagen completa; «large» solo en clasificación.
       ...(sid === 'f2' || sid === 'f3' ? { size: 'card' as const } : {}),
       seriesId: sid,

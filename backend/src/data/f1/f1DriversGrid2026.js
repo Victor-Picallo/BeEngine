@@ -18,7 +18,7 @@ export const F1_DRIVERS_GRID_2026 = [
   { driverId: 'sainz', givenName: 'Carlos', familyName: 'Sainz', driver: 'Carlos Sainz', team: 'Williams', nationality: 'Spanish', gridOrder: 9 },
   { driverId: 'albon', givenName: 'Alexander', familyName: 'Albon', driver: 'Alexander Albon', team: 'Williams', nationality: 'Thai', gridOrder: 10 },
   { driverId: 'lawson', givenName: 'Liam', familyName: 'Lawson', driver: 'Liam Lawson', team: 'Racing Bulls', nationality: 'New Zealander', gridOrder: 11 },
-  { driverId: 'arvid_lindblad', givenName: 'Arvid', familyName: 'Lindblad', driver: 'Arvid Lindblad', team: 'Racing Bulls', nationality: 'British', gridOrder: 12 },
+  { driverId: 'arvid_lindblad', givenName: 'Arvid', familyName: 'Lindblad', driver: 'Arvid Lindblad', team: 'Racing Bulls', nationality: 'British', gridOrder: 12, headshotUrl: 'https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/A/ARVLIN01_Arvid_Lindblad/arvlin01.png.transform/1col/image.png' },
   { driverId: 'alonso', givenName: 'Fernando', familyName: 'Alonso', driver: 'Fernando Alonso', team: 'Aston Martin', nationality: 'Spanish', gridOrder: 13 },
   { driverId: 'stroll', givenName: 'Lance', familyName: 'Stroll', driver: 'Lance Stroll', team: 'Aston Martin', nationality: 'Canadian', gridOrder: 14 },
   { driverId: 'ocon', givenName: 'Esteban', familyName: 'Ocon', driver: 'Esteban Ocon', team: 'Haas F1 Team', nationality: 'French', gridOrder: 15 },

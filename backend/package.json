@@ -5,6 +5,9 @@
   "main": "src/server.js",
   "type": "module",
   "scripts": {
+    "postinstall": "npm run db:generate",
+    "prerefresh": "npm run db:generate",
+    "predb:sync": "npm run db:generate",
     "start": "node src/server.js",
     "dev": "node src/server.js",
     "db:generate": "prisma generate",
@@ -60,5 +63,8 @@
   "devDependencies": {
     "prisma": "^7.8.0",
     "svg-path-properties": "^2.0.2"
+  },
+  "overrides": {
+    "@hono/node-server": "1.19.13"
   }
 }

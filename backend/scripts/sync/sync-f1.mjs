@@ -92,11 +92,13 @@ async function syncGrid() {
         givenName: d.givenName,
         familyName: d.familyName,
         nationality: d.nationality?.slice(0, 8) ?? null,
+        headshotUrl: d.headshotUrl ?? null,
       },
       update: {
         givenName: d.givenName,
         familyName: d.familyName,
         nationality: d.nationality?.slice(0, 8) ?? null,
+        headshotUrl: d.headshotUrl ?? null,
       },
     });
 
@@ -109,12 +111,14 @@ async function syncGrid() {
         displayName: d.driver,
         teamName,
         gridOrder: d.gridOrder,
+        headshotUrl: d.headshotUrl ?? null,
       },
       update: {
         constructorId,
         displayName: d.driver,
         teamName,
         gridOrder: d.gridOrder,
+        headshotUrl: d.headshotUrl ?? null,
       },
     });
   }

@@ -81,6 +81,11 @@ export const TEAM_COLORS: Record<string, string> = {
   'lcr honda': '#E31937',
 };
 
+const F1_HEADSHOT_FALLBACKS: Record<string, string> = {
+  arvid_lindblad:
+    'https://atblwzqopumnejsjvaxd.supabase.co/storage/v1/object/public/beengine-media/f1/drivers/arvid_lindblad.webp',
+};
+
 /** Claves ordenadas de más larga a más corta para resolver por substring (MotoGP, etc.). */
 const TEAM_COLOR_KEYS = Object.keys(TEAM_COLORS).sort((a, b) => b.length - a.length);
 
@@ -243,13 +248,18 @@ export function resolveDriverHeadshotUrl(
   options?: { size?: 'card' | 'large'; seriesId?: SeriesId },
 ): string {
   const apiUrl = (apiHeadshotUrl && String(apiHeadshotUrl).trim()) || '';
-  if (!apiUrl) return '';
 
   const sid = options?.seriesId;
+  const driverId = String(_driverId || '').trim().toLowerCase();
+  const fallbackUrl =
+    sid === 'f1' || !sid ? F1_HEADSHOT_FALLBACKS[driverId] ?? '' : '';
+  const sourceUrl = fallbackUrl || apiUrl;
+  if (!sourceUrl) return '';
+
   if (sid === 'moto2') return moto2DriverHeadshotUrl(_driverId, apiHeadshotUrl) ?? '';
   if (sid === 'moto3') return moto3DriverHeadshotUrl(_driverId, apiHeadshotUrl) ?? '';
-  if (sid === 'f1' || !sid) return hiResF1HeadshotUrl(apiUrl);
-  return apiUrl;
+  if (sid === 'f1' || !sid) return hiResF1HeadshotUrl(sourceUrl);
+  return sourceUrl;
 }
 
 /** Fallback secundario en `<img>`: misma URL que el API (sin transform local). */
