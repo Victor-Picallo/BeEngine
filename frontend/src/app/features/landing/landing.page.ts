@@ -226,12 +226,12 @@ export class LandingPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   newsAccent(cat: string): string {
     const map: Record<string, string> = {
-      f1: '#E10600',
-      f2: '#0090D4',
-      f3: '#E8A200',
-      motogp: '#CC0000',
-      moto2: '#00853F',
-      moto3: '#0066B1',
+      f1: '#FFD100',
+      f2: '#0090FF',
+      f3: '#9E9E9E',
+      motogp: '#0052CC',
+      moto2: '#FF6B35',
+      moto3: '#52C41A',
     };
     return map[cat] ?? '#FFD100';
   }
