@@ -26,10 +26,16 @@ export const appConfig: ApplicationConfig = {
         if (!auth.session() || auth.isPasswordRecovery()) return;
         await auth.refreshProfile();
         auth.clearOAuthHashFromUrl();
-        if (!auth.needsOnboarding()) return;
+        if (auth.needsOnboarding()) {
+          const path = router.url.split('?')[0] ?? '';
+          if (path === '/login') return;
+          await router.navigate(['/login'], { queryParams: { tab: 'onboarding' } });
+          return;
+        }
         const path = router.url.split('?')[0] ?? '';
-        if (path === '/login') return;
-        await router.navigate(['/login'], { queryParams: { tab: 'onboarding' } });
+        if (path === '/') {
+          await router.navigate(['/inicio']);
+        }
       },
       deps: [AuthService, Router],
     },

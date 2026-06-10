@@ -165,7 +165,7 @@ export class AuthLoginPageComponent implements OnInit {
         return;
       }
       if (tab !== 'register' && tab !== 'registro') {
-        void this.router.navigateByUrl('/');
+        void this.router.navigateByUrl('/inicio');
         return;
       }
     }
@@ -294,7 +294,7 @@ export class AuthLoginPageComponent implements OnInit {
       this.passwordConfirm = '';
       this.doneHint.set('Ya puedes usar tu nueva contraseña.');
       this.done.set(true);
-      window.setTimeout(() => void this.router.navigateByUrl('/'), 1500);
+      window.setTimeout(() => void this.router.navigateByUrl('/inicio'), 1500);
     });
   }
 
@@ -317,7 +317,7 @@ export class AuthLoginPageComponent implements OnInit {
       await this.auth.bootstrapProfile(displayName, this.buildFavoriteDtos());
       this.doneHint.set('Tus favoritos ya están guardados.');
       this.done.set(true);
-      window.setTimeout(() => void this.router.navigateByUrl('/'), 1200);
+      window.setTimeout(() => void this.router.navigateByUrl('/inicio'), 1200);
     });
   }
 
@@ -379,7 +379,7 @@ export class AuthLoginPageComponent implements OnInit {
       if (this.mode() === 'login') {
         await this.auth.signInWithPassword(email, this.password);
         this.done.set(true);
-        window.setTimeout(() => void this.router.navigateByUrl('/'), 1200);
+        window.setTimeout(() => void this.router.navigateByUrl('/inicio'), 1200);
         return;
       }
 
