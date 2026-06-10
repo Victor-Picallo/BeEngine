@@ -3,9 +3,7 @@
  *
  *   npm run refresh
  *   npm run refresh:weekend
- *   npm run refresh -- --no-storage   (sync + enrich + verify + smoke, sin Supabase)
  *
- * Pasos: sync → circuitos → storage (todo) → verify 100% → smoke DB
  */
 import 'dotenv/config';
 import { spawn } from 'node:child_process';
