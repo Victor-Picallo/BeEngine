@@ -99,7 +99,7 @@ En producción, `FRONTEND_URL` debe ser la URL pública del frontend (sin localh
 
 En `frontend/src/environments/environment.ts`:
 
-- `apiUrl` → URL del API desplegado (ej. `https://beengine.onrender.com/api`)
+- `apiUrl` → URL del API desplegado (ej. antes: `https://beengine.onrender.com/api` nuevo: `https://be-engine-api.vercel.app/api` )
 
 Con `ng serve` se usa `environment.development.ts` (API local).
 
@@ -110,7 +110,9 @@ Con `ng serve` se usa `environment.development.ts` (API local).
 | Parte | Dónde suele ir |
 |-------|----------------|
 | Frontend | Vercel |
-| Backend | Render |
+| Backend | Antes: Render Actualizado: Vercel |
+
+Lo he cambiado a Vercel para evitar que la aplicacion se duerma
 
 **Google OAuth (Supabase):**
 
