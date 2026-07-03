@@ -28,10 +28,16 @@ export function openF1SessionKeyFromName(sessionName: string): SessionKey {
   return OPENF1_SESSION_TO_KEY[sessionName] ?? 'race';
 }
 
+const LIVE_GRACE_MS = 30 * 60_000;
+
 export function isOpenF1SessionLive(session: OpenF1Session, nowMs = Date.now()): boolean {
   const start = Date.parse(session.dateStart);
   const end = Date.parse(session.dateEnd);
-  return Number.isFinite(start) && Number.isFinite(end) && nowMs >= start && nowMs <= end;
+
+  if (!Number.isFinite(start)) return false;
+  if (!Number.isFinite(end)) return nowMs >= start;
+
+  return nowMs >= start && nowMs <= end + LIVE_GRACE_MS;
 }
 
 /** Sesión en curso de un GP concreto (para enlaces desde el calendario). */

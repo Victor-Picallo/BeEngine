@@ -42,7 +42,9 @@ const fetchOnce = async (path, timeoutMs) => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
+      console.debug(`[pulselive] fetchOnce start: ${url} (attempt ${burst + 1})`);
       const res = await fetch(url, { signal: controller.signal });
+      console.debug(`[pulselive] fetchOnce response: ${res.status} ${res.statusText} for ${url}`);
       if (res.status === 429 && burst < 3) {
         await sleep(650 + burst * 350);
         continue;
@@ -53,7 +55,9 @@ const fetchOnce = async (path, timeoutMs) => {
       }
       if (!res.ok) throw new Error(`PulseLive HTTP ${res.status}: ${res.statusText}`);
       const body = await res.text();
+      console.debug(`[pulselive] fetchOnce body length=${String(body).length} for ${url}`);
       if (!body.trim()) {
+        console.debug(`[pulselive] fetchOnce empty body for ${url}`);
         if (path.includes('livetiming')) return { head: null, rider: {} };
         return [];
       }
