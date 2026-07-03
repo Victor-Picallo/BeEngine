@@ -1,7 +1,8 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://beengine.onrender.com/api',
+  apiUrl: 'be-engine-api.vercel.app',
   /**
+   * https://beengine.onrender.com/api
    * URL pública del Angular en producción (sin barra final).
    * Si está vacío, se usa window.location.origin o /auth/config.
    */
